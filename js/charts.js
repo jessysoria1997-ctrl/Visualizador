@@ -104,7 +104,8 @@ function vacio(idCanvas, clave, texto) {
  */
 function actualizarGraficos(estado, agregado, registros) {
   const dig = CONFIG.dignidades.find(d => d.id === estado.dignidad);
-  const nivelTxt = dig.nivel === 'provincia' ? 'provincia' : 'cantón';
+  const nivelTxt = (typeof nivelTexto === 'function') ? nivelTexto(dig.nivel)
+    : (dig.nivel === 'provincia' ? 'provincia' : 'cantón');
   const acento = CONFIG.paleta[estado.dignidad].acento;
 
   /* — 1 · Top 10 territorios — */
@@ -133,7 +134,8 @@ function actualizarGraficos(estado, agregado, registros) {
   const distProv = !estado.provK;
   const dist = distProv
     ? agregado.filas.slice()
-    : agregar(estado.dignidad, 'canton', { provK: estado.provK }).filas;
+    : agregar(estado.dignidad, dig.nivel === 'provincia' ? 'canton' : dig.nivel,
+              { provK: estado.provK }).filas;
 
   document.getElementById('g2-sub').textContent = distProv
     ? `Preinscritos por ${nivelTxt} · orden descendente`

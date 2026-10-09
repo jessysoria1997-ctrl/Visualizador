@@ -69,6 +69,16 @@ const ESTILO = {
 
 /** ¿Este polígono forma parte del territorio filtrado? */
 function enFoco(feature, estado, nivel) {
+  if (nivel === 'parroquia') {
+    if (estado.parrK) {
+      return feature.__provK === estado.provK && feature.__cantK === estado.cantK &&
+             feature.__key === estado.parrK;
+    }
+    if (estado.cantK) {
+      return feature.__provK === estado.provK && feature.__cantK === estado.cantK;
+    }
+    return !estado.provK || feature.__provK === estado.provK;
+  }
   if (estado.cantK && nivel === 'canton') {
     return feature.__provK === estado.provK && feature.__key === estado.cantK;
   }
@@ -198,7 +208,9 @@ function enlazarInteraccion(feature, layer, nivel) {
         MAPA.onSeleccion({
           nivel,
           provK: feature.__provK,
-          cantK: nivel === 'canton' ? feature.__key : '',
+          cantK: nivel === 'canton' ? feature.__key
+               : nivel === 'parroquia' ? feature.__cantK : '',
+          parrK: nivel === 'parroquia' ? feature.__key : '',
           nombre: feature.__nombre,
           provincia: feature.__provNombre
         });
@@ -207,10 +219,17 @@ function enlazarInteraccion(feature, layer, nivel) {
   });
 }
 
+/** Nombre del nivel geográfico, para los textos del mapa. */
+function nivelTexto(nivel, may = false) {
+  const t = nivel === 'provincia' ? 'provincia' : nivel === 'parroquia' ? 'parroquia' : 'cantón';
+  return may ? t.charAt(0).toUpperCase() + t.slice(1) : t;
+}
+
 /** Construye el HTML del tooltip de un territorio. */
 function tooltipHTML(feature, nivel, dato, estado) {
   const dig = CONFIG.dignidades.find(d => d.id === estado.dignidad);
-  const nivelTxt = nivel === 'provincia' ? 'Provincial' : 'Cantonal';
+  const nivelTxt = nivel === 'provincia' ? 'Provincial'
+                 : nivel === 'parroquia' ? 'Parroquial' : 'Cantonal';
   const valor = dato ? dato.valor : 0;
   const pct   = dato ? dato.pct : 0;
   const rank  = dato ? dato.ranking : '—';
@@ -222,6 +241,8 @@ function tooltipHTML(feature, nivel, dato, estado) {
       <div class="tt-titulo">${feature.__nombre}</div>
       ${nivel === 'canton'
         ? `<div class="tt-sub">${tituloCase(feature.__provNombre)}</div>` : ''}
+      ${nivel === 'parroquia'
+        ? `<div class="tt-sub">${tituloCase(feature.__cantNombre || '')} · ${tituloCase(feature.__provNombre || '')}</div>` : ''}
       <div class="tt-metricas">
         <div><span>Preinscritos</span><b>${fmtNum(valor)}</b></div>
         <div><span>Participación</span><b>${fmtPct(pct)}</b></div>
@@ -265,13 +286,19 @@ function pintarMapa(estado, agregado) {
     .map(f => f.valor);
   MAPA.clases = calcularCortes(valoresEscala);
 
-  /* 2 · Elegir capa de relleno y capa de líneas según la dignidad */
-  const capaRelleno = nivel === 'provincia' ? MAPA.capas.provincias : MAPA.capas.cantones;
-  const capaOtra    = nivel === 'provincia' ? MAPA.capas.cantones   : MAPA.capas.provincias;
+  /* 2 · Elegir capa de relleno y capa de líneas según la dignidad.
+     En análisis parroquial se colorea la capa de parroquias; mientras no haya
+     llegado (se descarga después del primer pintado) se usa la cantonal, que
+     queda en gris hasta que el repintado la sustituya. */
+  const capaParroquial = capaRellenoParroquial();
+  const nivelPintado = (nivel === 'parroquia' && capaParroquial) ? 'parroquia' : nivel;
+  const capaRelleno = nivelPintado === 'provincia' ? MAPA.capas.provincias
+                    : nivelPintado === 'parroquia' ? capaParroquial : MAPA.capas.cantones;
   const capaLineas  = nivel === 'provincia' ? MAPA.capas.divCantonal : MAPA.capas.divProvincial;
   const otrasLineas = nivel === 'provincia' ? MAPA.capas.divProvincial : MAPA.capas.divCantonal;
 
-  if (map.hasLayer(capaOtra)) map.removeLayer(capaOtra);
+  [MAPA.capas.provincias, MAPA.capas.cantones, MAPA.capas.parroquiasRelleno]
+    .forEach(c => { if (c && c !== capaRelleno && map.hasLayer(c)) map.removeLayer(c); });
   if (!map.hasLayer(capaRelleno)) capaRelleno.addTo(map);
 
   if (map.hasLayer(otrasLineas)) map.removeLayer(otrasLineas);
@@ -291,6 +318,8 @@ function pintarMapa(estado, agregado) {
         });
       }
       const clave = estado.provK + '|' + estado.cantK;
+      /* Con la coropleta parroquial sobran las líneas: cada parroquia ya se
+         dibuja con su propio borde. */
       const parrs = (MAPA.opciones.parroquias && estado.cantK && nivel === 'canton')
         ? (TERRITORIO.parroquiasPorCant.get(clave) || []) : [];
 
@@ -311,10 +340,11 @@ function pintarMapa(estado, agregado) {
   /* 3 · Estilar cada polígono */
   capaRelleno.eachLayer(l => {
     const f = l.feature;
-    const dato = nivel === 'provincia'
-      ? agregado.indice.get(f.__provK)
-      : agregado.indice.get(f.__provK + '|' + f.__key);
-    const dentro = enFoco(f, estado, nivel);
+    const dato = nivelPintado === 'provincia' ? agregado.indice.get(f.__provK)
+      : nivelPintado === 'parroquia'
+        ? agregado.indice.get(f.__provK + '|' + f.__cantK + '|' + f.__key)
+        : agregado.indice.get(f.__provK + '|' + f.__key);
+    const dentro = enFoco(f, estado, nivelPintado);
 
     if (dentro) {
       const color = dato ? colorDe(dato.valor, MAPA.clases, estado.dignidad)
@@ -332,14 +362,14 @@ function pintarMapa(estado, agregado) {
 
     l.unbindTooltip();
     if (l.__activo) {
-      l.bindTooltip(() => tooltipHTML(f, nivel, dato, estado), {
+      l.bindTooltip(() => tooltipHTML(f, nivelPintado, dato, estado), {
         sticky: true, direction: 'top', className: 'tt-wrap', opacity: 1
       });
     }
   });
 
   /* Las líneas divisorias se recortan al territorio filtrado. */
-  capaLineas.setStyle(f => lineaEnFoco(f, estado, nivel)
+  capaLineas.setStyle(f => lineaEnFoco(f, estado, nivel === 'parroquia' ? 'canton' : nivel)
     ? (nivel === 'provincia' ? ESTILO.divisionFina : ESTILO.divisionGruesa)
     : ESTILO.oculto);
 
@@ -347,6 +377,11 @@ function pintarMapa(estado, agregado) {
   MAPA.capas.seleccion.clearLayers();
   const sel = territorioSeleccionado(estado);
   if (sel) MAPA.capas.seleccion.addData(sel.feature);
+
+  if (nivelPintado === 'parroquia') {
+    MAPA.parroquiasVisibles = (DATOS.geo.parroquias.features || [])
+      .filter(f => enFoco(f, estado, 'parroquia'));
+  }
 
   /* 5 · Etiquetas, leyenda y controles.
      Son adornos del mapa: si alguno falla, la coropleta ya está pintada y
@@ -361,8 +396,30 @@ function pintarMapa(estado, agregado) {
   }
 }
 
+/**
+ * Capa de relleno con todas las parroquias, para el análisis parroquial.
+ * Se crea la primera vez que hace falta: la capa parroquial llega después del
+ * primer pintado y no todas las dignidades la necesitan.
+ */
+function capaRellenoParroquial() {
+  if (MAPA.capas.parroquiasRelleno) return MAPA.capas.parroquiasRelleno;
+  if (!DATOS.geo.parroquias || !TERRITORIO.parroquiasPorCant.size) return null;
+  MAPA.capas.parroquiasRelleno = L.geoJSON(DATOS.geo.parroquias, {
+    pane: 'paneTerritorios',
+    style: () => ESTILO.contexto,
+    /* Las parroquias que no cuelgan de ningún cantón no se dibujan: no tienen
+       claves con las que cruzar los datos. */
+    filter: (f) => !!f.__provK,
+    onEachFeature: (f, l) => enlazarInteraccion(f, l, 'parroquia')
+  });
+  return MAPA.capas.parroquiasRelleno;
+}
+
 /** Devuelve el objeto territorial actualmente seleccionado, si lo hay. */
 function territorioSeleccionado(estado) {
+  if (estado.parrK) {
+    return TERRITORIO.porParrK.get(estado.provK + '|' + estado.cantK + '|' + estado.parrK);
+  }
   if (estado.cantK) return TERRITORIO.porCantK.get(estado.provK + '|' + estado.cantK);
   if (estado.provK) return TERRITORIO.porProvK.get(estado.provK);
   return null;
@@ -424,9 +481,17 @@ function irACanton(provK, cantK, animar = true) {
   MAPA.map.fitBounds(b, { padding: [24, 24], animate: animar });
 }
 
+function irAParroquia(provK, cantK, parrK, animar = true) {
+  const p = TERRITORIO.porParrK.get(provK + '|' + cantK + '|' + parrK);
+  if (!p) return irACanton(provK, cantK, animar);
+  const b = L.geoJSON(p.feature).getBounds().pad(0.35);
+  MAPA.map.fitBounds(b, { padding: [24, 24], animate: animar });
+}
+
 /** Encuadre automático coherente con los filtros activos. */
 function encuadrar(estado, animar = true) {
-  if (estado.cantK)      irACanton(estado.provK, estado.cantK, animar);
+  if (estado.parrK)      irAParroquia(estado.provK, estado.cantK, estado.parrK, animar);
+  else if (estado.cantK) irACanton(estado.provK, estado.cantK, animar);
   else if (estado.provK) irAProvincia(estado.provK, animar);
   else                   irAEcuador(animar);
 }
@@ -523,7 +588,7 @@ function agregarControles(map) {
       if (!this._c || !MAPA.estado) return;
       const est = MAPA.estado;
       const dig = CONFIG.dignidades.find(d => d.id === est.dignidad);
-      const nivelTxt = dig.nivel === 'provincia' ? 'provincia' : 'cantón';
+      const nivelTxt = nivelTexto(dig.nivel);
       const clases = MAPA.clases;
 
       let filas = clases.map((c, i) => {
@@ -537,7 +602,7 @@ function agregarControles(map) {
 
       /* El alcance de la escala se hace explícito para evitar lecturas
          erróneas al comparar mapas de distintos filtros. */
-      const alcance = (dig.nivel === 'canton' && est.provK)
+      const alcance = (dig.nivel !== 'provincia' && est.provK)
         ? tituloCase((TERRITORIO.porProvK.get(est.provK) || {}).nombre || '')
         : 'nacional';
 

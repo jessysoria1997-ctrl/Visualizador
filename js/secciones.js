@@ -20,10 +20,21 @@ const SEC = {
     historico: { dignidad: 'ALCALDES', provK: '', cantK: '', parrK: '' },
     etario: { grupo: 0 }          // vive en Preinscritos; sin año, siempre 2027
   },
-  /* Año y variable del mapa electoral. Viven aquí y solo afectan al mapa:
-     ningún otro gráfico, tarjeta o tabla depende de ellos. */
+  /* Año y variable del mapa electoral.
+     El AÑO es el de toda la sección: lo comparten el mapa y la tarjeta
+     «Participantes por año», así que elegirlo en cualquiera de los dos mueve
+     también el otro. La VARIABLE sigue siendo solo del mapa.
+     Lo demás —tarjetas, evolución, fragmentación, nulos y blancos— compara
+     los cinco años a la vez y no depende de esta elección. */
   mapa: { anio: null, variable: 'pctValidos' },
+  /* Serie y contexto del último render, para repintar al cambiar de año sin
+     recalcularlo todo. */
+  serie: null,
+  hayCandidato: false,
+  dignidadPintada: null,
   mapas: { electoral: null },
+  /* Dignidad de cada sección en el último cambio de sección: {pre, hist}. */
+  parDignidad: null,
   cacheParr: new Map(),
   graficos: {}
 };
@@ -62,11 +73,15 @@ async function prepararSecciones() {
 
 async function activarSeccion(id) {
   if (SEC.activa === id || SEC.cargando) return;
+  /* El territorio viaja entre las tres secciones: lo último que se eligió
+     manda. Preinscritos e Histórico ya se copiaban entre sí; esto trae lo que
+     se haya elegido en Asignación antes de salir de ella. */
+  if (SEC.activa === 'asignacion') sincronizarDesdeAsignacion();
   SEC.activa = id;
 
   document.querySelectorAll('[data-seccion]').forEach(b =>
     b.classList.toggle('activa', b.dataset.seccion === id));
-  ['preinscritos', 'historico'].forEach(v => {
+  ['preinscritos', 'historico', 'asignacion'].forEach(v => {
     const vista = document.getElementById('vista-' + v);
     const panel = document.getElementById('filtros-' + v);
     if (vista) vista.hidden = v !== id;
@@ -85,13 +100,25 @@ async function activarSeccion(id) {
   mostrarProgreso(true);
   try {
     await cargarBase('historico');
+
+    /* Asignación de escaños: vive en js/asignacion.js y usa la misma base del
+       histórico para traer los votos reales de una elección. */
+    if (id === 'asignacion') {
+      if (typeof abrirAsignacion === 'function') await abrirAsignacion();
+      else mostrarError('No se pudo abrir la sección de asignación.',
+                        new Error('falta js/asignacion.js'));
+      return;
+    }
+
     await cargarBase('postulantes');
     sincronizarDesdePreinscritos();
     if (typeof aplicarAlcanceEstado === 'function') aplicarAlcanceEstado();
     construirPanelHistorico();
     renderHistorico();
   } catch (e) {
-    mostrarError('No se pudo abrir la sección de histórico electoral.', e);
+    mostrarError(id === 'asignacion'
+      ? 'No se pudo abrir la sección de asignación de escaños.'
+      : 'No se pudo abrir la sección de histórico electoral.', e);
   } finally {
     SEC.cargando = false;
     mostrarProgreso(false);
@@ -107,33 +134,96 @@ async function activarSeccion(id) {
    por algo que ocurre en la otra mientras está oculta.
    ------------------------------------------------------------------------- */
 
+/*  Dignidad: cada sección adopta la de la otra —prefectos, alcaldes y
+    concejales urbanos y rurales existen en las dos— y, si no la tiene
+    (vocales, o concejales sin datos históricos para este usuario), conserva
+    la suya. Si al volver la otra sección no cambió de dignidad, cada una
+    recupera la que tenía. */
+
+/** Dignidad del histórico que corresponde a una de Preinscritos, o null. */
+function dignidadHistoricaDe(pre) {
+  if (!(pre in HIST.votos)) return null;
+  /* Concejales: solo si este usuario tiene datos; si no, su botón no aparece. */
+  return esDignidadSoloHistorico(pre) && !HIST.votos[pre].length ? null : pre;
+}
+
+/** Dignidad de Preinscritos que corresponde a una del histórico, o null. */
+function dignidadPreinscritosDe(hist) {
+  return CONFIG.dignidades.some(d => d.id === hist) ? hist : null;
+}
+
+/**
+ * Devuelve la parroquia si el histórico la ofrece para esa dignidad (las
+ * juntas parroquiales solo listan las rurales, por ejemplo) y '' si no.
+ */
+function parroquiaDisponibleHistorico(dignidad, provK, cantK, parrK) {
+  if (!parrK || !provK || !cantK || typeof TERRITORIO === 'undefined') return '';
+  return parroquiasSeleccionables({ dignidad, provK, cantK })
+    .some(x => x.__key === parrK) ? parrK : '';
+}
+
 /** Preinscritos → Histórico. */
 function sincronizarDesdePreinscritos() {
   if (typeof ESTADO === 'undefined') return;
   const f = SEC.filtros.historico;
-  /* La parroquia solo sobrevive si sigue dentro del mismo cantón; Preinscritos
-     no tiene selector parroquial, así que ese nivel lo conserva el histórico. */
+  /* La parroquia solo sobrevive si sigue dentro del mismo cantón. */
   if (f.provK !== ESTADO.provK || f.cantK !== ESTADO.cantK) f.parrK = '';
   f.provK = ESTADO.provK;
   f.cantK = ESTADO.cantK;
-  f.dignidad = ESTADO.dignidad;
+  const par = SEC.parDignidad;
+  f.dignidad = (par && par.pre === ESTADO.dignidad) ? par.hist
+             : (dignidadHistoricaDe(ESTADO.dignidad) || f.dignidad);
+  SEC.parDignidad = { pre: ESTADO.dignidad, hist: f.dignidad };
+  /* Preinscritos tiene selector parroquial en las dignidades que se eligen por
+     parroquia: si hay una elegida y el histórico la ofrece para su dignidad, se
+     adopta; si no, el histórico conserva la que tenía. */
+  const p = parroquiaDisponibleHistorico(f.dignidad, f.provK, f.cantK, ESTADO.parrK);
+  if (p) f.parrK = p;
+}
+
+/** Asignación → Histórico y Preinscritos. Solo viaja el territorio: la
+    dignidad de Asignación es siempre de concejales y no tiene por qué
+    arrastrar a las otras secciones. */
+function sincronizarDesdeAsignacion() {
+  if (typeof ASIG === 'undefined' || !ASIG.origen || !ASIG.origen.provK) return;
+  const o = ASIG.origen;
+  const f = SEC.filtros.historico;
+  if (f.provK !== o.provK || f.cantK !== o.cantK) f.parrK = '';
+  f.provK = o.provK;
+  f.cantK = o.cantK || '';
+  if (typeof ESTADO !== 'undefined') {
+    if (ESTADO.provK !== o.provK || ESTADO.cantK !== o.cantK) {
+      ESTADO.parrK = '';
+      ESTADO.pagina = 1;
+    }
+    ESTADO.provK = o.provK;
+    ESTADO.cantK = o.cantK || '';
+  }
 }
 
 /** Histórico → Preinscritos. */
 function sincronizarHaciaPreinscritos() {
   if (typeof ESTADO === 'undefined') return;
   const f = SEC.filtros.historico;
+  const par = SEC.parDignidad;
+  const dignidad = (par && par.hist === f.dignidad) ? par.pre
+                 : (dignidadPreinscritosDe(f.dignidad) || ESTADO.dignidad);
+  SEC.parDignidad = { pre: dignidad, hist: f.dignidad };
+  /* La parroquia solo viaja a las dignidades que se eligen por parroquia: en
+     las demás, Preinscritos no tiene ese nivel. */
+  const dp = CONFIG.dignidades.find(d => d.id === dignidad);
+  const parrK = (dp && dp.nivel === 'parroquia' && f.cantK) ? f.parrK : '';
   if (ESTADO.provK === f.provK && ESTADO.cantK === f.cantK &&
-      ESTADO.dignidad === f.dignidad) return;
+      ESTADO.parrK === parrK && ESTADO.dignidad === dignidad) return;
 
   ESTADO.provK = f.provK;
   ESTADO.cantK = f.cantK;
-  ESTADO.dignidad = f.dignidad;
+  ESTADO.parrK = parrK;
+  ESTADO.dignidad = dignidad;
   ESTADO.pagina = 1;
 
   /* Los botones de dignidad de Preinscritos reflejan el cambio. */
-  document.querySelectorAll('#sel-dignidad [data-dig]').forEach(b =>
-    b.classList.toggle('activo', b.dataset.dig === ESTADO.dignidad));
+  if (typeof marcarDignidad === 'function') marcarDignidad();
   if (typeof sincronizarSelectores === 'function') sincronizarSelectores();
   if (typeof render === 'function') render({ encuadrar: true });
 }
@@ -156,8 +246,12 @@ async function cargarBase(que) {
       HIST.cantones.forEach((v, i) => HIST.iCant.set(v, i));
       HIST.parroquias.forEach((v, i) => HIST.iParr.set(v, i));
       HIST.anios.forEach((v, i) => HIST.iAnio.set(v, i));
+      await sumarDignidadesHistorico();
     }
-    if (que === 'postulantes') Object.assign(POST, j);
+    if (que === 'postulantes') {
+      Object.assign(POST, j);
+      sumarPostulantesHistorico();
+    }
     if (que === 'etario') Object.assign(ETARIO, j);
     SEC.listas[que] = true;
     if (typeof podarPorAlcance === 'function') podarPorAlcance();
@@ -168,10 +262,194 @@ async function cargarBase(que) {
   }
 }
 
+/* ---------------------------------------------------------------------------
+   CONCEJALES Y VOCALES DE JUNTAS PARROQUIALES
+
+   Llegan en un archivo aparte (data/historico_dignidades.json) con los
+   territorios y las organizaciones por nombre. Aquí se traducen a las mismas
+   posiciones que usa historico.json y se suman como dos dignidades más: el
+   mapa, los indicadores, los gráficos y las tablas las tratan exactamente
+   igual que a prefectos y alcaldes.
+   ------------------------------------------------------------------------- */
+
+/* replicas: años en que una dignidad de concejales no existía en la base y se
+   copió de la otra (preparar_historico_dignidades.py), para avisarlo. */
+const HIST_EXTRA = { postulantes: null, replicas: {} };
+
+async function sumarDignidadesHistorico() {
+  let j;
+  try {
+    const r = await fetch('data/historico_dignidades.json', { cache: 'no-store' });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    j = await r.json();
+  } catch (e) {
+    console.warn('[Dashboard] histórico sin concejales ni vocales:', e);
+    return;
+  }
+
+  try {
+    /* La escala de color general se fija ANTES de sumar nada: prefectos y
+       alcaldes conservan exactamente los mismos colores que tenían. */
+    calcularEscalasGenerales();
+
+    const posicion = (lista, indice, nombre) => {
+      if (!indice.has(nombre)) { indice.set(nombre, lista.length); lista.push(nombre); }
+      return indice.get(nombre);
+    };
+    const iOrg = new Map(HIST.organizaciones.map((o, i) => [o, i]));
+    /* Los registros citan los nombres por su posición en las tablas del
+       archivo (provincias, cantones, parroquias, organizaciones). Un archivo
+       sin tablas trae los nombres escritos en cada registro. */
+    const nombre = (tabla, v) => (j[tabla] ? j[tabla][v] : v);
+    const traducir = ([anio, p, c, r, x, y], conOrganizacion) => {
+      const ai = HIST.iAnio.get(anio);
+      if (ai === undefined) return null;
+      const fila = [ai, posicion(HIST.provincias, HIST.iProv, nombre('provincias', p)),
+                    posicion(HIST.cantones, HIST.iCant, nombre('cantones', c)),
+                    posicion(HIST.parroquias, HIST.iParr, nombre('parroquias', r))];
+      return conOrganizacion
+        ? fila.concat(posicion(HIST.organizaciones, iOrg, nombre('organizaciones', x)), y)
+        : fila.concat(x, y);
+    };
+
+    for (const dig in (j.votos || {})) {
+      if (HIST.votos[dig]) continue;             // nunca pisa una dignidad existente
+      const votos = j.votos[dig].map(f => traducir(f, true)).filter(Boolean);
+      const nuloblanco = ((j.nuloblanco || {})[dig] || [])
+        .map(f => traducir(f, false)).filter(Boolean);
+      HIST.votos[dig] = votos;
+      HIST.nuloblanco[dig] = nuloblanco;
+      HIST.etiquetas[dig] = (j.etiquetas || {})[dig] || dig;
+    }
+    HIST_EXTRA.postulantes = postulantesPorClave(j);
+    HIST_EXTRA.replicas = j.replicas || {};
+  } catch (e) {
+    console.warn('[Dashboard] no se pudieron sumar concejales y vocales:', e);
+  }
+}
+
+/**
+ * Postulantes del archivo con el formato de postulantes.json: claves de texto
+ * «año|provincia|cantón|parroquia». El archivo los trae como filas que citan
+ * las tablas de nombres; si ya vienen con claves de texto, se usan tal cual.
+ */
+function postulantesPorClave(j) {
+  if (!j.postulantes) return null;
+  const out = {};
+  for (const dig in j.postulantes) {
+    const n = j.postulantes[dig];
+    if (!Array.isArray(n.prov)) { out[dig] = n; continue; }
+    const P = (i) => j.provincias[i], C = (i) => j.cantones[i], R = (i) => j.parroquias[i];
+    const dict = (filas, clave) => {
+      const o = {};
+      filas.forEach(f => { o[clave(f)] = f[f.length - 1]; });
+      return o;
+    };
+    out[dig] = {
+      pais: n.pais || {},
+      prov: dict(n.prov, ([a, p]) => `${a}|${P(p)}`),
+      cant: dict(n.cant, ([a, p, c]) => `${a}|${P(p)}|${C(c)}`),
+      parr: dict(n.parr, ([a, p, c, r]) => `${a}|${P(p)}|${C(c)}|${R(r)}`)
+    };
+  }
+  return out;
+}
+
+/** Postulantes de concejales y vocales, junto a los de las demás dignidades. */
+function sumarPostulantesHistorico() {
+  const extra = HIST_EXTRA.postulantes;
+  if (!extra || !POST.niveles) return;
+  for (const dig in extra) {
+    if (!POST.niveles[dig]) POST.niveles[dig] = extra[dig];
+  }
+}
+
+/** Dignidades por listas del histórico (dignidadesHistorico) con datos para este usuario. */
+function dignidadesSoloHistorico() {
+  return (CONFIG.dignidadesHistorico || [])
+    .filter(d => CONFIG.paleta[d.id] && (HIST.votos[d.id] || []).length);
+}
+
+const esDignidadSoloHistorico = (id) =>
+  (CONFIG.dignidadesHistorico || []).some(d => d.id === id);
+
+/** Ámbito en que se elige cada dignidad, para los textos de ayuda. */
+function ambitoEleccion(dignidad) {
+  const extra = (CONFIG.dignidadesHistorico || []).find(d => d.id === dignidad);
+  const nivel = extra ? extra.eleccion : (dignidad === 'ALCALDES' ? 'canton' : 'provincia');
+  return { provincia: 'una provincia', canton: 'un cantón', parroquia: 'una parroquia' }[nivel];
+}
+
+/**
+ * Notas de concejales y vocales, que se eligen por listas:
+ *  · qué territorio cubre la base, cuando el filtro es más amplio que él;
+ *  · por qué hasta 2019 los votos válidos pueden superar a los votantes.
+ */
+function notaDignidadLista(f, etq) {
+  const notas = [];
+  /* Solo con una base parcial —que cubre menos provincias que la de
+     alcaldes, como la de un solo cantón—: con la base nacional no aplica. */
+  const provincias = (dig) => new Set((HIST.votos[dig] || []).map(([, p]) => p));
+  const cubiertas = provincias(f.dignidad).size;
+  if (!f.cantK && cubiertas && cubiertas < provincias('ALCALDES').size) {
+    const cubiertos = new Map();
+    (HIST.votos[f.dignidad] || []).forEach(([, p, c]) => {
+      const provK = HIST.provincias[p], cantK = HIST.cantones[c];
+      cubiertos.set(provK + '|' + cantK, `${ambitoTexto({ provK, cantK })} (${ambitoTexto({ provK })})`);
+    });
+    if (cubiertos.size) {
+      notas.push(`La base de ${etq.toLowerCase()} solo incluye ${[...cubiertos.values()].join(', ')}:
+        las cifras de este ámbito corresponden únicamente a
+        ${cubiertos.size === 1 ? 'ese cantón' : 'esos cantones'}.`);
+    }
+  }
+  notas.push(`Hasta 2019 cada elector podía votar por varios candidatos, tantos
+    como puestos se elegían: los votos válidos de esos años suman preferencias y
+    no papeletas, y pueden superar al número de votantes. En 2023 se votó por
+    listas. Por eso los porcentajes de nulos y blancos de 2004–2019 no son
+    comparables con los de 2023.`);
+  if (ambitoEleccion(f.dignidad) === 'una parroquia') {
+    notas.push('Las juntas parroquiales se eligen solo en las parroquias rurales.');
+  }
+  return notas.map(t => `<p class="sec-nota">${t}</p>`).join('');
+}
+
 
 /* ============================================================================
    CÁLCULO
    ========================================================================== */
+
+/**
+ * Candidatura de una organización dentro del ámbito filtrado.
+ *
+ * El ámbito de elección depende de la dignidad: los alcaldes se eligen por
+ * cantón y los prefectos por provincia. Solo hay un nombre que devolver si el
+ * filtro llega a ese nivel; por encima —una provincia entera con dignidad de
+ * alcalde, o todo el país— la misma organización presenta decenas de
+ * candidaturas distintas y no existe "el candidato".
+ *
+ * Devuelve null en ese caso, y la interfaz muestra solo la organización.
+ */
+function candidatoDe(dignidad, anioIdx, opIdx, provK, cantK) {
+  const tabla = (HIST.porEleccion || {})[dignidad];
+  if (!tabla || !HIST.candidatos) return null;
+
+  const ip = provK ? HIST.iProv.get(provK) : undefined;
+  if (ip === undefined) return null;
+
+  let clave;
+  if (dignidad === 'ALCALDES') {
+    if (!cantK) return null;                     // el ámbito abarca varios cantones
+    const ic = HIST.iCant.get(cantK);
+    if (ic === undefined) return null;
+    clave = `${anioIdx}|${ip}|${ic}|${opIdx}`;
+  } else {
+    clave = `${anioIdx}|${ip}|${opIdx}`;
+  }
+  const i = tabla[clave];
+  return i === undefined ? null : HIST.candidatos[i];
+}
+
 
 /**
  * Devuelve los índices de las parroquias del CNE que corresponden a una
@@ -251,7 +529,8 @@ function serieHistorica(dignidad, provK, cantK, parrK) {
     if (!a) return;
     const orden = [...a.ops.entries()]
       .map(([op, v]) => ({ op: HIST.organizaciones[op], votos: v,
-                           pct: a.validos ? v * 100 / a.validos : 0 }))
+                           pct: a.validos ? v * 100 / a.validos : 0,
+                           candidato: candidatoDe(dignidad, ai, op, provK, cantK) }))
       .sort((x, y) => y.votos - x.votos);
     const hh = orden.reduce((s, o) => s + Math.pow(o.pct / 100, 2), 0);
     const primera = orden[0] || null, segunda = orden[1] || null;
@@ -335,11 +614,18 @@ function eleccionesEnAmbito(dignidad, anio, f) {
   const p = f.provK ? HIST.iProv.get(f.provK) : -1;
   const c = f.cantK ? HIST.iCant.get(f.cantK) : -1;
   const set = new Set();
-  (HIST.votos[dignidad] || []).forEach(([a, fp, fc]) => {
+  /* Concejales: una elección por cantón. Vocales: una por parroquia. */
+  const eleccion = esDignidadSoloHistorico(dignidad)
+    ? ((CONFIG.dignidadesHistorico.find(d => d.id === dignidad) || {}).eleccion) : null;
+  const parrs = eleccion === 'parroquia'
+    ? indicesDeParroquia(dignidad, f.provK, f.cantK, f.parrK) : null;
+  (HIST.votos[dignidad] || []).forEach(([a, fp, fc, fr]) => {
     if (ai >= 0 && a !== ai) return;
     if (p >= 0 && fp !== p) return;
     if (c >= 0 && fc !== c) return;
-    set.add(dignidad === 'ALCALDES' ? fp + '|' + fc : String(fp));
+    if (parrs && !parrs.has(fr)) return;
+    set.add(eleccion === 'parroquia' ? fp + '|' + fc + '|' + fr
+            : (dignidad === 'ALCALDES' || eleccion === 'canton') ? fp + '|' + fc : String(fp));
   });
   return set.size;
 }
@@ -347,6 +633,10 @@ function eleccionesEnAmbito(dignidad, anio, f) {
 function notaAmbito(dignidad, anio, f) {
   const n = eleccionesEnAmbito(dignidad, anio, f);
   if (n <= 1) return '';
+  if (esDignidadSoloHistorico(dignidad)) {
+    return `agregado de ${fmtNum(n)} elecciones ` +
+      (ambitoEleccion(dignidad) === 'una parroquia' ? 'parroquiales' : 'cantonales');
+  }
   return dignidad === 'ALCALDES'
     ? `agregado de ${fmtNum(n)} elecciones cantonales`
     : `agregado de ${fmtNum(n)} elecciones provinciales`;
@@ -361,11 +651,60 @@ const sq = (s) => document.querySelector(s);
 const dec = (n, d = 2) => (n || 0).toLocaleString('es-EC',
   { minimumFractionDigits: d, maximumFractionDigits: d });
 
-function selectoresTerritorio(f, alCambiar, prefijo) {
+/**
+ * Parroquias que eligen la dignidad: los concejales urbanos, solo las
+ * urbanas; los rurales, solo las rurales (propiedad «estado» de la capa).
+ * Se suman las pocas que la capa clasifica distinto que la base electoral
+ * pero donde la base registra esa dignidad (Sevilla Don Bosco, por ejemplo,
+ * rural en la base y urbana en la capa); no cuentan los años de lista única
+ * (los replicados), en que se votó en todo el cantón.
+ * Las demás dignidades usan todas. Si la capa no trae «estado», todas.
+ */
+function parroquiasDeDignidad(dignidad, parrs, provK, cantK) {
+  const d = (CONFIG.dignidadesHistorico || []).find(x => x.id === dignidad);
+  if (!d || !d.parroquias) return parrs;
+  const tipo = d.parroquias === 'urbanas' ? 'URBANA' : 'RURAL';
+  const conDatos = parroquiasConDatos(dignidad, parrs, provK, cantK);
+  const sub = parrs.filter(p =>
+    normalizarTexto(String((p.properties || {}).estado || '')) === tipo || conDatos.has(p.__key));
+  return sub.length ? sub : parrs;
+}
+
+/** Claves de las parroquias del cantón con votos de la dignidad en la base. */
+function parroquiasConDatos(dignidad, parrs, provK, cantK) {
+  const out = new Set();
+  const p = HIST.iProv.get(provK), c = HIST.iCant.get(cantK);
+  if (p === undefined || c === undefined) return out;
+  const unica = new Set([].concat(...Object.values(HIST_EXTRA.replicas || {}))
+    .map(a => HIST.iAnio.get(a)));
+  const vistas = new Set();
+  (HIST.votos[dignidad] || []).forEach(([a, fp, fc, fr]) => {
+    if (fp === p && fc === c && !unica.has(a)) vistas.add(fr);
+  });
+  vistas.forEach(fr => {
+    const g = parroquiaGeografica(HIST.parroquias[fr], parrs, cantK);
+    if (g) out.add(g.__key);
+  });
+  return out;
+}
+
+/** Parroquias que el filtro ofrece para la dignidad y el cantón elegidos. */
+function parroquiasSeleccionables(f) {
+  if (!f.provK || !f.cantK) return [];
+  return parroquiasDeDignidad(f.dignidad,
+    TERRITORIO.parroquiasPorCant.get(f.provK + '|' + f.cantK) || [], f.provK, f.cantK);
+}
+
+/**
+ * Provincia, cantón y parroquia. Con `opciones.sinParroquia` se queda en el
+ * cantón: lo usa la sección de asignación, donde los concejales se eligen por
+ * cantón y una parroquia no significaría nada.
+ */
+function selectoresTerritorio(f, alCambiar, prefijo, opciones) {
+  const sinParroquia = !!(opciones && opciones.sinParroquia);
   const provs = provinciasSeleccionables();
   const cantones = f.provK ? ((TERRITORIO.porProvK.get(f.provK) || {}).cantones || []) : [];
-  const parrs = (f.provK && f.cantK)
-    ? (TERRITORIO.parroquiasPorCant.get(f.provK + '|' + f.cantK) || []) : [];
+  const parrs = sinParroquia ? [] : parroquiasSeleccionables(f);
 
   const html = `
     <div class="campo">
@@ -382,6 +721,7 @@ function selectoresTerritorio(f, alCambiar, prefijo) {
         ${cantones.map(c => `<option value="${c.key}" ${c.key === f.cantK ? 'selected' : ''}>${tituloCase(c.nombre)}</option>`).join('')}
       </select></div>
     </div>
+    ${sinParroquia ? '' : `
     <div class="campo ${parrs.length ? '' : 'deshabilitado'}">
       <label for="${prefijo}-parr">Parroquia</label>
       <div class="select-wrap"><select id="${prefijo}-parr" ${parrs.length ? '' : 'disabled'}>
@@ -389,7 +729,7 @@ function selectoresTerritorio(f, alCambiar, prefijo) {
         ${parrs.map(x => `<option value="${x.__key}" ${x.__key === f.parrK ? 'selected' : ''}>${tituloCase(x.__nombre)}</option>`).join('')}
       </select></div>
       <small class="campo-nota">${parrs.length ? '' : 'Se habilita al elegir un cantón.'}</small>
-    </div>`;
+    </div>`}`;
 
   const cablear = () => {
     sq('#' + prefijo + '-prov').onchange = (e) => {
@@ -398,14 +738,18 @@ function selectoresTerritorio(f, alCambiar, prefijo) {
     sq('#' + prefijo + '-cant').onchange = (e) => {
       f.cantK = e.target.value; f.parrK = ''; alCambiar();
     };
-    sq('#' + prefijo + '-parr').onchange = (e) => { f.parrK = e.target.value; alCambiar(); };
+    const selParr = document.getElementById(prefijo + '-parr');
+    if (selParr) selParr.onchange = (e) => { f.parrK = e.target.value; alCambiar(); };
   };
   return { html, cablear };
 }
 
 function botonesDignidad(f, alCambiar, prefijo) {
+  /* Prefectos y alcaldes, y debajo concejales y vocales si hay datos, cada
+     una con su propio botón y los textos de dignidadesHistorico. */
   const html = `<div class="dig-grupo" id="${prefijo}-dig">` +
-    CONFIG.dignidades.map(d => `
+    CONFIG.dignidades.filter(d => d.id in HIST.votos && !esDignidadSoloHistorico(d.id))
+      .concat(dignidadesSoloHistorico()).map(d => `
       <button type="button" class="dig-btn ${d.id === f.dignidad ? 'activo' : ''}"
               data-d="${d.id}" style="--dig-color:${CONFIG.paleta[d.id].acento}">
         <span class="dig-nombre">${d.etiqueta.toUpperCase()}</span>
@@ -428,6 +772,27 @@ function ambitoTexto(f) {
   if (f.cantK) return tituloCase((TERRITORIO.porCantK.get(f.provK + '|' + f.cantK) || {}).nombre || '');
   if (f.provK) return tituloCase((TERRITORIO.porProvK.get(f.provK) || {}).nombre || '');
   return 'Ecuador';
+}
+
+/**
+ * Qué cuenta la cuarta tarjeta, dicho sin ambigüedad.
+ *
+ * Es el número de personas distintas que se presentaron (o de listas, en las
+ * dignidades que se eligen por lista), no el de papeletas ni el de votos. En
+ * un ámbito más amplio que el de la elección —una provincia para alcaldes,
+ * por ejemplo— reúne varias contiendas, y eso hay que decirlo: 71 candidatos
+ * a alcalde en Pichincha son los de sus ocho elecciones cantonales juntas.
+ */
+function textoPostulantes(n, esLista, f, anio) {
+  const unidad = esLista ? (n === 1 ? 'lista se presentó' : 'listas se presentaron')
+                         : (n === 1 ? 'persona se presentó' : 'personas se presentaron');
+  const elecciones = eleccionesEnAmbito(f.dignidad, anio, f);
+  if (elecciones > 1) {
+    const ambitoEl = ambitoEleccion(f.dignidad) === 'una parroquia' ? 'parroquiales'
+                   : ambitoEleccion(f.dignidad) === 'un cantón' ? 'cantonales' : 'provinciales';
+    return `${unidad} en las ${fmtNum(elecciones)} elecciones ${ambitoEl} de este ámbito`;
+  }
+  return `${unidad} a ${(HIST.etiquetas[f.dignidad] || f.dignidad).toLowerCase()}`;
 }
 
 function tarjetaKPI(etq, valor, sub, destacado) {
@@ -496,6 +861,14 @@ function parroquiaGeografica(parrK, parrs, cantK) {
   if (p) return p;
   p = parrs.find(x => sinEspacios(x.__key) === sinEspacios(parrK));
   if (p) return p;
+  /* Capa del CNE: ya trae cada parroquia urbana por separado y la equivalencia
+     con la base electoral viene en la propia capa (nombres_cne). Lo que no
+     figura en ningún polígono —las parroquias urbanas de Quito anteriores a
+     2014, o una parroquia que hoy pertenece a otro cantón— no se atribuye a
+     ninguno: plegarlo al polígono urbano falsearía los datos de ese polígono. */
+  if (parrs.some(x => x.__nombresCNE)) {
+    return parrs.find(x => x.__nombresCNE && x.__nombresCNE.includes(parrK)) || null;
+  }
   return parrs.find(x => x.__urbana) || parrs.find(x => x.__key === cantK) || null;
 }
 
@@ -724,6 +1097,24 @@ function pintarMapaElectoral() {
       { sticky: true, direction: 'top', className: 'tt-wrap', opacity: 1 });
     l.on('mouseover', e => e.target.setStyle({ weight: 2.4, color: '#0A111E' }));
     l.on('mouseout', e => e.target.setStyle({ color: '#FFFFFF', weight: .8 }));
+
+    /* Clic: baja un nivel, igual que en el mapa de Preinscritos. Provincia →
+       cantón → parroquia; al volver a pulsar la parroquia enfocada se suelta y
+       el mapa vuelve a las parroquias del cantón. Los selectores del panel se
+       rehacen solos, porque renderHistorico() los vuelve a construir. */
+    l.off('click');
+    l.on('click', () => {
+      if (nivel === 'provincia') { f.provK = x.__key; f.cantK = ''; f.parrK = ''; }
+      else if (nivel === 'canton') { f.cantK = x.__key; f.parrK = ''; }
+      else {
+        /* Las dignidades que se eligen solo en parroquias urbanas o rurales
+           ofrecen esas en el selector: el clic respeta la misma lista. */
+        if (!parroquiasSeleccionables(f).some(p => p.__key === x.__key)) return;
+        f.parrK = (f.parrK === x.__key) ? '' : x.__key;
+      }
+      construirPanelHistorico();
+      renderHistorico();
+    });
   });
 
   /* Panel lateral: escala de color y lectura del ámbito, con el mismo
@@ -815,6 +1206,12 @@ function actualizarEtario() {
 
 function construirPanelHistorico() {
   const f = SEC.filtros.historico;
+  /* Al pasar, por ejemplo, de concejales urbanos a rurales, una parroquia que
+     la nueva dignidad no elige deja de estar seleccionada. */
+  const restringida = (CONFIG.dignidadesHistorico || []).some(d => d.id === f.dignidad && d.parroquias);
+  if (restringida && f.parrK && !parroquiasSeleccionables(f).some(p => p.__key === f.parrK)) {
+    f.parrK = '';
+  }
   const dig = botonesDignidad(f, renderHistorico, 'h');
   const terr = selectoresTerritorio(f, renderHistorico, 'h');
 
@@ -855,11 +1252,27 @@ function renderHistorico() {
   }
 
   const ult = serie[serie.length - 1];
-  const pri = serie[0];
   const nota = notaAmbito(f.dignidad, ult.anio, f);
   const dist = distribucionTerritorial(f, ult.anio);
-  const delta = (a, b) => (!isFinite(a) || !isFinite(b) || !b) ? ''
-    : `${a >= b ? '+' : ''}${dec((a - b) * 100 / b, 1)} % desde ${pri.anio}`;
+  /* El nombre de la candidatura solo existe si el filtro llega al ámbito de
+     una sola elección; si no, se muestra únicamente la organización. */
+  const hayCandidato = serie.some(s => s.primera && s.primera.candidato);
+  const celdaLugar = (d) => d.candidato
+    ? `<b>${tituloCase(d.candidato)}</b><span class="lugar-op">${tituloCase(d.op)}</span>`
+    : tituloCase(d.op);
+
+  /* Concejales y vocales se eligen por listas: llevan sus propias notas, y el
+     año sin candidatos en la base muestra «—» en vez de un cero. */
+  const esLista = esDignidadSoloHistorico(f.dignidad);
+  const notaLista = esLista ? notaDignidadLista(f, etq) : '';
+
+  /* Años en que esta dignidad no existía en la base y se replicó la otra de
+     concejales: el aviso solo aparece si alguno de ellos está en pantalla. */
+  const replicados = (HIST_EXTRA.replicas[f.dignidad] || [])
+    .filter(a => serie.some(s => s.anio === a));
+  const notaReplica = replicados.length ? `<p class="sec-nota">${replicados.join(' y ')}:
+    Esta dignidad no existía de forma independiente en este año; se replica la
+    información disponible para mantener la comparación histórica.</p>` : '';
 
   /* Reescribir la vista destruye los contenedores de los mapas, así que hay
      que soltar las instancias de Leaflet antes: si no, quedan apuntando a
@@ -916,23 +1329,17 @@ function renderHistorico() {
       </div>
     </section>
 
-    <section class="sec-kpis">
-      ${tarjetaKPI('Votos válidos', fmtNum(ult.validos),
-                   `${ult.anio} · ${delta(ult.validos, pri.validos)}`, true)}
-      ${tarjetaKPI('Votos nulos', fmtNum(ult.nulos), `${fmtPct(ult.pctNulos)} de los emitidos`)}
-      ${tarjetaKPI('Votos en blanco', fmtNum(ult.blancos), `${fmtPct(ult.pctBlancos)} de los emitidos`)}
-      ${tarjetaKPI('Postulantes', fmtNum(postulantesDe(f.dignidad, ult.anio, f.provK, f.cantK, f.parrK)),
-                   `candidaturas en ${ult.anio}`)}
-    </section>
+    <p class="sec-nota" id="h-kpis-nota" style="margin:0 0 8px"></p>
+    <section class="sec-kpis" id="h-kpis"></section>
 
     <section class="tarjeta sec-cabecera">
       <h2 class="tarjeta-tit">Evolución electoral · ${etq} · ${ambito}</h2>
-      <p class="tarjeta-sub">Comparación automática de ${serie.map(s => s.anio).join(' · ')}${nota ? ' · ' + nota : ''}</p>
+      <p class="tarjeta-sub">Comparación automática de ${serie.map(s => s.anio).join(' · ')}${nota ? ' · ' + nota : ''}</p>${notaReplica}
       ${nota ? `<p class="sec-nota">Este ámbito reúne varias contiendas distintas:
         la primera fuerza y el índice de fragmentación describen el conjunto, no
         una elección concreta. Filtra hasta
-        ${f.dignidad === 'ALCALDES' ? 'un cantón' : 'una provincia'} para leerlos
-        como una sola contienda.</p>` : ''}
+        ${ambitoEleccion(f.dignidad)} para leerlos
+        como una sola contienda.</p>` : ''}${notaLista}
     </section>
 
     <section class="tarjeta sec-tarjeta">
@@ -965,6 +1372,37 @@ function renderHistorico() {
       </p>
     </section>
 
+    <section class="tarjeta sec-tarjeta">
+      <header><h2 class="tarjeta-tit">Participantes por año</h2>
+        <p class="tarjeta-sub">
+          Todas las candidaturas que se presentaron en cada elección de
+          ${etq} en ${ambito}. Elige el año:</p></header>
+      <div class="sec-anios" id="h-anios-part" style="margin-top:10px">
+        ${serie.map(s => `<button type="button" class="anio-chip" data-pa="${s.anio}">${s.anio}</button>`).join('')}
+      </div>
+      <div class="lienzo alto" id="h-part-lienzo" style="margin-top:12px"><canvas id="hg6"></canvas></div>
+      ${hayCandidato ? '' : esLista ? `<p class="sec-nota" style="margin-top:10px">
+        En esta dignidad cada organización presenta una lista con varios
+        candidatos, así que se muestra la organización.</p>` : `<p class="sec-nota" style="margin-top:10px">
+        Este ámbito reúne varias contiendas, así que cada organización presenta
+        muchas candidaturas y no hay un nombre único que mostrar. Filtra hasta
+        ${ambitoEleccion(f.dignidad)} para ver
+        quién encabezó cada lista.</p>`}
+      <div class="tabla-scroll sec-scroll" style="margin-top:14px">
+        <table class="tabla">
+          <thead><tr>
+            <th class="num"><button type="button">Pos.</button></th>
+            ${hayCandidato ? '<th><button type="button">Candidato</button></th>' : ''}
+            <th><button type="button">Organización política</button></th>
+            <th class="num"><button type="button">Votos</button></th>
+            <th class="num"><button type="button">% válidos</button></th>
+          </tr></thead>
+          <tbody id="h-part-cuerpo"></tbody>
+        </table>
+      </div>
+      <p class="sec-nota" id="h-part-pie"></p>
+    </section>
+
     <section class="sec-grid-2">
       <article class="tarjeta grafico">
         <header><h2 class="tarjeta-tit">Composición del voto</h2>
@@ -976,15 +1414,10 @@ function renderHistorico() {
           <p class="tarjeta-sub">Peso de las dos primeras fuerzas y distancia entre ellas</p></header>
         <div class="lienzo alto"><canvas id="hg3"></canvas></div>
       </article>
-      <article class="tarjeta grafico">
+      <article class="tarjeta grafico" style="grid-column:1/-1">
         <header><h2 class="tarjeta-tit">Nulos y blancos</h2>
           <p class="tarjeta-sub">Porcentaje sobre los votos emitidos</p></header>
         <div class="lienzo"><canvas id="hg4"></canvas></div>
-      </article>
-      <article class="tarjeta grafico">
-        <header><h2 class="tarjeta-tit">Principales organizaciones</h2>
-          <p class="tarjeta-sub">Evolución de las cinco con más voto acumulado</p></header>
-        <div class="lienzo"><canvas id="hg5"></canvas></div>
       </article>
     </section>
 
@@ -1044,7 +1477,7 @@ function renderHistorico() {
             <th><button type="button">Organización política</button></th>
             <th class="num"><button type="button">Votos</button></th>
             <th class="num"><button type="button">%</button></th></tr></thead>
-          <tbody>${ult.organizaciones.map((o, i) => `<tr>
+          <tbody>${ult.organizaciones.map((o, i) => `<tr${i === 0 ? ' class="fila-ganador"' : ''}>
             <td class="num">${i + 1}</td><td class="fuerte">${tituloCase(o.op)}</td>
             <td class="num">${fmtNum(o.votos)}</td>
             <td class="num">${fmtPct(o.pct)}</td></tr>`).join('')}</tbody>
@@ -1055,20 +1488,199 @@ function renderHistorico() {
 `;
 
   graficarHistorico(serie, f.dignidad);
-
-  /* El mapa arranca en el último año y conserva después lo que elija el
-     usuario, sin que ningún otro elemento dependa de esa elección. */
+  /* La sección arranca en el último año y conserva después lo que elija el
+     usuario, en el mapa o en la tarjeta de participantes. */
   if (SEC.mapa.anio === null || HIST.anios.indexOf(SEC.mapa.anio) < 0) {
     SEC.mapa.anio = ult.anio;
   }
+  SEC.serie = serie;
+  SEC.hayCandidato = hayCandidato;
+  SEC.dignidadPintada = f.dignidad;
+
+  pintarTarjetasAnio();
+  pintarParticipantes();
   cablearControlesMapa();
   pintarMapaElectoral();
 }
 
-/** Los controles del mapa repintan solo el mapa. */
+/* ============================================================================
+   PARTICIPANTES POR AÑO
+
+   Todas las candidaturas de una elección, no solo las dos primeras. Los
+   porcentajes son los que ya calcula serieHistorica(): cada voto se divide
+   entre los votos válidos DE ESE AÑO y DE ESE ámbito territorial, así que
+   nunca se mezclan dos elecciones ni dos denominadores.
+   ========================================================================== */
+
+/* ============================================================================
+   LAS CUATRO TARJETAS DE ARRIBA
+
+   Son del año elegido en la sección —el mismo del mapa y el de «Participantes
+   por año»—, no de un año fijo: al cambiarlo, cambian con él.
+   ========================================================================== */
+
+function pintarTarjetasAnio() {
+  const caja = document.getElementById('h-kpis');
+  const serie = SEC.serie;
+  if (!caja || !serie || !serie.length) return;
+  const f = SEC.filtros.historico;
+  const etq = HIST.etiquetas[f.dignidad] || f.dignidad;
+  const esLista = esDignidadSoloHistorico(f.dignidad);
+  const anio = anioParticipantes(serie);
+  const s = serie.find(x => x.anio === anio) || serie[serie.length - 1];
+  const pri = serie[0];
+  const esUltimo = s.anio === serie[serie.length - 1].anio;
+
+  /* Comparación con la primera elección de la serie; en esa misma elección no
+     hay nada con qué compararla. */
+  const comparacion = (s.anio === pri.anio) ? 'primera elección de la serie'
+    : (!isFinite(s.validos) || !pri.validos) ? ''
+    : `${s.validos >= pri.validos ? '+' : ''}${dec((s.validos - pri.validos) * 100 / pri.validos, 1)} % frente a ${pri.anio}`;
+
+  const n = postulantesDe(f.dignidad, s.anio, f.provK, f.cantK, f.parrK);
+  const sin = esLista && !n;
+
+  const nota = document.getElementById('h-kpis-nota');
+  if (nota) {
+    nota.innerHTML = `Cómo votó <b>${ambitoTexto(f)}</b> en la elección de
+      <b>${etq}</b> de <b>${s.anio}</b>, ${esUltimo ? 'la más reciente de la base'
+        : 'el año elegido'}. Las cuatro cifras son de ese año; para los demás,
+      mira la evolución más abajo.`;
+  }
+
+  caja.innerHTML = [
+    tarjetaKPI(`Votos válidos ${s.anio}`, fmtNum(s.validos), comparacion, true),
+    tarjetaKPI(`Votos nulos ${s.anio}`, fmtNum(s.nulos),
+               `${fmtPct(s.pctNulos)} de los votos emitidos`),
+    tarjetaKPI(`Votos en blanco ${s.anio}`, fmtNum(s.blancos),
+               `${fmtPct(s.pctBlancos)} de los votos emitidos`),
+    tarjetaKPI(esLista ? `Listas ${s.anio}` : `Candidatos ${s.anio}`,
+               sin ? '—' : fmtNum(n),
+               sin ? `la base no registra candidaturas en ${s.anio}`
+                   : textoPostulantes(n, esLista, f, s.anio))
+  ].join('');
+}
+
+/**
+ * Año que muestra la tarjeta: el de la sección (el mismo del mapa).
+ *
+ * Si ese año no existe en esta serie —hay dignidades y territorios que no
+ * tienen las cinco elecciones— la tarjeta cae en el último año con datos sin
+ * tocar el año de la sección, para no arrastrar al mapa a un año que el
+ * usuario no pidió.
+ */
+function anioParticipantes(serie) {
+  return serie.some(s => s.anio === SEC.mapa.anio)
+    ? SEC.mapa.anio : serie[serie.length - 1].anio;
+}
+
+/**
+ * Pinta la tabla y el gráfico del año de la sección y deja los botones
+ * cableados. Se la llama en cada render, al pulsar un año aquí y al pulsarlo
+ * en el mapa.
+ */
+function pintarParticipantes() {
+  const cuerpo = document.getElementById('h-part-cuerpo');
+  const serie = SEC.serie;
+  if (!cuerpo || !serie || !serie.length) return;
+  const dignidad = SEC.dignidadPintada;
+  const hayCandidato = SEC.hayCandidato;
+  const anio = anioParticipantes(serie);
+  const s = serie.find(x => x.anio === anio) || serie[serie.length - 1];
+  const orgs = s.organizaciones;          // ya vienen ordenadas de mayor a menor
+  const cols = hayCandidato ? 5 : 4;
+
+  document.querySelectorAll('#h-anios-part [data-pa]').forEach(b => {
+    b.classList.toggle('activo', parseInt(b.dataset.pa, 10) === anio);
+    b.onclick = () => { elegirAnioSeccion(parseInt(b.dataset.pa, 10)); };
+  });
+
+  cuerpo.innerHTML = orgs.length ? orgs.map((o, i) => `<tr${i === 0 ? ' class="fila-ganador"' : ''}>
+      <td class="num">${i + 1}</td>
+      ${hayCandidato ? `<td class="fuerte">${o.candidato ? tituloCase(o.candidato) : '—'}</td>` : ''}
+      <td${hayCandidato ? '' : ' class="fuerte"'}>${tituloCase(o.op)}</td>
+      <td class="num">${fmtNum(o.votos)}</td>
+      <td class="num">${fmtPct(o.pct)}</td>
+    </tr>`).join('')
+    : `<tr><td colspan="${cols}" class="sec-vacio">Sin candidaturas registradas en ${anio}.</td></tr>`;
+
+  const pie = document.getElementById('h-part-pie');
+  if (pie) {
+    pie.innerHTML = orgs.length
+      ? `${fmtNum(orgs.length)} ${orgs.length === 1 ? 'organización se presentó' : 'organizaciones se presentaron'}
+         en ${anio} y suman ${fmtNum(s.validos)} votos válidos: cada porcentaje
+         es la parte de ese total, no del padrón. Los nulos
+         (${fmtNum(s.nulos)}) y los blancos (${fmtNum(s.blancos)}) no entran en
+         el reparto, por eso la columna suma 100 %.`
+      : `La base no registra candidaturas de esta dignidad en ${anio}.`;
+  }
+
+  /* El alto crece con el número de barras para que todos los nombres quepan;
+     con pocas organizaciones queda igual que antes. */
+  const lienzo = document.getElementById('h-part-lienzo');
+  if (lienzo) lienzo.style.height = Math.max(290, orgs.length * 26 + 46) + 'px';
+
+  const acento = CONFIG.paleta[dignidad].acento;
+  montarGrafico('hg6', 'hg6', {
+    type: 'bar',
+    data: {
+      labels: orgs.map(o => tituloCase(o.candidato || o.op).slice(0, 34)),
+      datasets: [{
+        label: '% de votos válidos',
+        data: orgs.map(o => o.pct),
+        /* La más votada en el color de la dignidad; el resto, neutro: el
+           orden ya dice quién ganó y no hace falta una escala de color. */
+        backgroundColor: orgs.map((o, i) => (i === 0 ? acento : '#3E4E66')),
+        borderRadius: 3, maxBarThickness: 18
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      maintainAspectRatio: false,
+      scales: {
+        x: { grid: { color: TEMA.grilla, drawBorder: false }, beginAtZero: true,
+             ticks: { color: TEMA.tenue, font: { family: TEMA.mono, size: 11 },
+                      callback: v => v + ' %' } },
+        y: { grid: { display: false, drawBorder: false },
+             ticks: { color: TEMA.texto, font: { family: TEMA.mono, size: 11 }, autoSkip: false } }
+      },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#0A111E', borderColor: '#2B3F5E', borderWidth: 1,
+          padding: 10, bodyFont: { family: TEMA.mono, size: 12 },
+          callbacks: {
+            title: (c) => String(c[0].label),
+            label: (c) => {
+              const o = orgs[c.dataIndex];
+              const l = [];
+              if (o.candidato) l.push(' ' + tituloCase(o.op));
+              l.push(` ${fmtNum(o.votos)} votos · ${fmtPct(o.pct)} de los válidos`);
+              return l;
+            }
+          }
+        }
+      }
+    }
+  });
+}
+
+/**
+ * Cambia el año de la sección y repinta lo que depende de él: el mapa y la
+ * tarjeta de participantes. Da igual desde cuál de los dos se pulse.
+ */
+function elegirAnioSeccion(anio) {
+  if (SEC.mapa.anio === anio) return;
+  SEC.mapa.anio = anio;
+  pintarTarjetasAnio();
+  pintarParticipantes();
+  pintarMapaElectoral();
+}
+
+/** El selector de variable repinta solo el mapa; el de año, los dos. */
 function cablearControlesMapa() {
   document.querySelectorAll('#me-anios [data-a]').forEach(b => {
-    b.onclick = () => { SEC.mapa.anio = parseInt(b.dataset.a, 10); pintarMapaElectoral(); };
+    b.onclick = () => elegirAnioSeccion(parseInt(b.dataset.a, 10));
   });
   document.querySelectorAll('#me-vars [data-v]').forEach(b => {
     b.onclick = () => { SEC.mapa.variable = b.dataset.v; pintarMapaElectoral(); };
@@ -1155,24 +1767,11 @@ function graficarHistorico(serie, dignidad) {
         callbacks: { label: c => ` ${c.dataset.label}: ${fmtPct(c.parsed.y)}` } } } }
   });
 
-  const acum = new Map();
-  serie.forEach(s => s.organizaciones.forEach(o =>
-    acum.set(o.op, (acum.get(o.op) || 0) + o.votos)));
-  const top = [...acum.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5).map(x => x[0]);
-  const cols = [rampa[4], rampa[3], rampa[2], rampa[1], '#6B7C96'];
-
-  montarGrafico('hg5', 'hg5', {
-    type: 'line',
-    data: { labels: años, datasets: top.map((op, i) => ({
-      label: tituloCase(op).slice(0, 26),
-      data: serie.map(s => { const o = s.organizaciones.find(x => x.op === op); return o ? o.pct : null; }),
-      borderColor: cols[i], backgroundColor: cols[i], pointRadius: 3.5,
-      borderWidth: 2.2, tension: .25, spanGaps: true
-    })) },
-    options: { scales: { x: ejeX, y: { ...ejeY, ticks: { ...ejeY.ticks, callback: v => v + ' %' } } },
-      plugins: { legend: { ...leyenda, labels: { ...leyenda.labels, font: { size: 10.5 } } },
-        tooltip: { ...tip, callbacks: { label: c => ` ${c.dataset.label}: ${fmtPct(c.parsed.y)}` } } } }
-  });
+  /* Primer y segundo lugar, año a año.
+     Las dos barras comparten eje y se distinguen por color; el nombre de cada
+     organización va en el tooltip y, siempre visible, en la tabla de abajo. */
+  /* El gráfico de participantes por año (hg6) se pinta aparte, porque
+     depende del año elegido en su propia tarjeta. */
 }
 
 /**

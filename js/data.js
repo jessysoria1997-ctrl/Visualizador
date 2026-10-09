@@ -11,7 +11,7 @@ const CONFIG = {
   /* Versión del tablero. Aparece al pie del panel lateral y en la consola
      del navegador: sirve para comprobar de un vistazo que no se está
      ejecutando una copia antigua guardada en la caché.                    */
-  version: '2.9',
+  version: '4.9',
 
   /* ── ✏️ EDITAR · MARCA ───────────────────────────────────────────────────
      Nombre de tu consultora, títulos del encabezado y logo.               */
@@ -77,6 +77,8 @@ const CONFIG = {
     lista:       ['LISTA', 'NUMERO_LISTA', 'LISTA_NUMERO'],
     nombre:      ['NOMBRE', 'CANDIDATO', 'NOMBRE_CANDIDATO', 'NOMBRES'],
     cedula:      ['CEDULA', 'CÉDULA', 'IDENTIFICACION', 'DOCUMENTO'],
+    /* Solo concejales urbanos por circunscripción: a cuál pertenece la lista. */
+    circunscripcion: ['CIRCUNSCRIPCION', 'CIRCUNS. CANTONAL', 'CIRCUNSCRIPCION_CANTONAL'],
     /* Columna OPCIONAL con el conteo ya agregado.
        Si NO existe, el sistema cuenta un preinscrito por fila.           */
     preinscritos:['PREINSCRITOS', 'TOTAL_PREINSCRITOS', 'NUM_PREINSCRITOS', 'CANTIDAD']
@@ -86,15 +88,52 @@ const CONFIG = {
   columnasObligatorias: ['dignidad', 'provincia'],
 
   /* ── ✏️ EDITAR · DIGNIDADES ──────────────────────────────────────────────
-     'clave' identifica el valor en el Excel (se busca como texto contenido).
-     'nivel' define el nivel geográfico principal del análisis.            */
+     'clave' identifica el valor en el Excel (se busca como texto contenido;
+     si es una lista, tienen que estar todos los textos).
+     'nivel' define el nivel geográfico principal del análisis.
+     'grupo' reúne varias dignidades bajo un solo botón que, al elegirlo,
+     despliega uno pequeño por cada una, rotulado con 'boton'.            */
   dignidades: [
     { id: 'PREFECTOS', etiqueta: 'Prefectos', clave: 'PREFECT',
       nivel: 'provincia', descripcion: 'Análisis provincial' },
     { id: 'ALCALDES',  etiqueta: 'Alcaldes',  clave: 'ALCALD',
-      nivel: 'canton',   descripcion: 'Análisis cantonal' }
+      nivel: 'canton',   descripcion: 'Análisis cantonal' },
+    /* Los urbanos incluyen los urbanos por circunscripción. 'subtipos' solo
+       rotula cada fila en la tabla de detalle (texto contenido, en orden). */
+    { id: 'CONCEJALES_URBANOS', etiqueta: 'Concejales urbanos', clave: ['CONCEJAL', 'URBAN'],
+      nivel: 'canton', descripcion: 'Análisis cantonal', grupo: 'CONCEJALES', boton: 'Urbanos',
+      subtipos: [
+        ['URBANOS POR CIRCUNSCRIPCION', 'Concejales urbanos por circunscripción'],
+        ['URBANOS', 'Concejales urbanos']
+      ] },
+    { id: 'CONCEJALES_RURALES', etiqueta: 'Concejales rurales', clave: ['CONCEJAL', 'RURAL'],
+      nivel: 'canton', descripcion: 'Análisis cantonal', grupo: 'CONCEJALES', boton: 'Rurales' },
+    /* Se eligen por parroquia rural: el análisis llega hasta ese nivel. */
+    { id: 'VOCALES', etiqueta: 'Vocales', clave: 'VOCAL',
+      nivel: 'parroquia', descripcion: 'Análisis parroquial' }
   ],
+  gruposDignidad: {
+    CONCEJALES: { etiqueta: 'Concejales', descripcion: 'Análisis cantonal' }
+  },
   dignidadPorDefecto: 'PREFECTOS',
+
+  /* ── ✏️ EDITAR · DIGNIDADES DEL HISTÓRICO QUE SE ELIGEN POR LISTAS ────────
+     Se añaden, debajo de prefectos y alcaldes, en Histórico electoral. Sus
+     datos están en data/historico_dignidades.json
+     (preparar_historico_dignidades.py) y cada botón aparece solo si hay datos
+     para el usuario que entra. Concejales urbanos y rurales tienen el mismo
+     id que en Preinscritos: al pasar de una sección a la otra se conserva.
+     'eleccion' es el ámbito en que se elige la dignidad.
+     'parroquias' limita el selector de parroquia a las urbanas o las rurales
+     (propiedad «estado» de la capa parroquial).                          */
+  dignidadesHistorico: [
+    { id: 'CONCEJALES_URBANOS', etiqueta: 'Concejales urbanos', eleccion: 'canton',
+      descripcion: 'Análisis cantonal', parroquias: 'urbanas' },
+    { id: 'CONCEJALES_RURALES', etiqueta: 'Concejales rurales', eleccion: 'canton',
+      descripcion: 'Análisis cantonal', parroquias: 'rurales' },
+    { id: 'VOCALES', etiqueta: 'Vocales de juntas parroquiales', eleccion: 'parroquia',
+      descripcion: 'Análisis parroquial' }
+  ],
 
   /* ── ✏️ EDITAR · COLORES ─────────────────────────────────────────────────
      Escala secuencial de 5 clases por dignidad (de menor a mayor).
@@ -107,6 +146,25 @@ const CONFIG = {
     ALCALDES: {
       acento: '#4ED8CB',
       rampa: ['#DDF3EF', '#A2E0D7', '#5CC4BA', '#2C9A97', '#16626C']
+    },
+    /* Concejales: el mismo color para el botón del grupo y para urbanos y
+       rurales, en Preinscritos y en Histórico electoral. */
+    CONCEJALES: {
+      acento: '#BDB7FE',
+      rampa: ['#F0EDFF', '#D4CFFE', '#AFA8FF', '#8580DC', '#55549D']
+    },
+    CONCEJALES_URBANOS: {
+      acento: '#BDB7FE',
+      rampa: ['#F0EDFF', '#D4CFFE', '#AFA8FF', '#8580DC', '#55549D']
+    },
+    CONCEJALES_RURALES: {
+      acento: '#BDB7FE',
+      rampa: ['#F0EDFF', '#D4CFFE', '#AFA8FF', '#8580DC', '#55549D']
+    },
+    /* Solo en Histórico electoral. */
+    VOCALES: {
+      acento: '#FF9ECC',
+      rampa: ['#FEE9F1', '#FEC1DD', '#EE92C4', '#C669A1', '#894170']
     },
     sinDatos:  '#E4E9F0',   // territorios sin registros
     contexto:  '#F2F5F8',   // territorio fuera del filtro
@@ -354,7 +412,7 @@ function detectarColumnas(encabezados) {
 function clasificarDignidad(texto) {
   const t = normalizarTexto(texto);
   for (const d of CONFIG.dignidades) {
-    if (t.includes(normalizarTexto(d.clave))) return d.id;
+    if ([].concat(d.clave).every(c => t.includes(normalizarTexto(c)))) return d.id;
   }
   return null;
 }
@@ -397,6 +455,10 @@ function normalizarRegistros(filas, cols) {
       lista:   cols.lista   ? String(fila[cols.lista]   ?? '').trim() : '',
       nombre:  cols.nombre  ? String(fila[cols.nombre]  ?? '').trim() : '',
       cedula:  cols.cedula  ? String(fila[cols.cedula]  ?? '').trim() : '',
+      /* Texto original de la dignidad y circunscripción: solo rotulan la
+         fila en la tabla de detalle (ver subtipos en CONFIG.dignidades). */
+      dignidadTexto: String(fila[cols.dignidad] ?? '').trim(),
+      circunscripcion: cols.circunscripcion ? String(fila[cols.circunscripcion] ?? '').trim() : '',
       peso: peso
     });
   });
@@ -472,6 +534,7 @@ const TERRITORIO = {
   porCantK: new Map(),      // clave "PROVK|CANTK"
   porCantCod: new Map(),    // código DPA de cantón
   parroquiasPorCant: new Map(),  // clave: código de cantón, o "PROVK|CANTK"
+  porParrK: new Map(),      // clave "PROVK|CANTK|PARRK" (la parroquia de la capa)
   hayCodigos: { provincia: false, canton: false }
 };
 
@@ -542,6 +605,7 @@ function construirIndiceTerritorial() {
  */
 function indexarParroquias() {
   TERRITORIO.parroquiasPorCant.clear();
+  TERRITORIO.porParrK.clear();
   if (!DATOS.geo.parroquias) return;
 
   const cq = DATOS.campos.parroquia;
@@ -563,11 +627,45 @@ function indexarParroquias() {
        vienen desglosados por parroquia urbana. */
     f.__cod = propGeo(f, cq.codigo);
     f.__urbana = /50$/.test(f.__cod);
+    /* Capa parroquial del CNE: cada polígono trae en «nombres_cne» los nombres
+       con que la base electoral lo registra —el vigente y los de años
+       anteriores—, separados por «|». Con eso el cruce es explícito. */
+    const nombresCNE = f.properties ? f.properties.nombres_cne : undefined;
+    f.__nombresCNE = (nombresCNE === undefined || nombresCNE === null) ? null
+      : String(nombresCNE).split('|').map(normalizarTexto).filter(Boolean);
+
+    /* Las claves del cantón se estampan en el propio polígono: el mapa las
+       necesita en cada repintado y al hacer clic. */
+    f.__provK = dueño.provK; f.__cantK = dueño.key;
+    f.__provNombre = dueño.provNombre; f.__cantNombre = dueño.nombre;
 
     const clave = dueño.provK + '|' + dueño.key;
     if (!TERRITORIO.parroquiasPorCant.has(clave)) TERRITORIO.parroquiasPorCant.set(clave, []);
     TERRITORIO.parroquiasPorCant.get(clave).push(f);
+    TERRITORIO.porParrK.set(clave + '|' + f.__key, {
+      key: f.__key, nombre: f.__nombre, provK: dueño.provK, cantK: dueño.key,
+      provincia: dueño.provNombre, canton: dueño.nombre, feature: f,
+      poblacion: f.__poblacion || 0
+    });
   });
+}
+
+/**
+ * Empareja el nombre de una parroquia de la base con su polígono.
+ *
+ * Misma lógica que el histórico (parroquiaGeografica, en js/secciones.js): por
+ * nombre, sin espacios y, si no, por los nombres con que la base electoral la
+ * registra, que la propia capa guarda en «nombres_cne». Devuelve la clave del
+ * polígono o '' si esa parroquia no está en la capa.
+ */
+function resolverParroquia(provK, cantK, parrK) {
+  if (!provK || !cantK || !parrK) return '';
+  const parrs = TERRITORIO.parroquiasPorCant.get(provK + '|' + cantK) || [];
+  const sinEspacios = (x) => x.replace(/ /g, '');
+  let p = parrs.find(x => x.__key === parrK);
+  if (!p) p = parrs.find(x => sinEspacios(x.__key) === sinEspacios(parrK));
+  if (!p) p = parrs.find(x => x.__nombresCNE && x.__nombresCNE.includes(parrK));
+  return p ? p.__key : '';
 }
 
 /** Lista de provincias para el selector (excluye zonas no delimitadas). */
@@ -611,9 +709,23 @@ function resolverRegistros() {
       }
     }
 
-    r.conGeometria = nivel === 'provincia' ? !!prov : !!cant;
+    /* Parroquia (solo relevante cuando el análisis es parroquial) */
+    if (r.parrK && cant) {
+      const clave = resolverParroquia(r.provK, r.cantK, r.parrK);
+      r.parrKeyGeo = clave;
+      if (clave) {
+        const g = TERRITORIO.porParrK.get(r.provK + '|' + r.cantK + '|' + clave);
+        r.parrNombreGeo = g ? g.nombre : r.parroquia;
+      }
+    } else {
+      r.parrKeyGeo = '';
+    }
+
+    r.conGeometria = nivel === 'provincia' ? !!prov
+                   : nivel === 'parroquia' ? !!r.parrKeyGeo : !!cant;
     if (!r.conGeometria) {
-      const etq = r.provincia + (r.canton ? ' / ' + r.canton : '');
+      const etq = r.provincia + (r.canton ? ' / ' + r.canton : '') +
+                  (nivel === 'parroquia' && r.parroquia ? ' / ' + r.parroquia : '');
       if (!vistos.has(etq)) { vistos.add(etq); DATOS.sinGeometria.push(etq); }
     }
   });
@@ -636,17 +748,24 @@ function agregar(dignidad, nivel, filtro = {}) {
     if (r.dignidad !== dignidad) return;
     if (filtro.provK && r.provK !== filtro.provK) return;
     if (filtro.cantK && r.cantK !== filtro.cantK) return;
+    if (filtro.parrK && r.parrKeyGeo !== filtro.parrK) return;
 
-    const clave = nivel === 'provincia' ? r.provK : r.provK + '|' + r.cantK;
+    const clave = nivel === 'provincia' ? r.provK
+                : nivel === 'parroquia' ? r.provK + '|' + r.cantK + '|' + r.parrKeyGeo
+                : r.provK + '|' + r.cantK;
     if (!acum.has(clave)) {
       acum.set(clave, {
-        key: nivel === 'provincia' ? r.provK : r.cantK,
+        key: nivel === 'provincia' ? r.provK
+           : nivel === 'parroquia' ? r.parrKeyGeo : r.cantK,
         provK: r.provK,
+        cantK: r.cantK,
         /* Se prefiere el nombre de la cartografía oficial: así el mapa, la
            tabla y los gráficos nombran el territorio igual. */
         provincia: r.provNombreGeo || r.provincia,
+        canton: r.cantNombreGeo || r.canton,
         nombre: nivel === 'provincia' ? (r.provNombreGeo || r.provincia)
-                                      : (r.cantNombreGeo || r.canton),
+              : nivel === 'parroquia' ? (r.parrNombreGeo || r.parroquia)
+              : (r.cantNombreGeo || r.canton),
         valor: 0, registros: []
       });
     }
@@ -658,9 +777,9 @@ function agregar(dignidad, nivel, filtro = {}) {
   const filas = [...acum.values()];
   filas.forEach(f => {
     f.pct = total ? (f.valor * 100 / total) : 0;
-    f.geo = nivel === 'provincia'
-      ? TERRITORIO.porProvK.get(f.provK)
-      : TERRITORIO.porCantK.get(f.provK + '|' + f.key);
+    f.geo = nivel === 'provincia' ? TERRITORIO.porProvK.get(f.provK)
+          : nivel === 'parroquia' ? TERRITORIO.porParrK.get(f.provK + '|' + f.cantK + '|' + f.key)
+          : TERRITORIO.porCantK.get(f.provK + '|' + f.key);
     f.poblacion = f.geo ? (f.geo.poblacion || 0) : 0;
     f.electores = f.geo ? (f.geo.electores || 0) : 0;
     /* Densidad de preinscritos: normaliza territorios de tamaño muy distinto.
@@ -791,11 +910,17 @@ const RESULTADOS = {
   disponible: false,
   anio: null,
   etiquetas: {},          // PREFECTOS → 'Prefecto', ALCALDES → 'Alcalde'
-  registros: {}           // dignidad → [{provK, cantK, candidato, op, votos}]
+  registros: {}           // dignidad → [{provK, cantK, parrK, candidato, op, votos}]
 };
 
 /**
- * Carga los resultados ya agregados por cantón.
+ * Carga los resultados, agregados por parroquia.
+ *
+ * La parroquia viene ya emparejada con su polígono por
+ * preparar_resultados.py, así que aquí solo se traduce el índice a su clave;
+ * las que el CNE registra sin polígono llegan con -1 y se quedan con parrK
+ * vacía: cuentan en su cantón y en su provincia, pero no se desglosan.
+ *
  * Es opcional: si el archivo falta, el tablero sigue funcionando sin el
  * bloque de resultados.
  */
@@ -810,11 +935,13 @@ async function cargarResultados() {
        índices: así el archivo pesa una fracción de lo que ocuparía repetir
        cada nombre de candidato y organización en cada fila. */
     const { candidatos, organizaciones, provincias, cantones } = j;
+    const parroquias = j.parroquias || [];
     RESULTADOS.registros = {};
     for (const dig in j.registros) {
-      RESULTADOS.registros[dig] = j.registros[dig].map(([p, c, ca, o, v]) => ({
+      RESULTADOS.registros[dig] = j.registros[dig].map(([p, c, r, ca, o, v]) => ({
         provK: provincias[p],
         cantK: cantones[c],
+        parrK: (r >= 0 && parroquias[r]) ? parroquias[r] : '',
         candidato: candidatos[ca],
         op: organizaciones[o],
         votos: v
@@ -841,7 +968,7 @@ async function cargarResultados() {
  * prefecto) el primer puesto no es un "ganador" sino el más votado del
  * conjunto, y la interfaz debe decirlo.
  */
-function agregarResultados(dignidad, provK, cantK) {
+function agregarResultados(dignidad, provK, cantK, parrK) {
   const regs = (RESULTADOS.registros || {})[dignidad] || [];
   const acum = new Map();
   const ambitos = new Set();
@@ -850,6 +977,7 @@ function agregarResultados(dignidad, provK, cantK) {
   regs.forEach(r => {
     if (provK && r.provK !== provK) return;
     if (cantK && r.cantK !== cantK) return;
+    if (parrK && r.parrK !== parrK) return;
 
     /* El ámbito de elección depende de la dignidad: los alcaldes se eligen
        por cantón y los prefectos por provincia. */
@@ -878,6 +1006,54 @@ function agregarResultados(dignidad, provK, cantK) {
     /* Un único ámbito de elección: el primer puesto sí es el ganador. */
     unica: ambitos.size === 1
   };
+}
+
+
+/**
+ * Resultados de cada parroquia del ámbito, de mayor a menor votación.
+ *
+ * Devuelve una entrada por parroquia con su clave, su total de votos válidos
+ * y la lista completa de candidaturas; no recorta a los primeros puestos ni
+ * agrupa a nadie en «otros». El porcentaje de cada candidatura es sobre los
+ * votos válidos DE SU PARROQUIA, que es el único denominador que corresponde.
+ *
+ * Las candidaturas que el CNE registra sin parroquia (parrK vacía) se dejan
+ * fuera de este desglose —no se pueden atribuir a ninguna— pero siguen
+ * contando en el total del cantón que calcula agregarResultados().
+ */
+function resultadosPorParroquia(dignidad, provK, cantK) {
+  const regs = (RESULTADOS.registros || {})[dignidad] || [];
+  const porParr = new Map();
+
+  regs.forEach(r => {
+    if (!r.parrK) return;
+    if (provK && r.provK !== provK) return;
+    if (cantK && r.cantK !== cantK) return;
+    const clave = r.provK + '|' + r.cantK + '|' + r.parrK;
+    if (!porParr.has(clave)) {
+      porParr.set(clave, { clave, provK: r.provK, cantK: r.cantK, parrK: r.parrK,
+                           total: 0, filas: [] });
+    }
+    const p = porParr.get(clave);
+    p.filas.push({ candidato: r.candidato, op: r.op, votos: r.votos });
+    p.total += r.votos;
+  });
+
+  const salida = [...porParr.values()];
+  salida.forEach(p => {
+    p.filas.sort((a, b) => b.votos - a.votos || a.candidato.localeCompare(b.candidato, 'es'));
+    p.filas.forEach((f, i) => {
+      f.posicion = i + 1;
+      f.pct = p.total ? (f.votos * 100 / p.total) : 0;
+    });
+    p.ganador = p.filas[0] || null;
+    /* Nombre de la cartografía si la parroquia está en la capa; si la capa
+       aún no se ha descargado, el de la propia base. */
+    const geo = TERRITORIO.porParrK.get(p.clave);
+    p.nombre = geo ? geo.nombre : p.parrK;
+  });
+  return salida.sort((a, b) =>
+    a.cantK.localeCompare(b.cantK, 'es') || b.total - a.total);
 }
 
 
@@ -943,6 +1119,9 @@ async function cargarParroquias() {
     return false;
   }
   indexarParroquias();
+  /* Con la capa ya disponible, cada registro encuentra su parroquia: hasta
+     ahora solo se habían resuelto la provincia y el cantón. */
+  resolverRegistros();
   return TERRITORIO.parroquiasPorCant.size > 0;
 }
 

@@ -8,6 +8,7 @@ const ESTADO = {
   dignidad: CONFIG.dignidadPorDefecto,
   provK: '',
   cantK: '',
+  parrK: '',                      // solo en dignidades de análisis parroquial
   vistaTabla: 'territorios',      // 'territorios' | 'preinscritos'
   busqueda: '',
   orden: { col: 'valor', dir: -1 },
@@ -147,13 +148,23 @@ function cablearInterfaz() {
   q('#sel-provincia').addEventListener('change', (e) => {
     ESTADO.provK = e.target.value;
     ESTADO.cantK = '';
+    ESTADO.parrK = '';
     ESTADO.pagina = 1;
     poblarCantones();
+    poblarParroquias();
     render({ encuadrar: true });
   });
 
   q('#sel-canton').addEventListener('change', (e) => {
     ESTADO.cantK = e.target.value;
+    ESTADO.parrK = '';
+    ESTADO.pagina = 1;
+    poblarParroquias();
+    render({ encuadrar: true });
+  });
+
+  q('#sel-parroquia').addEventListener('change', (e) => {
+    ESTADO.parrK = e.target.value;
     ESTADO.pagina = 1;
     render({ encuadrar: true });
   });
@@ -193,8 +204,9 @@ function cablearInterfaz() {
   /* Ruta de niveles geográficos */
   qa('[data-nivel]').forEach(b => b.addEventListener('click', () => {
     const n = b.dataset.nivel;
-    if (n === 'pais')      { ESTADO.provK = ''; ESTADO.cantK = ''; }
-    if (n === 'provincia') { ESTADO.cantK = ''; }
+    if (n === 'pais')      { ESTADO.provK = ''; ESTADO.cantK = ''; ESTADO.parrK = ''; }
+    if (n === 'provincia') { ESTADO.cantK = ''; ESTADO.parrK = ''; }
+    if (n === 'canton')    { ESTADO.parrK = ''; }
     sincronizarSelectores();
     render({ encuadrar: true });
   }));
@@ -206,31 +218,94 @@ function cablearInterfaz() {
   }, 200));
 }
 
-/** Botones grandes de dignidad, generados desde CONFIG. */
+/** Grupo de una dignidad (CONCEJALES para urbanos y rurales), o null. */
+const grupoDe = (id) => (CONFIG.dignidades.find(d => d.id === id) || {}).grupo || null;
+
+/* Última dignidad elegida de cada grupo: al volver al grupo se retoma. */
+const ULTIMA_DEL_GRUPO = {};
+
+/**
+ * Botones grandes de dignidad, generados desde CONFIG. Las dignidades de un
+ * mismo 'grupo' comparten un botón que, al elegirlo, despliega debajo uno
+ * pequeño por cada una (Concejales → Urbanos · Rurales).
+ */
 function construirSelectorDignidad() {
   const cont = q('#sel-dignidad');
-  cont.innerHTML = CONFIG.dignidades.map(d => `
-    <button type="button" class="dig-btn ${d.id === ESTADO.dignidad ? 'activo' : ''}"
-            data-dig="${d.id}" style="--dig-color:${CONFIG.paleta[d.id].acento}">
+  const grupos = new Set();
+  cont.innerHTML = CONFIG.dignidades.map(d => {
+    if (!d.grupo) {
+      return `
+    <button type="button" class="dig-btn" data-dig="${d.id}" style="--dig-color:${CONFIG.paleta[d.id].acento}">
       <span class="dig-nombre">${d.etiqueta.toUpperCase()}</span>
       <span class="dig-nivel">${d.descripcion}</span>
-    </button>`).join('');
+    </button>`;
+    }
+    if (grupos.has(d.grupo)) return '';
+    grupos.add(d.grupo);
+    const g = CONFIG.gruposDignidad[d.grupo];
+    const miembros = CONFIG.dignidades.filter(x => x.grupo === d.grupo);
+    return `
+    <div class="dig-conjunto" data-grupo="${d.grupo}" style="--dig-color:${CONFIG.paleta[d.grupo].acento}">
+      <button type="button" class="dig-btn" data-grupo-btn="${d.grupo}" aria-expanded="false">
+        <span class="dig-nombre">${g.etiqueta.toUpperCase()}</span>
+        <span class="dig-nivel">${g.descripcion}</span>
+      </button>
+      <div class="dig-sub">
+        <div class="dig-sub-in" role="group" aria-label="${g.etiqueta}">${miembros.map(m => `
+          <button type="button" class="dig-sub-btn" data-dig="${m.id}">${m.boton}</button>`).join('')}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
 
   cont.querySelectorAll('[data-dig]').forEach(b => {
+    b.addEventListener('click', () => elegirDignidad(b.dataset.dig));
+  });
+  cont.querySelectorAll('[data-grupo-btn]').forEach(b => {
     b.addEventListener('click', () => {
-      if (ESTADO.dignidad === b.dataset.dig) return;
-      ESTADO.dignidad = b.dataset.dig;
-      ESTADO.pagina = 1;
-      cont.querySelectorAll('[data-dig]').forEach(x => x.classList.toggle('activo', x === b));
-      /* Al pasar a Prefectos el cantón deja de ser el nivel de análisis. */
-      render({ encuadrar: true });
+      const grupo = b.dataset.grupoBtn;
+      if (grupoDe(ESTADO.dignidad) === grupo) return;
+      elegirDignidad(ULTIMA_DEL_GRUPO[grupo] ||
+                     CONFIG.dignidades.find(d => d.grupo === grupo).id);
     });
   });
 
-  /* Réplica del selector en el encabezado */
+  /* Réplica del selector en el encabezado: un solo nombre por grupo. */
+  const vistos = new Set();
   q('#dig-encabezado').innerHTML = CONFIG.dignidades
+    .map(d => d.grupo ? { id: d.grupo, etiqueta: CONFIG.gruposDignidad[d.grupo].etiqueta } : d)
+    .filter(d => !vistos.has(d.id) && vistos.add(d.id))
     .map(d => `<span data-dig-h="${d.id}">${d.etiqueta.toUpperCase()}</span>`)
     .join('<i>|</i>');
+
+  marcarDignidad();
+}
+
+function elegirDignidad(id) {
+  if (ESTADO.dignidad === id) return;
+  ESTADO.dignidad = id;
+  ESTADO.pagina = 1;
+  marcarDignidad();
+  /* El selector de parroquia solo acompaña a las dignidades que se eligen por
+     parroquia: cambia con la dignidad, igual que el nivel del análisis. */
+  poblarParroquias();
+  /* Al pasar a Prefectos el cantón deja de ser el nivel de análisis. */
+  render({ encuadrar: true });
+}
+
+/** Refleja la dignidad activa en los botones y despliega su grupo. */
+function marcarDignidad() {
+  const grupo = grupoDe(ESTADO.dignidad);
+  if (grupo) ULTIMA_DEL_GRUPO[grupo] = ESTADO.dignidad;
+  qa('#sel-dignidad [data-dig]').forEach(b =>
+    b.classList.toggle('activo', b.dataset.dig === ESTADO.dignidad));
+  qa('#sel-dignidad [data-grupo]').forEach(c => {
+    const abierto = c.dataset.grupo === grupo;
+    c.classList.toggle('abierto', abierto);
+    const b = c.querySelector('[data-grupo-btn]');
+    b.classList.toggle('activo', abierto);
+    b.setAttribute('aria-expanded', String(abierto));
+  });
 }
 
 
@@ -264,21 +339,43 @@ function poblarCantones() {
   sel.value = ESTADO.cantK;
 }
 
+/**
+ * Parroquias del cantón enfocado. El campo solo existe para las dignidades
+ * que se eligen por parroquia (vocales); en las demás queda oculto.
+ */
+function poblarParroquias() {
+  const campo = q('#campo-parroquia');
+  const sel = q('#sel-parroquia');
+  if (!campo || !sel) return;
+  const dig = CONFIG.dignidades.find(d => d.id === ESTADO.dignidad);
+  campo.hidden = dig.nivel !== 'parroquia';
+
+  const parrs = (ESTADO.provK && ESTADO.cantK)
+    ? (TERRITORIO.parroquiasPorCant.get(ESTADO.provK + '|' + ESTADO.cantK) || []) : [];
+  sel.innerHTML = '<option value="">Todas las parroquias</option>' +
+    parrs.map(x => `<option value="${x.__key}">${tituloCase(x.__nombre)}</option>`).join('');
+  sel.disabled = !parrs.length;
+  campo.classList.toggle('deshabilitado', !parrs.length);
+  if (ESTADO.parrK && !parrs.some(x => x.__key === ESTADO.parrK)) ESTADO.parrK = '';
+  sel.value = ESTADO.parrK;
+}
+
 function sincronizarSelectores() {
   q('#sel-provincia').value = ESTADO.provK;
   poblarCantones();
   q('#sel-canton').value = ESTADO.cantK;
+  poblarParroquias();
 }
 
 function limpiarFiltros() {
   ESTADO.dignidad = CONFIG.dignidadPorDefecto;
-  ESTADO.provK = ''; ESTADO.cantK = '';
+  ESTADO.provK = ''; ESTADO.cantK = ''; ESTADO.parrK = '';
   ESTADO.busqueda = ''; ESTADO.pagina = 1;
   ESTADO.vistaTabla = 'territorios';
   ESTADO.orden = { col: 'valor', dir: -1 };
   q('#tabla-busqueda').value = '';
   qa('[data-vista]').forEach(x => x.classList.toggle('activo', x.dataset.vista === 'territorios'));
-  qa('[data-dig]').forEach(x => x.classList.toggle('activo', x.dataset.dig === ESTADO.dignidad));
+  marcarDignidad();
   /* Un usuario con alcance limitado vuelve a su territorio, no al país. */
   if (typeof aplicarAlcanceEstado === 'function') aplicarAlcanceEstado();
   sincronizarSelectores();
@@ -288,13 +385,18 @@ function limpiarFiltros() {
 
 /** Clic sobre el mapa o sobre los botones de navegación cartográfica. */
 function manejarSeleccionMapa(sel) {
-  if (sel.nivel === 'pais')             { ESTADO.provK = ''; ESTADO.cantK = ''; }
-  else if (sel.nivel === 'volverProvincia') { ESTADO.cantK = ''; }
-  else if (sel.nivel === 'provincia')   { ESTADO.provK = sel.provK; ESTADO.cantK = ''; }
+  if (sel.nivel === 'pais')             { ESTADO.provK = ''; ESTADO.cantK = ''; ESTADO.parrK = ''; }
+  else if (sel.nivel === 'volverProvincia') { ESTADO.cantK = ''; ESTADO.parrK = ''; }
+  else if (sel.nivel === 'provincia')   { ESTADO.provK = sel.provK; ESTADO.cantK = ''; ESTADO.parrK = ''; }
   else if (sel.nivel === 'canton') {
     /* Un clic sobre el mismo cantón lo deselecciona. */
-    if (ESTADO.cantK === sel.cantK && ESTADO.provK === sel.provK) ESTADO.cantK = '';
-    else { ESTADO.provK = sel.provK; ESTADO.cantK = sel.cantK; }
+    if (ESTADO.cantK === sel.cantK && ESTADO.provK === sel.provK) { ESTADO.cantK = ''; ESTADO.parrK = ''; }
+    else { ESTADO.provK = sel.provK; ESTADO.cantK = sel.cantK; ESTADO.parrK = ''; }
+  }
+  else if (sel.nivel === 'parroquia') {
+    /* Un clic sobre la misma parroquia la deselecciona. */
+    if (ESTADO.parrK === sel.parrK && ESTADO.cantK === sel.cantK) ESTADO.parrK = '';
+    else { ESTADO.provK = sel.provK; ESTADO.cantK = sel.cantK; ESTADO.parrK = sel.parrK; }
   }
   ESTADO.pagina = 1;
   sincronizarSelectores();
@@ -335,6 +437,8 @@ function render(opts = {}) {
       /* Bloque de grupo etario, añadido al final de esta página. Vive en
          js/secciones.js y se salta si ese archivo no está cargado. */
       if (typeof actualizarEtario === 'function') actualizarEtario();
+      /* Bloque de juntas y recintos del territorio (js/recintos.js), si existe. */
+      if (typeof actualizarRecintos === 'function') actualizarRecintos();
     } catch (e) {
       mostrarError(e.message, e);
     } finally {
@@ -350,8 +454,9 @@ function aplicarTemaDignidad() {
   r.setProperty('--acento', p.acento);
   p.rampa.forEach((c, i) => r.setProperty(`--rampa-${i + 1}`, c));
   document.body.dataset.dignidad = ESTADO.dignidad;
+  const grupo = grupoDe(ESTADO.dignidad);
   qa('[data-dig-h]').forEach(s =>
-    s.classList.toggle('activo', s.dataset.digH === ESTADO.dignidad));
+    s.classList.toggle('activo', s.dataset.digH === ESTADO.dignidad || s.dataset.digH === grupo));
 }
 
 /** Registros que cumplen los filtros activos (base de tabla y exportación). */
@@ -362,7 +467,8 @@ function filtrarRegistros() {
     if (ESTADO.provK && r.provK !== ESTADO.provK) return false;
     /* Los registros de prefectos no tienen cantón: filtrar por él los
        eliminaría todos al conservar la selección entre dignidades. */
-    if (dig.nivel === 'canton' && ESTADO.cantK && r.cantK !== ESTADO.cantK) return false;
+    if (dig.nivel !== 'provincia' && ESTADO.cantK && r.cantK !== ESTADO.cantK) return false;
+    if (dig.nivel === 'parroquia' && ESTADO.parrK && r.parrKeyGeo !== ESTADO.parrK) return false;
     return true;
   });
 }
@@ -388,11 +494,19 @@ function actualizarKPIs() {
   q('#kpi-provincias-sub').textContent =
     `de ${fmtNum(provinciasSeleccionables().length)} provincias`;
 
-  const totalCantonesGeo = ESTADO.provK
-    ? ((TERRITORIO.porProvK.get(ESTADO.provK) || {}).cantones || []).length
-    : TERRITORIO.cantones.length;
-  q('#kpi-cantones').textContent = dig.nivel === 'canton' ? fmtNum(cants.size) : '—';
-  q('#kpi-cantones-sub').textContent = dig.nivel === 'canton'
+  /* Cantones del mapa, más los que la base trae sin polígono (Sevilla Don
+     Bosco, posterior a la cartografía): así el «de N» nunca queda por debajo
+     de los cantones contados. */
+  const cantonesGeo = ESTADO.provK
+    ? ((TERRITORIO.porProvK.get(ESTADO.provK) || {}).cantones || [])
+    : TERRITORIO.cantones;
+  const totalCantonesGeo = new Set(cantonesGeo.map(c => c.provK + '|' + c.key)
+    .concat([...cants])).size;
+  /* Los prefectos se eligen por provincia y no tienen cantón; el resto de
+     dignidades sí, se analicen por cantón o por parroquia. */
+  const porCanton = dig.nivel !== 'provincia';
+  q('#kpi-cantones').textContent = porCanton ? fmtNum(cants.size) : '—';
+  q('#kpi-cantones-sub').textContent = porCanton
     ? `de ${fmtNum(totalCantonesGeo)} cantones`
     : 'no aplica en análisis provincial';
 
@@ -401,11 +515,21 @@ function actualizarKPIs() {
     ? 'con al menos un preinscrito' : 'sin columna de organización';
 
   q('#kpi-territorio').textContent = etiquetaTerritorio(true);
-  q('#kpi-territorio-sub').textContent = ESTADO.cantK ? 'Cantón seleccionado'
+  q('#kpi-territorio-sub').textContent = parroquiaEnFoco() ? 'Parroquia seleccionada'
+    : ESTADO.cantK ? 'Cantón seleccionado'
     : ESTADO.provK ? 'Provincia seleccionada' : 'Cobertura nacional';
 }
 
+/** Parroquia enfocada, solo si la dignidad se analiza por parroquia. */
+function parroquiaEnFoco() {
+  const dig = CONFIG.dignidades.find(d => d.id === ESTADO.dignidad);
+  if (!dig || dig.nivel !== 'parroquia' || !ESTADO.parrK) return null;
+  return TERRITORIO.porParrK.get(ESTADO.provK + '|' + ESTADO.cantK + '|' + ESTADO.parrK) || null;
+}
+
 function etiquetaTerritorio(corto = false) {
+  const parr = parroquiaEnFoco();
+  if (parr) return tituloCase(parr.nombre);
   if (ESTADO.cantK) {
     const c = TERRITORIO.porCantK.get(ESTADO.provK + '|' + ESTADO.cantK);
     return c ? tituloCase(c.nombre) : '—';
@@ -422,6 +546,16 @@ function etiquetaTerritorio(corto = false) {
    PANEL DE ANÁLISIS TERRITORIAL
    ========================================================================== */
 
+/** Suma las filas del agregado que cumplen una condición, como un territorio. */
+function resumenAgregado(cumple, geo) {
+  const sub = VISTA.agregado.filas.filter(cumple);
+  const v = sub.reduce((a, f) => a + f.valor, 0);
+  const total = VISTA.agregado.total;
+  return { nombre: geo.nombre, valor: v, pct: total ? v * 100 / total : 0,
+           ranking: null, agrupado: sub.length,
+           poblacion: geo.poblacion || 0, electores: geo.electores || 0 };
+}
+
 function actualizarPanelTerritorial() {
   const dig = CONFIG.dignidades.find(d => d.id === ESTADO.dignidad);
   const total = VISTA.agregado.total;
@@ -429,25 +563,36 @@ function actualizarPanelTerritorial() {
   let fila = null;
   if (dig.nivel === 'provincia' && ESTADO.provK) {
     fila = VISTA.agregado.indice.get(ESTADO.provK);
-  } else if (dig.nivel === 'canton' && ESTADO.cantK) {
-    fila = VISTA.agregado.indice.get(ESTADO.provK + '|' + ESTADO.cantK);
-  } else if (dig.nivel === 'canton' && ESTADO.provK) {
+  } else if (dig.nivel === 'parroquia' && ESTADO.parrK) {
+    fila = VISTA.agregado.indice.get(ESTADO.provK + '|' + ESTADO.cantK + '|' + ESTADO.parrK);
+  } else if (dig.nivel !== 'provincia' && ESTADO.cantK) {
+    /* Con una dignidad parroquial y solo el cantón elegido, el panel resume
+       sus parroquias, igual que la provincia resume sus cantones. */
+    fila = dig.nivel === 'canton'
+      ? VISTA.agregado.indice.get(ESTADO.provK + '|' + ESTADO.cantK)
+      : resumenAgregado(f => f.provK === ESTADO.provK && f.cantK === ESTADO.cantK,
+                        TERRITORIO.porCantK.get(ESTADO.provK + '|' + ESTADO.cantK) || {});
+  } else if (dig.nivel !== 'provincia' && ESTADO.provK) {
     /* Resumen agregado de la provincia sobre el total nacional. */
-    const sub = VISTA.agregado.filas.filter(f => f.provK === ESTADO.provK);
-    const v = sub.reduce((a, f) => a + f.valor, 0);
-    const p = TERRITORIO.porProvK.get(ESTADO.provK) || {};
-    fila = { nombre: p.nombre, valor: v, pct: total ? v * 100 / total : 0,
-             ranking: null, agrupado: sub.length,
-             poblacion: p.poblacion || 0, electores: p.electores || 0 };
+    fila = resumenAgregado(f => f.provK === ESTADO.provK,
+                           TERRITORIO.porProvK.get(ESTADO.provK) || {});
   }
 
   const p = ESTADO.provK ? tituloCase((TERRITORIO.porProvK.get(ESTADO.provK) || {}).nombre) : '—';
   const c = ESTADO.cantK ? tituloCase((TERRITORIO.porCantK.get(ESTADO.provK + '|' + ESTADO.cantK) || {}).nombre) : '—';
+  const parr = parroquiaEnFoco();
 
   q('#pt-provincia').textContent = p;
-  q('#pt-canton').textContent = dig.nivel === 'canton' ? c : (ESTADO.cantK ? c : '—');
+  q('#pt-canton').textContent = dig.nivel === 'provincia' ? (ESTADO.cantK ? c : '—') : c;
+  /* La fila de parroquia solo aparece con una dignidad parroquial. */
+  const filaParr = q('#pt-fila-parroquia');
+  if (filaParr) {
+    filaParr.hidden = dig.nivel !== 'parroquia';
+    q('#pt-parroquia').textContent = parr ? tituloCase(parr.nombre) : '—';
+  }
   q('#pt-dignidad').textContent = dig.etiqueta;
-  q('#pt-nivel').textContent = dig.nivel === 'provincia' ? 'Provincial' : 'Cantonal';
+  q('#pt-nivel').textContent = dig.nivel === 'provincia' ? 'Provincial'
+    : dig.nivel === 'parroquia' ? 'Parroquial' : 'Cantonal';
 
   if (fila) {
     q('#pt-preinscritos').textContent = fmtNum(fila.valor);
@@ -463,8 +608,16 @@ function actualizarPanelTerritorial() {
      del distributivo, que incluye los cantones sin geometría en el mapa. */
   let padron;
   if (fila) padron = fila.electores || 0;
+  /* Con una parroquia enfocada el padrón es el suyo, aunque no tenga
+     candidaturas: el total del ámbito más amplio diría otra cosa. */
+  else if (parr) padron = 0;
   else if (ELECTORES.disponible) padron = ELECTORES.total;
   else padron = VISTA.agregado.filas.reduce((a, f) => a + (f.electores || 0), 0);
+  /* El padrón por parroquia no está en electores.json (va por cantón): sale
+     del distributivo de recintos, que ya carga el bloque de electores. */
+  if (!padron && parr && typeof electoresDeParroquia === 'function') {
+    padron = electoresDeParroquia(parr.provK, parr.cantK, parr.key);
+  }
 
   const valorRef = fila ? fila.valor : total;
   const fd = q('#pt-fila-densidad');
@@ -491,10 +644,13 @@ function actualizarRuta() {
                  etiqueta: 'Ecuador' },
     provincia: { activo: !!ESTADO.provK && !ESTADO.cantK, disponible: !!ESTADO.provK,
                  etiqueta: ESTADO.provK ? tituloCase((TERRITORIO.porProvK.get(ESTADO.provK) || {}).nombre) : 'Provincia' },
-    canton:    { activo: !!ESTADO.cantK, disponible: !!ESTADO.cantK,
+    /* Solo el nivel más profundo queda marcado: con una parroquia elegida, el
+       cantón es el camino, no el foco. */
+    canton:    { activo: !!ESTADO.cantK && !parroquiaEnFoco(), disponible: !!ESTADO.cantK,
                  etiqueta: ESTADO.cantK ? tituloCase((TERRITORIO.porCantK.get(ESTADO.provK + '|' + ESTADO.cantK) || {}).nombre) : 'Cantón' },
-    parroquia: { activo: false, disponible: hayParr && nParr > 0,
-                 etiqueta: nParr ? `${nParr} parroquias` : 'Parroquia' }
+    parroquia: { activo: !!parroquiaEnFoco(), disponible: hayParr && nParr > 0,
+                 etiqueta: parroquiaEnFoco() ? tituloCase(parroquiaEnFoco().nombre)
+                         : nParr ? `${nParr} parroquias` : 'Parroquia' }
   };
 
   qa('[data-nivel]').forEach(b => {
@@ -505,8 +661,9 @@ function actualizarRuta() {
     b.querySelector('.rt-etq').textContent = s.etiqueta;
   });
 
-  q('#ruta-nivel-base').textContent =
-    dig.nivel === 'provincia' ? 'Nivel base: provincial' : 'Nivel base: cantonal';
+  q('#ruta-nivel-base').textContent = 'Nivel base: ' +
+    (dig.nivel === 'provincia' ? 'provincial'
+     : dig.nivel === 'parroquia' ? 'parroquial' : 'cantonal');
 }
 
 
@@ -527,6 +684,8 @@ const COLUMNAS_TABLA = {
   preinscritos: [
     { id: 'provincia', etq: 'Provincia', tipo: 'texto' },
     { id: 'canton',    etq: 'Cantón',    tipo: 'texto' },
+    /* Solo con una dignidad parroquial: ver columnasVista(). */
+    { id: 'parroquia', etq: 'Parroquia', tipo: 'texto', soloParroquial: true },
     { id: 'lista',     etq: 'Lista',     tipo: 'num' },
     { id: 'partido',   etq: 'Organización política', tipo: 'texto' },
     { id: 'nombre',    etq: 'Preinscrito', tipo: 'texto' },
@@ -542,27 +701,33 @@ function construirFilasTabla() {
     return VISTA.registros.map(r => ({
       provincia: tituloCase(r.provincia),
       canton: r.canton ? tituloCase(r.canton) : '—',
+      parroquia: r.parroquia ? tituloCase(r.parrNombreGeo || r.parroquia) : '—',
       lista: r.lista || '—',
       partido: r.partido ? tituloCase(r.partido) : '—',
       nombre: tituloCase(r.nombre) || '—',
-      dignidad: dig.etiqueta
+      dignidad: dig.subtipos ? subtipoDignidad(r, dig) : dig.etiqueta
     }));
   }
 
   /* Vista de territorios: se agrega al nivel de la dignidad y se filtra. */
   const agg = agregar(ESTADO.dignidad, dig.nivel, {
-    provK: ESTADO.provK, cantK: dig.nivel === 'canton' ? ESTADO.cantK : ''
+    provK: ESTADO.provK,
+    cantK: dig.nivel === 'provincia' ? '' : ESTADO.cantK,
+    parrK: dig.nivel === 'parroquia' ? ESTADO.parrK : ''
   });
   const totalFiltrado = agg.total;
 
   return agg.filas.map(f => {
     /* El ranking se conserva respecto del universo nacional del nivel. */
     const global = VISTA.agregado.indice.get(
-      dig.nivel === 'provincia' ? f.provK : f.provK + '|' + f.key);
+      dig.nivel === 'provincia' ? f.provK
+      : dig.nivel === 'parroquia' ? f.provK + '|' + f.cantK + '|' + f.key
+      : f.provK + '|' + f.key);
     return {
       provincia: tituloCase(f.provincia),
-      canton: dig.nivel === 'canton' ? tituloCase(f.nombre) : '—',
-      parroquia: '—',
+      canton: dig.nivel === 'canton' ? tituloCase(f.nombre)
+            : dig.nivel === 'parroquia' ? tituloCase(f.canton) : '—',
+      parroquia: dig.nivel === 'parroquia' ? tituloCase(f.nombre) : '—',
       dignidad: dig.etiqueta,
       valor: f.valor,
       pct: totalFiltrado ? f.valor * 100 / totalFiltrado : 0,
@@ -571,8 +736,26 @@ function construirFilasTabla() {
   });
 }
 
+/**
+ * Rótulo de una fila de concejales: urbanos, rurales o urbanos por
+ * circunscripción (y cuál), según el texto original de la base.
+ */
+function subtipoDignidad(r, dig) {
+  const t = normalizarTexto(r.dignidadTexto);
+  const s = dig.subtipos.find(([clave]) => t.includes(normalizarTexto(clave)));
+  const circ = normalizarTexto(r.circunscripcion).replace(/^CIRCUNSCRIPCION\s*/, '').toLowerCase();
+  return (s ? s[1] : dig.etiqueta) + (circ ? ` (${circ})` : '');
+}
+
+/** Columnas de la vista activa: la de parroquia solo en dignidades parroquiales. */
+function columnasVista() {
+  const dig = CONFIG.dignidades.find(d => d.id === ESTADO.dignidad);
+  return COLUMNAS_TABLA[ESTADO.vistaTabla]
+    .filter(c => !c.soloParroquial || dig.nivel === 'parroquia');
+}
+
 function actualizarTabla() {
-  const cols = COLUMNAS_TABLA[ESTADO.vistaTabla];
+  const cols = columnasVista();
   let filas = construirFilasTabla();
 
   /* Búsqueda libre sobre todas las columnas de texto */
@@ -682,7 +865,7 @@ function nombreArchivo(ext) {
 
 /** Datos exportables: exactamente lo que la tabla muestra (sin paginar). */
 function datosExportables() {
-  const cols = COLUMNAS_TABLA[ESTADO.vistaTabla];
+  const cols = columnasVista();
   return VISTA.filasTabla.map(f => {
     const o = {};
     cols.forEach(c => {
@@ -772,7 +955,11 @@ function actualizarResultados() {
   const seccion = q('#bloque-resultados');
   if (!seccion) return;
 
-  if (!RESULTADOS.disponible) { seccion.hidden = true; return; }
+  /* Los resultados 2023 son de prefectos y alcaldes: con otra dignidad
+     (concejales) el bloque no se muestra. */
+  if (!RESULTADOS.disponible || !(RESULTADOS.registros || {})[ESTADO.dignidad]) {
+    seccion.hidden = true; return;
+  }
   seccion.hidden = false;
 
   const dig = CONFIG.dignidades.find(d => d.id === ESTADO.dignidad);
@@ -798,6 +985,8 @@ function actualizarResultados() {
   q('#res-op').textContent = g ? tituloCase(g.op) : 'Sin resultados para este territorio';
   q('#res-votos').textContent = g ? fmtNum(g.votos) : '—';
   q('#res-pct').textContent = g ? fmtPct(g.pct) : '—';
+
+  actualizarResultadosParroquiales();
 
   const cuerpo = q('#res-cuerpo-tabla');
   if (!agg.filas.length) {
@@ -835,6 +1024,135 @@ function subtituloResultados(agg, etiquetaDig) {
     ? `${fmtNum(agg.elecciones)} elecciones cantonales`
     : `${fmtNum(agg.elecciones)} elecciones provinciales`;
   return `${etiquetaDig} · ${territorio} · votos sumados de ${ambito}`;
+}
+
+
+/* ============================================================================
+   RESULTADOS 2023 POR PARROQUIA
+
+   Pestaña plegable dentro del bloque de resultados: cerrada al empezar, se
+   abre con el botón «Ver resultados por parroquia». Es un desglose del mismo
+   dato que ya muestra el bloque —no lo sustituye— y sigue los filtros de
+   provincia y cantón de Preinscritos:
+
+     cantón    → cada parroquia con todas sus candidaturas
+     provincia → cada parroquia con la más votada, agrupadas por cantón
+     país      → cuántas parroquias y cuántos votos tiene cada provincia
+
+   Los porcentajes se calculan sobre los votos válidos de cada parroquia.
+   ========================================================================== */
+
+/* Con más parroquias que estas, la lista abierta se desplaza dentro de su
+   recuadro en vez de alargar la página. */
+const RP_LISTA_LARGA = 12;
+
+function actualizarResultadosParroquiales() {
+  const cont = q('#res-parroquias');
+  if (!cont) return;
+
+  const parrs = (typeof resultadosPorParroquia === 'function')
+    ? resultadosPorParroquia(ESTADO.dignidad, ESTADO.provK, ESTADO.cantK) : [];
+  if (!parrs.length) { cont.hidden = true; cont.classList.remove('abierto'); return; }
+  cont.hidden = false;
+
+  const nivel = ESTADO.cantK ? 'canton' : ESTADO.provK ? 'provincia' : 'pais';
+  const nom = (k) => tituloCase(k);
+  const cuerpo = nivel === 'canton' ? rpPorParroquia(parrs)
+               : nivel === 'provincia' ? rpPorCanton(parrs, nom)
+               : rpPorProvincia(parrs, nom);
+
+  const pie = { canton: 'Cada parroquia con todas sus candidaturas. El porcentaje es sobre los votos válidos de esa parroquia.',
+                provincia: 'Se muestra la candidatura más votada de cada parroquia. Elige un cantón para ver todas las candidaturas de cada una.',
+                pais: 'Elige una provincia y un cantón para ver los resultados de cada parroquia.' }[nivel];
+
+  cont.innerHTML = `
+    <header class="lm-col-cab lm-tab-cab">
+      <h3 class="lm-col-tit">
+        <button type="button" class="lm-tab" id="res-parr-tab"
+                aria-expanded="${cont.classList.contains('abierto')}" aria-controls="res-parr-cuerpo"
+                title="Mostrar u ocultar los resultados de cada parroquia">
+          <span class="lm-tab-nombre">Ver resultados por parroquia (${RESULTADOS.anio})</span>
+          <span class="lm-tab-der">
+            <span class="lm-cuenta">${fmtNum(nivel === 'pais' ? new Set(parrs.map(p => p.provK)).size : parrs.length)}</span>
+            <svg class="lm-tab-ico" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                 stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+          </span>
+        </button>
+      </h3>
+    </header>
+    <div class="lm-plegable" id="res-parr-cuerpo" role="region" aria-labelledby="res-parr-tab">
+      <div class="lm-plegable-in">
+        ${cuerpo}
+        <p class="lm-nota">${pie}</p>
+      </div>
+    </div>`;
+
+  const tab = q('#res-parr-tab');
+  if (tab) {
+    tab.onclick = () => {
+      const abierto = !cont.classList.contains('abierto');
+      cont.classList.toggle('abierto', abierto);
+      tab.setAttribute('aria-expanded', String(abierto));
+    };
+  }
+}
+
+/** Cantón: cada parroquia con su lista completa de candidaturas. */
+function rpPorParroquia(parrs) {
+  const html = parrs.map(p => `
+        <section class="lm-grupo">
+          <div class="lm-grupo-cab"><b>${escaparHTML(tituloCase(p.nombre))}</b>
+            <span>${fmtNum(p.total)} votos válidos · ${fmtNum(p.filas.length)} candidaturas</span></div>
+          <ol class="lm-lista">${p.filas.map(f => `
+            <li><div class="lm-persona"><b>${f.posicion}. ${escaparHTML(tituloCase(f.candidato))}</b>
+              <span>${escaparHTML(tituloCase(f.op))}</span></div>
+              <em>${fmtNum(f.votos)} · ${fmtPct(f.pct)}</em></li>`).join('')}</ol>
+        </section>`).join('');
+  return parrs.length > RP_LISTA_LARGA ? `<div class="lm-scroll">${html}</div>` : html;
+}
+
+/** Provincia: sus parroquias, agrupadas por cantón, con la más votada. */
+function rpPorCanton(parrs, nom) {
+  const grupos = new Map();
+  parrs.forEach(p => {
+    if (!grupos.has(p.cantK)) grupos.set(p.cantK, []);
+    grupos.get(p.cantK).push(p);
+  });
+  const html = [...grupos.entries()]
+    .sort((a, b) => nom(a[0]).localeCompare(nom(b[0]), 'es'))
+    .map(([cantK, ps]) => `
+        <section class="lm-grupo">
+          <div class="lm-grupo-cab"><b>${escaparHTML(nom(cantK))}</b>
+            <span>${fmtNum(ps.length)} ${ps.length === 1 ? 'parroquia' : 'parroquias'}</span></div>
+          <ol class="lm-lista">${ps.map(p => `
+            <li><div class="lm-persona"><b>${escaparHTML(tituloCase(p.nombre))}</b>
+              <span>${p.ganador ? escaparHTML(tituloCase(p.ganador.candidato)) + ' · ' +
+                                   escaparHTML(tituloCase(p.ganador.op)) : 'Sin candidaturas'}</span></div>
+              <em>${p.ganador ? fmtNum(p.ganador.votos) + ' · ' + fmtPct(p.ganador.pct) : '—'}</em></li>`).join('')}</ol>
+        </section>`).join('');
+  return `<div class="lm-scroll">${html}</div>`;
+}
+
+/** País: una línea por provincia, para no volcar 1.080 parroquias de golpe. */
+function rpPorProvincia(parrs, nom) {
+  const grupos = new Map();
+  parrs.forEach(p => {
+    if (!grupos.has(p.provK)) grupos.set(p.provK, { n: 0, votos: 0 });
+    const g = grupos.get(p.provK);
+    g.n++; g.votos += p.total;
+  });
+  const filas = [...grupos.entries()]
+    .map(([provK, g]) => ({ nombre: nom(provK), ...g }))
+    .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
+  return `
+        <section class="lm-grupo">
+          <div class="lm-grupo-cab"><b>Por provincia</b>
+            <span>${fmtNum(filas.length)} provincias</span></div>
+          <ol class="lm-lista">${filas.map(f => `
+            <li><div class="lm-persona"><b>${escaparHTML(f.nombre)}</b></div>
+              <em>${fmtNum(f.n)} ${f.n === 1 ? 'parroquia' : 'parroquias'} · ${fmtNum(f.votos)} votos</em></li>`).join('')}</ol>
+        </section>`;
 }
 
 

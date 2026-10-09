@@ -91,6 +91,7 @@ df['PROVK'] = df['PROVINCIA_NOMBRE'].map(lambda x: norm(ALIAS_PROV.get(norm(x), 
 df['CANTK'] = df['CANTON_NOMBRE'].map(lambda x: norm(ALIAS_CANT.get(norm(x), norm(x))))
 df['PARRK'] = df['PARROQUIA_NOMBRE'].map(norm)
 df['OPN'] = df['OP_NOMBRE'].str.strip()
+df['CAND'] = df['CANDIDATO_NOMBRE'].str.strip()
 
 print(f'  {len(df):,} filas, años {sorted(df["ANIO"].unique())}')
 
@@ -98,6 +99,29 @@ print(f'  {len(df):,} filas, años {sorted(df["ANIO"].unique())}')
 votos = (df.groupby(['ANIO', 'DIG', 'PROVK', 'CANTK', 'PARRK', 'OPN'],
                     sort=False)['CANDIDATO_VOTOS'].sum().reset_index())
 print(f'  {len(votos):,} combinaciones parroquia × organización')
+
+# --- Candidato de cada organización en cada elección ---------------------
+# El ámbito de elección depende de la dignidad: los alcaldes se eligen por
+# cantón y los prefectos por provincia. Dentro de ese ámbito cada organización
+# presenta una candidatura, así que basta una tabla de búsqueda en lugar de
+# guardar el nombre en cada registro de votación.
+#
+# En 88 de 7.805 casos —etiquetas genéricas del tipo "ALIANZA"— aparece más de
+# un nombre; se toma el más votado.
+print('  resolviendo la candidatura de cada organización…')
+cands = {}
+for dig, claves in [('ALCALDES', ['ANIO', 'PROVK', 'CANTK', 'OPN']),
+                    ('PREFECTOS', ['ANIO', 'PROVK', 'OPN'])]:
+    sub = df[df['DIG'] == dig]
+    porCand = (sub.groupby(claves + ['CAND'], sort=False)['CANDIDATO_VOTOS']
+                  .sum().reset_index())
+    mejor = porCand.sort_values('CANDIDATO_VOTOS', ascending=False).drop_duplicates(claves)
+    cands[dig] = mejor
+    print(f'    {dig}: {len(mejor):,} candidaturas')
+
+nombres = sorted(set(pd.concat([c['CAND'] for c in cands.values()])))
+iN = {v: i for i, v in enumerate(nombres)}
+print(f'    {len(nombres):,} nombres distintos')
 
 # --- Nulos y blancos: MAX por unidad electoral, luego suma ---------------
 uni = df.groupby(UNIDAD, sort=False).agg(
@@ -129,6 +153,17 @@ for dig in sorted(votos['DIG'].unique()):
     reg[dig] = [[iA[r.ANIO], iP[r.PROVK], iC[r.CANTK], iR[r.PARRK], iO[r.OPN],
                  int(r.CANDIDATO_VOTOS)] for r in sub.itertuples()]
 
+porEleccion = {}
+for dig, mejor in cands.items():
+    m = {}
+    for r in mejor.itertuples():
+        if dig == 'ALCALDES':
+            k = f'{iA[r.ANIO]}|{iP[r.PROVK]}|{iC[r.CANTK]}|{iO[r.OPN]}'
+        else:
+            k = f'{iA[r.ANIO]}|{iP[r.PROVK]}|{iO[r.OPN]}'
+        m[k] = iN[r.CAND]
+    porEleccion[dig] = m
+
 regnb = {}
 for dig in sorted(nb['DIG'].unique()):
     sub = nb[nb['DIG'] == dig]
@@ -139,6 +174,7 @@ escribir('historico.json', {
     'anios': anios, 'etiquetas': {i: e for i, e in DIGNIDADES.values()},
     'organizaciones': ops, 'provincias': provs, 'cantones': cants,
     'parroquias': parrs, 'votos': reg, 'nuloblanco': regnb,
+    'candidatos': nombres, 'porEleccion': porEleccion,
 })
 
 # ══════════════════════════════════════════════════════════════════════════

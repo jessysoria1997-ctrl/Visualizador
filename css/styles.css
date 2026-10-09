@@ -99,6 +99,11 @@ code{font-family:var(--f-mono);font-size:.92em;background:rgba(255,255,255,.07);
 .dig-header span{color:#5D7091;transition:color .3s}
 .dig-header span.activo{color:var(--acento)}
 .dig-header i{color:#33445C;font-style:normal}
+/* Con tres dignidades la réplica no cabe en estos anchos (el título se
+   recortaba): ahí muestra solo la dignidad activa. */
+@media (min-width:1041px) and (max-width:1130px), (max-width:950px){
+  .dig-header span:not(.activo), .dig-header i{display:none}
+}
 .marca-meta{
   display:flex;flex-direction:column;align-items:flex-end;
   padding-left:16px;border-left:1px solid var(--line-soft);
@@ -180,6 +185,26 @@ code{font-family:var(--f-mono);font-size:.92em;background:rgba(255,255,255,.07);
   font-size:13.5px;letter-spacing:.09em}
 .dig-btn.activo .dig-nombre{color:var(--dig-color)}
 .dig-nivel{display:block;font-size:11px;color:var(--muted);margin-top:1px}
+/* Grupo de dignidades (Concejales): al elegirlo se despliegan debajo los
+   botones de cada una (Urbanos · Rurales). */
+.dig-conjunto{display:flex;flex-direction:column}
+.dig-sub{display:grid;grid-template-rows:0fr;visibility:hidden;margin-top:0;
+  transition:grid-template-rows .25s ease, margin-top .25s ease, visibility 0s linear .25s}
+.dig-conjunto.abierto .dig-sub{grid-template-rows:1fr;visibility:visible;margin-top:6px;
+  transition:grid-template-rows .25s ease, margin-top .25s ease, visibility 0s}
+.dig-sub-in{min-height:0;overflow:hidden;display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.dig-sub-btn{
+  padding:8px 10px;text-align:center;
+  background:var(--ink-800);border:1px solid var(--line-soft);border-radius:var(--radio-sm);
+  font-family:var(--f-display);font-weight:700;font-size:11.5px;letter-spacing:.09em;
+  text-transform:uppercase;color:var(--muted);
+  transition:border-color .2s, background .2s, color .2s;
+}
+.dig-sub-btn:hover{background:var(--ink-700);border-color:var(--line);color:var(--text)}
+.dig-sub-btn.activo{
+  background:var(--ink-700);color:var(--dig-color);
+  border-color:color-mix(in srgb, var(--dig-color) 55%, transparent);
+}
 
 /* Campos */
 .campo{margin-bottom:14px}
@@ -1011,3 +1036,246 @@ body.sin-sesion .cuerpo{filter:blur(6px);pointer-events:none;user-select:none}
   .usuario-chip{padding-left:10px}
   .usuario-txt{display:none}
 }
+
+/* ── Primer y segundo lugar ──────────────────────────────────────────────── */
+.tabla td.lugar-1{color:var(--acento);font-weight:600;transition:color .4s}
+.tabla td.lugar-2{color:var(--text-2)}
+.tabla td.lugar-1 b,.tabla td.lugar-2 b{display:block;font-weight:600}
+.lugar-op{display:block;font-size:11px;color:var(--muted);margin-top:1px}
+
+/* ── Electores: juntas y recintos (Preinscritos) ────────────────────────────
+   Bloque añadido bajo el mapa, para el país, una provincia o un cantón
+   (js/recintos.js). El prefijo lm- viene de su primera versión, la de
+   La Maná. Usa los tokens y componentes del tablero (tarjeta, kpi, sello,
+   tooltip): no introduce colores ni tipografías propias. */
+.bloque-electores{padding:16px 18px 14px}
+.bloque-electores .tabla-cab{align-items:center}
+.lm-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.lm-kpis .kpi{box-shadow:none}
+.lm-cuerpo{display:grid;grid-template-columns:minmax(0,1fr);gap:16px;
+  margin-top:16px;align-items:start}
+.lm-col{padding:14px 16px 12px;border-radius:var(--radio-sm);
+  background:var(--ink-850);border:1px solid var(--line-soft);min-width:0}
+.lm-col-cab{display:flex;align-items:center;justify-content:space-between;gap:6px 10px;
+  flex-wrap:wrap;padding-bottom:10px;border-bottom:1px solid var(--line-soft)}
+.lm-col-tit{font-size:13px;letter-spacing:-.005em}
+.lm-cuenta{font-family:var(--f-mono);font-size:15px;font-weight:500;color:var(--acento);
+  transition:color .4s}
+.lm-grupo{margin-top:12px}
+.lm-grupo-cab{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.lm-grupo-cab b{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--text-2);font-weight:600}
+.lm-grupo-cab span{font-family:var(--f-mono);font-size:11px;color:var(--muted)}
+.lm-ambito{font-size:11px;color:var(--muted);margin-top:3px;line-height:1.45}
+.lm-lista{list-style:none;margin:6px 0 0;padding:0}
+.lm-lista li{display:flex;justify-content:space-between;align-items:baseline;gap:10px;
+  padding:7px 0;border-bottom:1px dashed var(--line-soft);font-size:12.5px}
+.lm-lista li:last-child{border-bottom:0}
+.lm-persona{min-width:0}
+.lm-persona b{display:block;font-weight:600;color:var(--text);line-height:1.35}
+.lm-persona span{display:block;font-size:11px;color:var(--muted);margin-top:1px;line-height:1.35}
+.lm-lista em{font-style:normal;font-family:var(--f-mono);font-size:11.5px;color:var(--text-2);
+  white-space:nowrap}
+.lm-recintos .lm-persona b{font-size:11.5px;font-weight:500;color:var(--text-2)}
+.lm-sin-junta{margin-top:12px}
+.lm-nota{margin-top:10px;padding-top:9px;border-top:1px solid var(--line-soft);
+  font-size:10.5px;color:#63799A;line-height:1.5}
+
+/* Pestaña de recintos: plegada al empezar. Su cabecera abre y cierra la
+   lista y, con ella, los puntos del mapa. */
+.lm-tab-cab{transition:padding .28s ease, border-color .28s ease}
+.lm-tab-cab .lm-col-tit{flex:1;min-width:0}
+.lm-tab{display:flex;align-items:center;justify-content:space-between;gap:10px;
+  width:100%;padding:0;margin:0;background:none;border:0;
+  letter-spacing:inherit;text-align:left}
+.lm-tab-der{display:inline-flex;align-items:center;gap:8px;flex:none}
+.lm-tab-ico{color:var(--muted);transition:transform .28s ease, color .2s}
+.lm-tab:hover .lm-tab-ico{color:var(--acento)}
+.lm-col.abierto .lm-tab-ico{transform:rotate(180deg)}
+/* Cerrada, la cabecera no lleva la línea inferior: debajo no hay nada. */
+.lm-col:not(.abierto) .lm-tab-cab{padding-bottom:0;border-bottom-color:transparent}
+.lm-plegable{display:grid;grid-template-rows:0fr;visibility:hidden;
+  transition:grid-template-rows .28s ease, visibility 0s linear .28s}
+.lm-col.abierto .lm-plegable{grid-template-rows:1fr;visibility:visible;
+  transition:grid-template-rows .28s ease, visibility 0s}
+.lm-plegable-in{min-height:0;overflow:hidden}
+/* Cantones con muchos recintos (Quito, Guayaquil…): la lista se desplaza
+   dentro de su recuadro en vez de alargar la página. */
+.lm-scroll{max-height:560px;overflow-y:auto;padding-right:6px;margin-right:-6px}
+
+@media (max-width:1180px){
+  .lm-kpis{grid-template-columns:repeat(2,1fr)}
+}
+@media (max-width:520px){
+  .lm-kpis{grid-template-columns:1fr}
+}
+
+/* ── Ganador más visible ─────────────────────────────────────────────────
+   Solo tamaño, peso y aire: mismos colores, tarjetas y estructura.       */
+/* Preinscritos · Resultados electorales: tarjeta y primera fila */
+.res-ganador .res-nombre{font-size:22px;line-height:1.22}
+.res-scroll tr.res-primero td{font-size:13.5px;padding-top:12px;padding-bottom:12px}
+.res-scroll tr.res-primero td.fuerte:not(.num){font-weight:700}
+/* Histórico · primer lugar de cada año, primera fuerza y la más votada */
+.tabla td.lugar-1{font-size:13.5px}
+.tabla td.lugar-1 b{font-weight:700}
+.fuerza:not(.segunda) .fuerza-nom{font-size:15px;font-weight:700}
+.tabla tr.fila-ganador td{font-size:13.5px;padding-top:12px;padding-bottom:12px}
+.tabla tr.fila-ganador td.fuerte{font-weight:700}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   ASIGNACIÓN DE ESCAÑOS
+   La sección es el simulador completo dentro de un marco. Solo hace falta
+   darle sitio: él trae su propio diseño, que es el que se entregó.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.asig-marco-caja{padding:0;overflow:hidden}
+.asig-marco{
+  display:block;width:100%;height:calc(100vh - 210px);min-height:560px;
+  border:0;border-radius:var(--radio);background:#f3f5f9;
+}
+@media (max-width:900px){
+  .asig-marco{height:calc(100vh - 170px);min-height:520px}
+}
+
+/* — La sección de Asignación va en claro ───────────────────────────────────
+   Solo esta sección: Preinscritos e Histórico siguen oscuros. Se usa el mismo
+   blanco cálido (#FAF9F5) y el mismo negro de texto del simulador que va
+   dentro, así el marco no corta con lo de arriba y las tarjetas se ven mejor.
+   Se reescriben las variables del tema dentro de la vista, de modo que todo lo
+   que ya estaba hecho con variables cambia solo; abajo quedan los pocos
+   colores que estaban escritos a mano. */
+#vista-asignacion{
+  --ink-900:#F2F0EA;  --ink-850:#FFFFFF;  --ink-800:#FFFFFF;
+  --ink-700:#F4F2EC;  --ink-600:#E9E6DD;
+  --line:#D8D4C9;     --line-soft:#E4E1D7;
+  --text:#141413;     --text-2:#45433D;   --muted:#6E6A60;
+  --acento:#5B4FC4;   /* el lila de concejales, bajado para que lea en blanco */
+  --sombra:0 1px 2px rgba(20,20,19,.05), 0 10px 26px -18px rgba(20,20,19,.35);
+  background:#FAF9F5;
+  border:1px solid #E4E1D7;
+  border-radius:var(--radio);
+  padding:14px;
+  color:var(--text);
+}
+#vista-asignacion .sec-nota,
+#vista-asignacion .part-ayuda{color:#5E5B53}
+#vista-asignacion .asig-marco{background:#FAF9F5}
+
+/* — Vista provincial (sección Asignación) ─────────────────────────────────
+     El mapa manda y las tarjetas lo acompañan a la derecha, alineadas y del
+     mismo alto que él. En pantallas estrechas se ponen debajo. */
+.prov-fila{display:grid;grid-template-columns:minmax(0,1fr) 278px;gap:14px;margin-top:14px}
+.prov-mapa{height:500px;border-radius:var(--radio-sm);overflow:hidden;
+  border:1px solid var(--line-soft);background:#EAEFF4}
+.prov-tarjetas{display:flex;flex-direction:column;gap:10px;min-width:0}
+.prov-par{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.prov-tarjeta{
+  background:color-mix(in srgb, var(--part-color, transparent) 12%, var(--ink-800));
+  border:1px solid color-mix(in srgb, var(--part-color, var(--line-soft)) 38%, var(--line-soft));
+  border-radius:var(--radio-sm);padding:10px 12px;min-width:0;
+  position:relative;overflow:hidden;
+}
+.prov-tarjeta::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;
+  background:var(--part-color, transparent)}
+.prov-et{font-size:10px;letter-spacing:.1em;text-transform:uppercase;
+  color:color-mix(in srgb, var(--part-color, var(--muted)) 72%, var(--text))}
+.prov-val{font-family:var(--f-display);font-weight:700;font-size:24px;line-height:1.1;
+  letter-spacing:-.02em;margin-top:3px;font-variant-numeric:tabular-nums;color:var(--text)}
+.prov-pie{font-size:10px;color:#5E5B53;margin-top:4px;line-height:1.35}
+/* La tarjeta de la dignidad que se está analizando se marca, para que se vea
+   que el botón de arriba manda sobre el mapa y sobre el simulador. */
+.prov-tarjeta.activa{box-shadow:inset 0 0 0 1px var(--part-color, var(--line))}
+.prov-tarjeta.activa .prov-et::after{content:' · en análisis';opacity:.75;letter-spacing:0;text-transform:none}
+.prov-total{background:var(--ink-700);border-color:var(--line)}
+.prov-total .prov-val{font-size:38px}
+.prov-total .prov-et{color:var(--muted)}
+/* Las de una línea llevan la cifra al lado de la etiqueta: así caben números
+   largos como el padrón sin recortarse. */
+.prov-ancha{display:grid;grid-template-columns:1fr auto;align-items:baseline;gap:4px 10px}
+.prov-ancha .prov-val{font-size:21px;grid-column:2;grid-row:1 / span 2;align-self:center}
+.prov-ancha .prov-pie{grid-column:1;margin-top:2px}
+.prov-leyenda{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;
+  font-size:10.5px;color:var(--muted);margin-top:2px}
+.prov-leyenda span{display:inline-flex;align-items:center;gap:5px}
+.prov-leyenda i{width:9px;height:9px;border-radius:50%;display:inline-block}
+.prov-leyenda .prov-pista{display:block;flex:1 1 100%;color:#5E5B53;line-height:1.45}
+
+/* El marcador de escaños: anillo partido urbano/rural con el total dentro. */
+.esc-pin-caja{background:none;border:0}
+.esc-pin{
+  width:var(--d);height:var(--d);border-radius:50%;cursor:pointer;
+  background:conic-gradient(var(--cu) 0 var(--pu), var(--cr) var(--pu) 100%);
+  display:grid;place-items:center;box-shadow:0 2px 6px rgba(20,20,19,.35);
+  transition:transform .12s ease;
+}
+.esc-pin::before{content:'';position:absolute;width:calc(var(--d) - 9px);height:calc(var(--d) - 9px);
+  border-radius:50%;background:#FFFFFF}
+.esc-pin b{position:relative;font-family:var(--f-display);font-weight:700;
+  font-size:calc(var(--d) * .40);line-height:1;color:#141413;font-variant-numeric:tabular-nums}
+.esc-pin:hover{transform:scale(1.08)}
+.esc-pin.activo{box-shadow:0 0 0 3px #141413, 0 2px 6px rgba(20,20,19,.35)}
+.esc-pin.vacio{opacity:.72}
+.esc-pin.vacio b{color:#5E5B53}
+
+@media (max-width:1180px){
+  .prov-fila{grid-template-columns:minmax(0,1fr)}
+  .prov-mapa{height:360px}
+  .prov-tarjetas{flex-direction:row;flex-wrap:wrap}
+  .prov-tarjetas > *{flex:1 1 180px}
+}
+
+/* — Bloque de participación (sección Asignación) — */
+.part-rejilla{
+  display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-top:14px;
+}
+/* Cada tarjeta lleva su color en --part-color: barra lateral, fondo tenue y
+   etiqueta. El color va en la tarjeta, no en la cifra, para que los números
+   sigan leyéndose; los dos resultados sí pintan su valor. */
+.part-campo{
+  background:color-mix(in srgb, var(--part-color, transparent) 12%, var(--ink-800));
+  border:1px solid color-mix(in srgb, var(--part-color, var(--line-soft)) 38%, var(--line-soft));
+  border-radius:var(--radio-sm);padding:10px 11px 10px 13px;min-width:0;
+  position:relative;overflow:hidden;
+}
+.part-campo::before{
+  content:'';position:absolute;left:0;top:0;bottom:0;width:3px;
+  background:var(--part-color, transparent);
+}
+.part-et{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;
+  color:color-mix(in srgb, var(--part-color, var(--muted)) 72%, var(--text));
+  display:block;margin-bottom:6px}
+.part-ent{position:relative;display:flex;align-items:center}
+.part-num{
+  width:100%;min-width:0;background:transparent;color:var(--text);
+  border:1px solid transparent;border-radius:6px;padding:3px 4px;
+  font-family:var(--f-mono);font-size:17px;font-weight:600;
+}
+.part-ent.con-suf .part-num{padding-right:18px}
+.part-num:hover{border-color:var(--line-soft)}
+.part-num:focus{outline:none;border-color:var(--acento)}
+.part-num::-webkit-outer-spin-button,.part-num::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.part-num{-moz-appearance:textfield}
+.part-suf{position:absolute;right:4px;font-family:var(--f-mono);font-size:13px;
+  color:color-mix(in srgb, var(--part-color, var(--muted)) 55%, var(--muted));
+  pointer-events:none}
+.part-ayuda{font-size:10px;color:#63799A;margin-top:5px;line-height:1.35}
+.part-calc{background:color-mix(in srgb, var(--part-color, transparent) 11%, var(--ink-850));
+  border-style:dashed}
+.part-calc .part-val{font-family:var(--f-mono);font-size:17px;font-weight:600;
+  color:color-mix(in srgb, var(--part-color, var(--text)) 74%, var(--text));
+  padding:3px 4px}
+.part-calc.destacado{border-style:solid;
+  border-color:color-mix(in srgb, var(--part-color, var(--acento)) 45%, transparent)}
+.part-calc.destacado .part-val{color:var(--part-color, var(--acento))}
+.part-calc.mal .part-val{color:var(--rampa-4)}
+.part-resta{
+  margin-top:12px;padding:10px 12px;border-radius:var(--radio-sm);
+  background:var(--ink-850);border:1px solid var(--line-soft);
+  font-family:var(--f-mono);font-size:12.5px;color:var(--text-2);line-height:1.7;
+}
+.part-resta b{color:var(--acento)}
+.part-pie{display:flex;gap:9px;flex-wrap:wrap;margin-top:12px}
+
+@media (max-width:1180px){ .part-rejilla{grid-template-columns:repeat(3,1fr)} }
+@media (max-width:620px){ .part-rejilla{grid-template-columns:repeat(2,1fr)} }

@@ -71,12 +71,19 @@ CANT = {(ap(f['properties']['dpa_despro'].replace('Ð', 'Ñ')),
          ac(f['properties']['dpa_descan'].replace('Ð', 'Ñ'))) for f in geo_c['features']}
 PARR = defaultdict(set)
 URBANA = {}
+# Capa del CNE: cada polígono trae en «nombres_cne» los nombres con que lo
+# registra la base electoral (ver preparar_parroquias.py). Con ella no hay
+# pliegue al polígono urbano: el cruce es explícito.
+CNE = defaultdict(set)
 if geo_r:
     for f in geo_r['features']:
         pr = f['properties']
         k = (ap(pr['dpa_despro'].replace('Ð', 'Ñ')), ac(pr['dpa_descan'].replace('Ð', 'Ñ')))
         PARR[k].add(norm(pr['dpa_despar'].replace('Ð', 'Ñ')))
-        if str(pr.get('dpa_parroq', '')).endswith('50'):
+        if 'nombres_cne' in pr:
+            CNE[k].update(norm(n) for n in str(pr['nombres_cne'] or '').split('|') if n)
+            CNE[k].add('')          # marca el cantón como capa del CNE
+        elif str(pr.get('dpa_parroq', '')).endswith('50'):
             URBANA[k] = norm(pr['dpa_despar'].replace('Ð', 'Ñ'))
 
 print(f'Cartografía: {len(PROV)} provincias · {len(CANT)} cantones · '
@@ -148,33 +155,42 @@ print('\n4 · historico.json')
 h = cargar('historico.json')
 if h:
     faltanP, faltanC, sinParr, aUrbana, exacta = set(), set(), set(), 0, 0
-    vistos = set()
+    historicas = set()
+    ultimo = len(h['anios']) - 1
+    anios = defaultdict(set)
     for dig in h['votos']:
         for a, p, c, r, o, v in h['votos'][dig]:
-            k = (h['provincias'][p], h['cantones'][c], h['parroquias'][r])
-            if k in vistos:
-                continue
-            vistos.add(k)
-            if k[0] not in PROV:
-                faltanP.add(k[0])
-            if (k[0], k[1]) not in CANT:
-                faltanC.add(f'{k[0]} / {k[1]}')
-                continue
-            ps = PARR.get((k[0], k[1]), set())
-            if not ps:
-                continue
-            if k[2] in ps or k[2].replace(' ', '') in {x.replace(' ', '') for x in ps}:
-                exacta += 1
-            elif (k[0], k[1]) in URBANA:
-                aUrbana += 1
-            else:
-                sinParr.add(' / '.join(k))
+            anios[(h['provincias'][p], h['cantones'][c], h['parroquias'][r])].add(a)
+    for k in anios:
+        if k[0] not in PROV:
+            faltanP.add(k[0])
+        if (k[0], k[1]) not in CANT:
+            faltanC.add(f'{k[0]} / {k[1]}')
+            continue
+        ps = PARR.get((k[0], k[1]), set())
+        if not ps:
+            continue
+        if k[2] in ps or k[2].replace(' ', '') in {x.replace(' ', '') for x in ps}:
+            exacta += 1
+        elif k[2] in CNE.get((k[0], k[1]), set()):
+            exacta += 1
+        elif (k[0], k[1]) in URBANA:
+            aUrbana += 1
+        elif (k[0], k[1]) in CNE and ultimo not in anios[k]:
+            # Unidad de elecciones pasadas que hoy no es parroquia de ese
+            # cantón: cuenta en el cantón y la provincia, no tiene polígono.
+            historicas.add(' / '.join(k))
+        else:
+            sinParr.add(' / '.join(k))
     avisar('provincias', faltanP, 'preparar_secciones.py → ALIAS_PROV')
     avisar('cantones', faltanC, 'preparar_secciones.py → ALIAS_CANT')
-    print(f'  \u2139 parroquias: {exacta} cruzan por nombre, {aUrbana} se pliegan '
+    print(f'  ℹ parroquias: {exacta} cruzan con la capa parroquial, {aUrbana} se pliegan '
           f'al polígono urbano del cantón')
+    if historicas:
+        print(f'  ℹ {len(historicas)} unidades de años anteriores sin polígono vigente '
+              '(cuentan en el cantón; ver preparar_parroquias.py → SIN_POLIGONO)')
     avisar('parroquias sin destino', sinParr,
-           'no hay polígono urbano en ese cantón: revisar parroquias.geojson')
+           'preparar_parroquias.py → NOMBRE_ELECTORAL / NOMBRES_ANTERIORES')
 else:
     print('  (no está)')
 

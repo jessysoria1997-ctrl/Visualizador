@@ -1,42 +1,51 @@
 /* ============================================================================
-   acceso.js — INICIO DE SESIÓN Y ALCANCE TERRITORIAL
+   acceso.js — ALCANCE TERRITORIAL
 
-   ⚠️ LEE ESTO ANTES DE USARLO CON DATOS SENSIBLES
-   Esta comprobación ocurre en el navegador, así que NO es seguridad real:
-   cualquiera que abra las herramientas de desarrollo (F12) puede leer las
-   contraseñas de este archivo y saltarse la pantalla. Sirve como control de
-   acceso para presentaciones y uso interno —cada quien entra a lo suyo—, no
-   para proteger información confidencial.
+   EL TABLERO ABRE DIRECTO: NO HAY PANTALLA DE ACCESO NI CONTRASEÑAS.
+   Esta carpeta se abre y se usa. index.html ya no trae el formulario de
+   entrada, así que iniciarAcceso() abre sesión sola con el primer usuario de
+   la lista de abajo y el tablero arranca.
 
-   Si necesitas protección de verdad, la contraseña tiene que pedirla el
-   servidor: autenticación básica del hosting, un .htaccess o el control de
-   acceso de la plataforma donde lo publiques.
+   ⚠️ SI LA PUBLICAS EN INTERNET
+   Antes había una contraseña aquí, pero no era seguridad real: se comprobaba
+   en el navegador y cualquiera podía leerla con F12 y saltarse la pantalla.
+   Quitarla no te deja más expuesto de lo que ya estabas. Si necesitas limitar
+   quién entra, tiene que pedirlo el servidor: autenticación básica del
+   hosting, un .htaccess o el control de acceso de la plataforma donde la
+   publiques.
 
-   El alcance territorial, en cambio, sí recorta los datos de verdad: al
-   usuario limitado se le podan las bases en memoria, de modo que ni los
-   mapas, ni las tablas, ni los gráficos llegan a tener los otros territorios.
+   PARA DAR A ALGUIEN SOLO SU TERRITORIO
+   Compílale su carpeta (compilar_usuario.py). Ahí el recorte es de verdad:
+   los datos de los demás territorios **no se incluyen en los archivos**, así
+   que no hay nada que destapar.
+
+   El `alcance` de abajo sigue sirviendo dentro de una carpeta ya recortada:
+   poda las bases en memoria y rotula el territorio en el encabezado.
    ========================================================================== */
 
 const ACCESO = {
 
-  /* ── ✏️ EDITAR · USUARIOS ───────────────────────────────────────────────
+  /* ── ✏️ EDITAR · USUARIO ────────────────────────────────────────────────
+     Sin pantalla de acceso se usa SIEMPRE el primero de la lista. Los demás
+     se quedan como referencia de los territorios que se compilan aparte.
      alcance: null            → ve todo el país
      alcance: {provincia,...} → solo ese territorio
      Los nombres van como aparecen en la cartografía, sin tildes.        */
   usuarios: [
     {
       usuario: 'admin',
-      clave: '124569Gfr',
       nombre: 'Administración',
       alcance: null
     },
     {
       usuario: 'pedernales',
-      /* Se aceptan estas otras grafías para el mismo usuario. */
-      alias: ['perdernales', 'perdenales'],
-      clave: '156235Jty',
       nombre: 'Pedernales',
       alcance: { provincia: 'MANABI', canton: 'PEDERNALES' }
+    },
+    {
+      usuario: 'lamana',
+      nombre: 'La Maná',
+      alcance: { provincia: 'COTOPAXI', canton: 'LA MANA' }
     }
   ],
 
@@ -61,7 +70,10 @@ function iniciarAcceso() {
 
   const capa = document.getElementById('capa-acceso');
   const form = document.getElementById('form-acceso');
-  if (!capa || !form) {           // sin pantalla de acceso, entrada libre
+  /* Este es el camino normal: index.html no trae pantalla de acceso, así que
+     se abre sesión con el primer usuario y el tablero arranca. El resto de
+     esta función solo se usa si alguien devuelve el formulario al HTML. */
+  if (!capa || !form) {
     abrirSesion(ACCESO.usuarios[0]);
     return ACCESO.listo;
   }
