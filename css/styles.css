@@ -476,6 +476,8 @@ select option{background:var(--ink-800);color:var(--text)}
   border:1px solid color-mix(in srgb, var(--acento) 38%, transparent);
   transition:color .4s, background .4s, border-color .4s;white-space:nowrap;
 }
+/* Los sellos de la cabecera de participación: los escaños que reparte. */
+.part-sellos{display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end}
 .res-cuerpo{display:grid;grid-template-columns:290px 1fr;gap:16px;align-items:start}
 
 .res-ganador{
@@ -1131,12 +1133,16 @@ body.sin-sesion .cuerpo{filter:blur(6px);pointer-events:none;user-select:none}
 
 .asig-marco-caja{padding:0;overflow:hidden}
 .asig-marco{
-  display:block;width:100%;height:calc(100vh - 210px);min-height:560px;
+  display:block;width:100%;height:calc(100vh - 150px);min-height:620px;
   border:0;border-radius:var(--radio);background:#f3f5f9;
 }
 @media (max-width:900px){
-  .asig-marco{height:calc(100vh - 170px);min-height:520px}
+  .asig-marco{height:calc(100vh - 120px);min-height:540px}
 }
+/* Lo que ocupa el sitio del simulador mientras no hay cantón elegido. */
+.asig-espera{padding:46px 24px;text-align:center;background:#FAF9F5;border-radius:var(--radio)}
+.asig-espera-tit{font-family:var(--f-display);font-weight:700;font-size:16px;color:var(--text)}
+.asig-espera-txt{font-size:12.5px;color:var(--muted);margin:6px auto 0;max-width:58ch;line-height:1.55}
 
 /* — La sección de Asignación va en claro ───────────────────────────────────
    Solo esta sección: Preinscritos e Histórico siguen oscuros. Se usa el mismo
@@ -1225,6 +1231,59 @@ body.sin-sesion .cuerpo{filter:blur(6px);pointer-events:none;user-select:none}
   .prov-tarjetas > *{flex:1 1 180px}
 }
 
+/* El selector de circunscripción y, donde no la hay, la pista de en qué
+   cantones aparece: se marcan con el acento para que no pasen inadvertidos. */
+.campo-circ label{color:var(--acento)}
+.campo-circ select{border-color:color-mix(in srgb, var(--acento) 45%, var(--line))}
+.campo-pista{
+  border-left:2px solid color-mix(in srgb, var(--acento) 55%, transparent);
+  padding-left:9px;margin:-2px 0 10px;line-height:1.55;
+}
+.campo-pista b{color:var(--text-2)}
+
+/* — Listas preinscritas (sección Asignación) ──────────────────────────────
+     El panel que abre «Ver listas preinscritas»: cada lista con su número, su
+     organización y sus candidatos en el orden en que se inscribieron. Es un
+     registro, así que se lee como una ficha, sin colores de serie. */
+.pre-barra{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;flex-wrap:wrap}
+.pre-tit{font-family:var(--f-display);font-size:15px;font-weight:600;color:var(--text)}
+.pre-sub{font-size:12px;color:var(--muted);margin-top:3px;line-height:1.5}
+.pre-barra .btn{white-space:nowrap}
+.pre-panel{margin-top:12px;border-top:1px solid var(--line-soft);padding-top:12px}
+.pre-cab{font-size:13px;font-weight:600;color:var(--text);line-height:1.35}
+.pre-dig{display:inline-block;font-weight:500;font-size:11px;color:var(--muted);
+  text-transform:uppercase;letter-spacing:.06em;margin-left:8px}
+.pre-nota{font-size:11.5px;color:var(--muted);line-height:1.55;margin:4px 0 12px;max-width:72ch}
+.pre-vacio{font-size:12px;color:var(--muted);line-height:1.5;margin:0}
+.pre-listas{
+  list-style:none;margin:0;padding:0;
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(258px,1fr));gap:10px;
+}
+.pre-lista{
+  background:var(--ink-800);border:1px solid var(--line-soft);
+  border-radius:var(--radio-sm);padding:9px 11px;min-width:0;
+}
+.pre-org{display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-size:12px;margin:0}
+.pre-num{
+  font-family:var(--f-display);font-weight:700;font-size:11px;
+  padding:2px 7px;border-radius:999px;
+  background:color-mix(in srgb, var(--acento) 14%, transparent);
+  color:var(--acento);white-space:nowrap;
+}
+.pre-partido{font-weight:600;color:var(--text);flex:1 1 120px;min-width:0}
+.pre-cuenta{font-size:10.5px;color:var(--muted);white-space:nowrap}
+.pre-cands{list-style:none;margin:8px 0 0;padding:0;display:flex;flex-direction:column;gap:5px}
+.pre-cands li{display:flex;align-items:baseline;gap:7px;font-size:11.5px;line-height:1.45}
+.pre-orden{
+  flex:0 0 18px;text-align:center;font-family:var(--f-display);font-weight:600;
+  font-size:10px;color:var(--muted);
+  border:1px solid var(--line-soft);border-radius:4px;
+}
+.pre-dato{min-width:0}
+.pre-nom{color:var(--text-2)}
+.pre-sup{display:block;color:var(--muted);font-size:10.5px;margin-top:1px}
+.pre-sin{font-size:11px;color:var(--muted);margin:6px 0 0}
+
 /* — Bloque de participación (sección Asignación) — */
 .part-rejilla{
   display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-top:14px;
@@ -1269,13 +1328,124 @@ body.sin-sesion .cuerpo{filter:blur(6px);pointer-events:none;user-select:none}
   border-color:color-mix(in srgb, var(--part-color, var(--acento)) 45%, transparent)}
 .part-calc.destacado .part-val{color:var(--part-color, var(--acento))}
 .part-calc.mal .part-val{color:var(--rampa-4)}
+/* La cadena de la cuenta, en dos pasos numerados: del padrón a los votos
+   emitidos, y de ahí a los válidos. */
 .part-resta{
   margin-top:12px;padding:10px 12px;border-radius:var(--radio-sm);
   background:var(--ink-850);border:1px solid var(--line-soft);
   font-family:var(--f-mono);font-size:12.5px;color:var(--text-2);line-height:1.7;
 }
 .part-resta b{color:var(--acento)}
-.part-pie{display:flex;gap:9px;flex-wrap:wrap;margin-top:12px}
+.part-paso{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.part-paso + .part-paso{margin-top:5px}
+.part-paso-n{
+  flex:none;width:17px;height:17px;border-radius:50%;display:inline-grid;place-items:center;
+  background:var(--ink-700);color:var(--text-2);font-size:10px;font-weight:700;
+  font-family:var(--f-texto);align-self:center;
+}
 
 @media (max-width:1180px){ .part-rejilla{grid-template-columns:repeat(3,1fr)} }
 @media (max-width:620px){ .part-rejilla{grid-template-columns:repeat(2,1fr)} }
+
+/* ════════════════════════════════════════════════════════════════════════════
+   ESCAÑOS–ASIGNACIÓN · selección por pasos, ruta del distrito, mapa de
+   circunscripciones y ficha. Todo con el prefijo asig- para no tocar nada de
+   las otras secciones.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* Los nombres de las circunscripciones van tal cual vienen del Excel: ninguna
+   regla los pasa a mayúsculas, minúsculas ni capitales. */
+.asig-circ-nom{text-transform:none !important}
+
+/* — Panel lateral: concejalía y circunscripción (aparecen tras el cantón) ── */
+.asig-op{width:100%}
+.asig-op .dig-nivel{margin-top:3px}
+.asig-op--circ .dig-nombre{font-size:12.5px;letter-spacing:.03em;line-height:1.3;
+  overflow-wrap:anywhere;text-transform:none}
+.asig-op-fila{display:flex;align-items:flex-start;gap:8px}
+.asig-op-punto{width:10px;height:10px;border-radius:50%;background:var(--dig-color);
+  flex:none;margin-top:3px;box-shadow:0 0 0 2px rgba(255,255,255,.14)}
+#filtros-asignacion .bloque-ayuda b{color:var(--text)}
+
+/* — Cabecera: la ruta del distrito que se analiza ─────────────────────────── */
+.asig-ruta{display:flex;flex-wrap:wrap;align-items:center;gap:5px 6px;margin:9px 0 7px}
+.asig-ruta-paso{border:1px solid var(--line);background:var(--ink-700);color:var(--text-2);
+  border-radius:99px;padding:3px 11px;font-size:12px;font-weight:600;cursor:pointer;
+  font-family:var(--f-texto);transition:border-color .15s,color .15s}
+.asig-ruta-paso:hover{border-color:#B9B4A9;color:var(--text)}
+.asig-ruta-act{border-radius:99px;padding:3px 11px;font-size:12px;font-weight:700;color:var(--text);
+  background:color-mix(in srgb, var(--acento) 10%, #FFFFFF);
+  border:1px solid color-mix(in srgb, var(--acento) 35%, transparent)}
+.asig-ruta-circ{background:color-mix(in srgb, var(--c) 13%, #FFFFFF);
+  border-color:color-mix(in srgb, var(--c) 50%, transparent);color:#141413;letter-spacing:.02em}
+.asig-ruta-pend{font-size:12px;color:var(--muted);font-style:italic;padding:3px 4px}
+.asig-ruta-sep{color:#B9B4A9;font-size:14px;line-height:1}
+
+/* — Tarjeta del mapa ────────────────────────────────────────────────────── */
+.asig-mapa-acc{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.asig-volver{white-space:nowrap}
+.asig-mapa-fila{grid-template-columns:minmax(0,1fr) 304px}
+.asig-mapa-fila .prov-tarjetas{gap:12px}
+.asig-grupo{display:flex;flex-direction:column;gap:6px}
+.asig-grupo-tit{display:flex;justify-content:space-between;align-items:baseline;gap:8px;
+  font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.asig-grupo-tit span{letter-spacing:.02em;text-transform:none;color:var(--text-2);font-weight:700}
+.asig-dist{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:9px;
+  width:100%;text-align:left;padding:9px 10px;border-radius:var(--radio-sm);cursor:pointer;
+  font-family:var(--f-texto);color:var(--text);
+  background:color-mix(in srgb, var(--c) 6%, #FFFFFF);
+  border:1px solid color-mix(in srgb, var(--c) 26%, var(--line-soft));
+  transition:box-shadow .15s,border-color .15s,background .15s}
+.asig-dist:hover{border-color:color-mix(in srgb, var(--c) 65%, transparent)}
+.asig-dist.activo{box-shadow:inset 0 0 0 2px var(--c);background:color-mix(in srgb, var(--c) 13%, #FFFFFF)}
+.asig-dist-color{width:14px;height:14px;border-radius:4px;background:var(--c);flex:none}
+.asig-dist-txt{display:flex;flex-direction:column;min-width:0}
+.asig-dist-nom{font-size:12.5px;font-weight:700;line-height:1.3;overflow-wrap:anywhere}
+.asig-dist-det{font-size:10.5px;color:var(--muted);margin-top:2px}
+.asig-dist-esc{font-size:12px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.asig-leyenda{padding-top:9px;border-top:1px dashed var(--line);display:flex;flex-direction:column;
+  gap:6px;font-size:10.5px;color:#5E5B53;line-height:1.4}
+.asig-leyenda p{display:flex;align-items:center;gap:8px}
+.asig-leyenda-tit{font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.asig-leyenda p.asig-leyenda-fuente{display:block;color:var(--muted);margin-top:2px}
+.asig-ley-linea{width:22px;flex:none;display:block;border-radius:2px}
+.asig-ley-linea--circ{height:3px;background:#2B2A27}
+.asig-ley-linea--parr{height:4px;background:#FFFFFF;box-shadow:0 0 0 1px #CFCABE}
+.asig-ley-rayas{width:22px;height:13px;flex:none;border-radius:2px;display:block;
+  background:repeating-linear-gradient(45deg,#7B4AC7 0 4px,#C2410C 4px 8px)}
+
+/* Marcadores: los cantones con circunscripciones llevan un anillo punteado;
+   los de cada circunscripción, su color. */
+.esc-pin.con-circ{outline:2px dashed #141413;outline-offset:2px}
+.esc-pin--dist::before{width:calc(var(--d) - 10px);height:calc(var(--d) - 10px)}
+
+/* — Ficha del distrito, bajo el mapa ──────────────────────────────────────── */
+.asig-ficha{margin-top:14px;display:grid;grid-template-columns:minmax(230px,1.1fr) auto minmax(0,2fr);
+  gap:14px 24px;align-items:start;padding:14px 16px;border-radius:var(--radio-sm);
+  background:var(--ink-700);border:1px solid var(--line-soft)}
+.asig-ficha-cab{border-left:4px solid var(--c);padding-left:12px;min-width:0}
+.asig-ficha-et{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.asig-ficha-nom{font-family:var(--f-display);font-weight:800;font-size:18px;line-height:1.22;
+  color:var(--text);margin-top:3px;overflow-wrap:anywhere}
+.asig-ficha-sub{font-size:12px;color:#5E5B53;margin-top:4px;line-height:1.45}
+.asig-ficha-res{font-size:15px;color:var(--text);margin-top:5px}
+.asig-ficha-datos{display:flex;gap:20px;margin:0}
+.asig-ficha-datos div{display:flex;flex-direction:column}
+.asig-ficha-datos dt{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.asig-ficha-datos dd{margin:2px 0 0;font-family:var(--f-display);font-weight:700;font-size:21px;
+  color:var(--text);font-variant-numeric:tabular-nums}
+.asig-ficha-parr{min-width:0}
+.asig-ficha-mini{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);
+  font-weight:600;margin-bottom:6px}
+.asig-parr{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:5px}
+.asig-parr-chip{font-size:11.5px;padding:3px 9px;border-radius:99px;background:#FFFFFF;
+  border:1px solid var(--line-soft);color:var(--text-2)}
+.asig-parr-chip.rep{background:repeating-linear-gradient(45deg,#FFFFFF 0 5px,#EFEBE2 5px 10px)}
+.asig-parr-chip.sin{border-style:dashed;color:var(--muted)}
+.asig-parr-chip small{color:var(--muted);font-size:10px}
+.asig-ficha-notas{grid-column:1 / -1;margin:0;padding:9px 0 0 16px;border-top:1px dashed var(--line);
+  font-size:11px;color:#5E5B53;line-height:1.5;display:flex;flex-direction:column;gap:3px}
+@media (max-width:1180px){
+  .asig-mapa-fila{grid-template-columns:minmax(0,1fr)}
+  .asig-ficha{grid-template-columns:minmax(0,1fr)}
+}

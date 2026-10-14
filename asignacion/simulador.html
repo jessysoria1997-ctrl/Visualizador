@@ -115,6 +115,23 @@ main.pagina { padding-block: 20px 56px; display: flex; flex-direction: column; g
 .coc-punto { width: 9px; height: 9px; border-radius: 50%; flex: none; }
 .coc-nom .control--nombre { flex: 1 1 auto; min-width: 140px; }
 .tabla--matriz .celda-ent { min-width: 108px; }
+.tabla--matriz .celda-votos { color: var(--tinta-2); font-variant-numeric: tabular-nums; }
+/* Cuánto suman los porcentajes escritos. */
+.coc-suma { margin-top: 10px; font-size: 12.5px; color: var(--tinta-3); }
+.coc-suma.es-aviso { color: #8a6100; }
+.coc-suma.es-mal { color: #b3261e; font-weight: 600; }
+/* Escaños por lista, en barras. */
+.dist-escanos { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--linea); }
+.dist-tit { font-family: var(--fuente-titulos); font-weight: 700; font-size: 12.5px; text-transform: uppercase; letter-spacing: .07em; color: var(--marino-2); }
+.dist-sub { font-size: 12px; color: var(--tinta-3); margin-bottom: 10px; }
+.dist-fila { display: grid; grid-template-columns: minmax(120px, 270px) 1fr 34px; align-items: center; gap: 10px; padding: 3px 0; }
+.dist-nom { display: flex; align-items: center; gap: 7px; font-weight: 600; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dist-barra { background: #eef1f7; border-radius: 999px; height: 14px; overflow: hidden; }
+.dist-barra i { display: block; height: 100%; border-radius: 999px; min-width: 2px; }
+.dist-n { text-align: right; font-variant-numeric: tabular-nums; font-size: 14px; }
+.dist-fila.es-cero { opacity: .55; }
+.dist-fila.es-cero .dist-barra i { background: #c9cedb !important; }
+@media (max-width: 680px) { .dist-fila { grid-template-columns: 1fr 70px 30px; } }
 .tabla--matriz .celda-ent .control { width: 100%; }
 .tabla--matriz .celda-esc .datos__esc-n { font-weight: 700; font-size: 15px; }
 .tarjeta--matriz .datos__pie { margin-top: 12px; }
@@ -292,11 +309,17 @@ textarea.control { height: auto; padding: 10px; line-height: 1.4; resize: vertic
 .ok-t { display: inline-flex; align-items: center; gap: 4px; color: var(--bien-tinta); font-weight: 600; }
 
 /* ---------- indicadores ---------- */
-.kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+.kpis { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 16px; }
 @media (max-width: 980px) { .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 600px) { .kpis { gap: 10px; } .kpi { padding: 12px 13px 13px; } .kpi__et { font-size: 10.5px; letter-spacing: .04em; } .kpi__sub { font-size: 12.5px; } }
 @media (max-width: 330px) { .kpis { grid-template-columns: minmax(0, 1fr); } }
 .kpi { background: var(--tarjeta); border: 1px solid var(--linea); border-radius: var(--radio); padding: 15px 18px 16px; display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+/* En qué escenario se está: siempre una simulación con las listas inscritas. */
+.kpi--escenario { border-color: #c9d2e4; }
+.kpi--escenario .kpi__val { color: var(--marino-2); }
+.kpi--escenario.es-sim { background: #f3f0ff; border-color: #cdc6f5; }
+.kpi--escenario.es-sim .kpi__val { color: #4b3fb0; }
+
 .kpi__et { font-size: 11.5px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--tinta-3); }
 .kpi__val { font-size: clamp(28px, 3vw, 36px); line-height: 1.05; font-weight: 700; color: var(--marino); letter-spacing: -.01em; overflow-wrap: anywhere; }
 .kpi__uni { font-size: 15px; font-weight: 600; letter-spacing: 0; }
@@ -597,6 +620,16 @@ textarea.control { height: auto; padding: 10px; line-height: 1.4; resize: vertic
 .tabla--ad tr.es-baja .ad__col-desp { background: var(--critico-fondo); color: var(--critico-tinta); }
 .ad__resumen { font-size: 13.5px; font-weight: 600; color: var(--tinta-2); }
 
+/* ---------- candidatos que obtienen escaño ---------- */
+.tabla--cand td b { font-weight: 650; }
+.tabla--cand tr.es-falta { background: var(--aviso-fondo); }
+.cand__org { color: var(--tinta-2); max-width: 280px; }
+.cand__sup { color: var(--tinta-3); }
+.cand__orden { display: block; font-size: 11.5px; color: var(--tinta-3); margin-top: 1px; }
+.cand__resumen { font-size: 13.5px; font-weight: 600; color: var(--tinta-2); }
+.cand__falta { font-size: 13px; color: var(--aviso-tinta); background: var(--aviso-fondo);
+  border-radius: 9px; padding: 9px 11px; }
+
 /* ---------- sensibilidad ---------- */
 .sens { position: relative; min-width: 0; }
 .sens svg { display: block; touch-action: pan-y; }
@@ -643,6 +676,177 @@ textarea.control { height: auto; padding: 10px; line-height: 1.4; resize: vertic
 .met__porque { font-size: 13px; color: var(--tinta-2); margin-top: 3px; line-height: 1.5; max-width: 70ch; }
 .met__porque .num { color: var(--tinta); font-weight: 700; }
 .met__razon { font-size: 13px; color: var(--tinta-2); margin-top: 12px; background: #f6f8fc; border-radius: 10px; padding: 10px 12px; max-width: 70ch; }
+
+/* ---------- v5.6 · resultado, histograma, estabilidad y explicación ---------- */
+.res-distrito { display: inline-flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; }
+.res-distrito__sep { color: #a9b2c3; }
+/* La circunscripción va con su nombre literal: sin transformar mayúsculas. */
+.res-circ { color: var(--marino); font-weight: 700; text-transform: none; letter-spacing: 0; }
+.res-modo { display: inline-flex; align-items: center; border-radius: 999px; padding: 4px 11px; font-size: 12px; font-weight: 700; background: #f3f0ff; border: 1px solid #cdc6f5; color: #4b3fb0; white-space: nowrap; }
+.sello--info { background: var(--acento-suave); color: var(--marino); }
+/* En el resumen, los nombres de las listas van completos. */
+.kpis--res .lista { align-items: flex-start; }
+.kpis--res .lista .punto { margin-top: 4px; }
+.kpis--res .lista__nombre { white-space: normal; overflow-wrap: anywhere; }
+
+/* Histograma: organizaciones en el eje horizontal, escaños en el vertical. */
+.tarjeta--histo .tarjeta__acc { gap: 6px; }
+.histo { display: grid; grid-template-columns: 44px minmax(0, 1fr); column-gap: 6px; margin: 0; padding-top: 24px; }
+.histo__y { position: relative; height: var(--alto); }
+.histo__y-t { position: absolute; left: 0; top: -24px; font-size: 11px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--tinta-3); white-space: nowrap; }
+.histo__y-m { position: absolute; right: 6px; transform: translateY(50%); font-size: 11.5px; line-height: 1; color: var(--tinta-3); font-variant-numeric: tabular-nums; }
+.histo__scroll { overflow-x: auto; min-width: 0; padding-bottom: 4px; }
+.histo__cols { position: relative; display: flex; gap: clamp(10px, 1.6vw, 22px); padding: 0 8px; min-width: min-content; }
+.histo__rejilla { position: absolute; left: 0; right: 0; top: 0; height: var(--alto); pointer-events: none; }
+.histo__rejilla i { position: absolute; left: 0; right: 0; height: 0; border-top: 1px dashed var(--linea); }
+.histo__rejilla i.es-base { border-top: 1.5px solid #b7bfcd; }
+.histo__col { position: relative; flex: 1 1 0; min-width: 108px; max-width: 300px; display: flex; flex-direction: column; }
+.histo__zona { height: var(--alto); display: flex; align-items: flex-end; justify-content: center; }
+.histo__barra { position: relative; width: min(100%, 112px); min-height: 4px; background: var(--c); border-radius: 9px 9px 0 0; transition: height .28s cubic-bezier(.2, .7, .2, 1); }
+.histo__barra--hueca { background: #ffffff; box-shadow: inset 0 0 0 3px var(--c); }
+.histo__val { position: absolute; left: 50%; bottom: calc(100% + 6px); transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; line-height: 1.05; white-space: nowrap; }
+.histo__n { font-size: 24px; font-weight: 800; color: var(--marino); font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
+.histo__pct { font-size: 11.5px; font-weight: 600; color: var(--tinta-3); font-variant-numeric: tabular-nums; margin-top: 2px; }
+.histo__et { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 10px 2px 0; text-align: center; min-width: 0; }
+.histo__lista { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 800; color: var(--marino); white-space: nowrap; }
+.histo__org { font-size: 12.5px; font-weight: 600; line-height: 1.3; color: var(--tinta); overflow-wrap: anywhere; }
+.histo__org .punto { margin-right: 5px; vertical-align: 0; }
+.histo__votos { font-size: 11.5px; color: var(--tinta-3); font-variant-numeric: tabular-nums; }
+.histo-sin { border-top: 1px solid var(--linea-suave); padding-top: 12px; }
+.histo-sin__lista { display: flex; flex-wrap: wrap; gap: 6px 8px; }
+.histo-sin__lista li { display: inline-flex; align-items: center; gap: 7px; border: 1px solid var(--linea); border-radius: 9px; padding: 5px 10px; font-size: 12.5px; background: #fbfcfe; max-width: 100%; }
+.histo-sin__nom { font-weight: 600; color: var(--tinta-2); overflow-wrap: anywhere; }
+.histo-sin__v { color: var(--tinta-3); font-variant-numeric: tabular-nums; white-space: nowrap; }
+@media (max-width: 600px) { .histo { grid-template-columns: 34px minmax(0, 1fr); } .histo__col { min-width: 96px; } .histo__n { font-size: 21px; } }
+
+/* Estabilidad y cambios en la representación. */
+.est-hipo { display: inline-block; margin-right: 6px; padding: 1px 7px; border-radius: 5px; background: var(--aviso-fondo); border: 1px solid #f2dc9b; color: var(--aviso-tinta); font-size: 10.5px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; vertical-align: 1px; }
+.est-kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 860px) { .est-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 420px) { .est-kpis { grid-template-columns: minmax(0, 1fr); } }
+.est-kpi { background: #f6f8fc; border: 1px solid var(--linea-suave); border-radius: 12px; padding: 12px 14px 13px; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.est-kpi__et { font-size: 11px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--tinta-3); }
+.est-kpi__val { font-size: 27px; font-weight: 800; line-height: 1.1; color: var(--marino); font-variant-numeric: tabular-nums; }
+.est-kpi__val small { font-size: 14px; font-weight: 600; color: var(--tinta-2); letter-spacing: 0; }
+.est-kpi__val--t { font-size: 22px; line-height: 1.25; }
+.est-kpi__sub { font-size: 12.5px; color: var(--tinta-2); line-height: 1.35; }
+.est-kpi--n0 { background: var(--bien-fondo); border-color: #bfe6c6; } .est-kpi--n0 .est-kpi__val { color: var(--bien-tinta); }
+.est-kpi--n1 { background: #f0f8f2; border-color: #cfe9d4; } .est-kpi--n1 .est-kpi__val { color: var(--bien-tinta); }
+.est-kpi--n2 { background: var(--aviso-fondo); border-color: #f2dc9b; } .est-kpi--n2 .est-kpi__val { color: var(--aviso-tinta); }
+.est-kpi--n3 { background: var(--critico-fondo); border-color: #f0c2c2; } .est-kpi--n3 .est-kpi__val { color: var(--critico-tinta); }
+.est-tabla { display: grid; grid-template-columns: minmax(200px, 1.5fr) 74px minmax(150px, 1fr) minmax(170px, 1.1fr) 118px; column-gap: 18px; }
+.est-cab, .est-fila { grid-column: 1 / -1; display: grid; grid-template-columns: subgrid; align-items: center; }
+.est-cab { font-size: 11px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--tinta-3); padding-bottom: 8px; border-bottom: 1px solid var(--linea); line-height: 1.25; }
+.est-c { text-align: center; }
+.est-fila { padding: 10px 0; border-bottom: 1px solid var(--linea-suave); }
+.est-fila:last-child { border-bottom: 0; }
+.est-org { display: flex; align-items: flex-start; gap: 8px; font-size: 13.5px; font-weight: 600; line-height: 1.35; min-width: 0; overflow-wrap: anywhere; }
+.est-org .punto { margin-top: 4px; }
+.est-act { text-align: center; font-size: 20px; font-weight: 800; color: var(--marino); font-variant-numeric: tabular-nums; }
+.est-rango { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.est-rango__pista { position: relative; display: block; height: 18px; margin-inline: 9px; }
+.est-rango__pista::before { content: ""; position: absolute; left: -9px; right: -9px; top: 50%; height: 4px; margin-top: -2px; border-radius: 2px; background: #e3e8f0; }
+.est-rango__banda { position: absolute; top: 50%; height: 12px; margin-top: -6px; border-radius: 6px; background: var(--cm); box-shadow: 0 0 0 4px var(--cm); }
+.est-rango__punto { position: absolute; top: 50%; width: 16px; height: 16px; margin: -8px 0 0 -8px; border-radius: 50%; background: var(--c); border: 3px solid #ffffff; box-shadow: 0 0 0 1px var(--c); }
+.est-rango__punto--hueco { background: #ffffff; box-shadow: inset 0 0 0 3px var(--c), 0 0 0 1px var(--c); }
+.est-rango__txt { font-size: 11.5px; color: var(--tinta-3); }
+.est-esc { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.est-barra { display: flex; height: 12px; border-radius: 6px; overflow: hidden; background: #eef1f7; }
+.est-barra i { display: block; height: 100%; }
+.est-barra__m, .est-ley--m { background: #a9b8d1; }
+.est-barra__g, .est-ley--g { background: var(--bien); }
+.est-barra__p, .est-ley--p { background: var(--critico); }
+.est-esc__txt { font-size: 11.5px; color: var(--tinta-2); font-variant-numeric: tabular-nums; }
+.est-estado { display: inline-flex; align-items: center; border-radius: 999px; padding: 3px 10px; font-size: 12px; font-weight: 700; white-space: nowrap; border: 1px solid transparent; }
+.est-estado--estable { background: var(--bien-fondo); color: var(--bien-tinta); border-color: #bfe6c6; }
+.est-estado--gana, .est-estado--entra { background: var(--acento-suave); color: var(--acento); border-color: #cfdcf6; }
+.est-estado--pierde { background: var(--critico-fondo); color: var(--critico-tinta); border-color: #f0c2c2; }
+.est-estado--disputa { background: var(--aviso-fondo); color: var(--aviso-tinta); border-color: #f2dc9b; }
+.est-estado--sin { background: #f1f4f9; color: var(--tinta-3); border-color: var(--linea); }
+.est-ley { width: 22px; height: 10px; border-radius: 5px; flex: none; }
+.est-ley--banda { background: #cfd8e6; position: relative; }
+.est-ley--banda::after { content: ""; position: absolute; left: 7px; top: 1px; width: 8px; height: 8px; border-radius: 50%; background: var(--marino); }
+.est-eventos { border-top: 1px solid var(--linea-suave); padding-top: 14px; display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+.est-eventos .mini-titulo { margin-bottom: 0; }
+.est-ev { display: grid; gap: 6px; width: 100%; }
+.est-ev__i { display: grid; grid-template-columns: 16px minmax(0, 1.3fr) minmax(0, 1fr); gap: 4px 12px; align-items: center; padding: 8px 12px; border-radius: 10px; background: #f7f9fc; border: 1px solid var(--linea-suave); font-size: 13.5px; line-height: 1.4; }
+.est-ev__ic { font-size: 11px; }
+.est-ev__i.es-sube .est-ev__ic { color: var(--bien); }
+.est-ev__i.es-baja .est-ev__ic { color: var(--critico); }
+.est-ev__txt b.num { white-space: nowrap; }
+.est-ev__cambios { display: flex; flex-wrap: wrap; gap: 5px; justify-content: flex-end; }
+.est-cambio { display: inline-flex; border-radius: 7px; padding: 2px 8px; font-size: 12px; font-weight: 700; line-height: 1.35; }
+.est-cambio--g { background: var(--bien-fondo); color: var(--bien-tinta); }
+.est-cambio--p { background: var(--critico-fondo); color: var(--critico-tinta); }
+.est-sin { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; padding-top: 2px; }
+.est-sin__t { font-size: 11.5px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--tinta-3); }
+.est-sin__lista { display: flex; flex-wrap: wrap; gap: 5px 7px; }
+.est-sin__lista li { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--linea); border-radius: 8px; padding: 3px 9px; font-size: 12px; font-weight: 600; color: var(--tinta-2); background: #fbfcfe; }
+.est-nada { display: flex; gap: 8px; align-items: flex-start; background: var(--bien-fondo); color: var(--bien-tinta); border-radius: 10px; padding: 10px 12px; font-size: 13.5px; font-weight: 600; }
+.est-nada .icono { margin-top: 2px; }
+@media (max-width: 860px) {
+  .est-tabla { grid-template-columns: minmax(0, 1fr); }
+  .est-cab { display: none; }
+  .est-fila { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "org sit" "rango act" "esc esc"; gap: 8px 14px; }
+  .est-org { grid-area: org; } .est-sit { grid-area: sit; } .est-act { grid-area: act; } .est-rango { grid-area: rango; } .est-esc { grid-area: esc; }
+  .est-act::before, .est-rango::before, .est-esc::before { content: attr(data-et); display: block; font-size: 10.5px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--tinta-3); margin-bottom: 2px; }
+  .est-act { text-align: right; }
+  .est-ev__i { grid-template-columns: 16px minmax(0, 1fr); }
+  .est-ev__cambios { grid-column: 2; justify-content: flex-start; }
+}
+
+/* Cómo se asignan los escaños. */
+.como-pasos { display: grid; grid-template-columns: repeat(auto-fit, minmax(168px, 1fr)); gap: 12px; }
+.como-paso { position: relative; display: flex; flex-direction: column; gap: 4px; background: #f6f8fc; border: 1px solid var(--linea-suave); border-top: 3px solid var(--c, var(--marino)); border-radius: 12px; padding: 12px 14px 14px; min-width: 0; }
+.como-paso__n { position: absolute; top: 10px; right: 12px; display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: var(--marino); color: #ffffff; font-size: 12px; font-weight: 800; }
+.como-paso__t { font-family: var(--fuente-titulos); font-size: 12px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: var(--marino-2); padding-right: 30px; }
+.como-paso__v { font-size: 22px; font-weight: 800; line-height: 1.15; color: var(--marino); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.como-paso__u { font-size: 12px; font-weight: 700; color: var(--tinta-2); margin-top: -3px; }
+.como-paso__x { font-size: 12.5px; line-height: 1.45; color: var(--tinta-2); }
+.como-paso:not(:last-child)::after { content: ""; position: absolute; right: -11px; top: 50%; width: 7px; height: 7px; border-top: 2px solid #9aa6bd; border-right: 2px solid #9aa6bd; transform: translateY(-50%) rotate(45deg); }
+@media (max-width: 1000px) { .como-paso::after { display: none; } }
+.como-det { display: grid; grid-template-columns: minmax(220px, 300px) minmax(0, 1fr); gap: 16px 24px; border-top: 1px solid var(--linea-suave); padding-top: 16px; }
+@media (max-width: 760px) { .como-det { grid-template-columns: minmax(0, 1fr); } }
+.como-orgs { display: flex; flex-direction: column; gap: 5px; min-width: 0; padding: 2px; }
+.como-orgs .mini-titulo { margin-bottom: 2px; }
+.como-org { display: grid; grid-template-columns: 10px minmax(0, 1fr) auto; align-items: center; gap: 9px; width: 100%; text-align: left; border: 1px solid var(--linea); border-radius: 10px; background: #ffffff; padding: 8px 10px; font-size: 13px; color: var(--tinta); }
+.como-org:hover { border-color: #c7d5f3; background: var(--acento-suave); }
+.como-org.es-activo { border-color: var(--c); background: var(--cs); box-shadow: 0 0 0 1px var(--c); }
+.como-org__nom { font-weight: 600; line-height: 1.3; overflow-wrap: anywhere; }
+.como-org__n { min-width: 26px; height: 24px; padding: 0 6px; display: grid; place-items: center; border-radius: 7px; background: #eef1f7; font-size: 12.5px; font-variant-numeric: tabular-nums; color: var(--marino); }
+.como-org.es-activo .como-org__n { background: var(--c); color: var(--ct); }
+.como-sigue { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.como-sigue__tit { display: flex; align-items: flex-start; gap: 8px; font-size: 16px; font-weight: 800; color: var(--marino); line-height: 1.3; overflow-wrap: anywhere; }
+.como-sigue__tit .punto { margin-top: 6px; }
+.como-esc { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto auto; column-gap: 10px; row-gap: 6px; align-items: center; background: #f7f9fc; border-radius: 12px; padding: 12px 14px; }
+.como-esc__fila { grid-column: 1 / -1; display: grid; grid-template-columns: subgrid; align-items: center; }
+.como-esc__div { font-size: 12.5px; font-weight: 700; color: var(--tinta-2); font-variant-numeric: tabular-nums; }
+.como-esc__pista { position: relative; display: block; height: 16px; }
+.como-esc__barra { display: block; height: 100%; background: var(--c); border-radius: 0 5px 5px 0; }
+.como-esc__barra--hueca { background: #ffffff; box-shadow: inset 0 0 0 2.5px var(--c); }
+.como-esc__fila.es-fuera .como-esc__barra { opacity: .32; }
+.como-esc__corte { position: absolute; top: -5px; bottom: -5px; border-left: 2px dashed var(--marino); }
+.como-esc__val { font-size: 13px; font-weight: 700; white-space: nowrap; }
+.como-esc__fila.es-fuera .como-esc__val { color: var(--tinta-3); font-weight: 500; }
+.como-esc__res { font-size: 12px; white-space: nowrap; }
+.como-esc__si { display: inline-flex; align-items: center; gap: 4px; color: var(--bien-tinta); font-weight: 700; }
+.como-esc__ley { grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--tinta-2); margin-top: 4px; font-variant-numeric: tabular-nums; }
+.como-esc__ley-c { width: 0; height: 14px; border-left: 2px dashed var(--marino); }
+.como-frase { font-size: 14.5px; line-height: 1.55; color: var(--tinta); }
+.como-nec { font-size: 13.5px; color: var(--tinta-2); background: var(--acento-suave); border-radius: 10px; padding: 9px 12px; }
+.como-nec b { color: var(--marino); }
+.como-cands ol { display: grid; gap: 6px; }
+.como-cands li { display: flex; flex-direction: column; padding: 7px 10px; border: 1px solid var(--linea-suave); border-radius: 9px; font-size: 13.5px; }
+.como-cands li b { font-weight: 650; }
+.como-cands li small { font-size: 12px; color: var(--tinta-3); }
+.como-carrera { border-top: 1px solid var(--linea-suave); padding-top: 14px; display: flex; flex-direction: column; gap: 6px; }
+.como-carrera__cab { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.como-carrera__cab .mini-titulo { margin-bottom: 0; }
+.carrera__fila.es-atenuada { opacity: .4; }
+/* En la explicación los nombres van completos: pasan a otra línea si hace falta. */
+.como-carrera .carrera__nombre { white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: anywhere; line-height: 1.3; }
+.carrera__fila.es-resaltada .carrera__nombre { color: var(--marino); }
+@media (max-width: 460px) { .como-esc { grid-template-columns: 34px minmax(0, 1fr) auto; } .como-esc__res { grid-column: 2 / -1; } }
 
 /* ---------- pie y estados de carga ---------- */
 .pie { border-top: 1px solid var(--linea); padding-top: 18px; font-size: 12.5px; color: var(--tinta-3); }
@@ -2185,7 +2389,20 @@ textarea.control { height: auto; padding: 10px; line-height: 1.4; resize: vertic
       if (vistos[id]) id = nuevoId();
       vistos[id] = 1;
       const votos = Number.isFinite(l.votos) ? l.votos : 0;
-      listas.push({ id, nombre: String(l.nombre == null ? "" : l.nombre).slice(0, 120), votos, color: Number.isInteger(l.color) && l.color >= 0 && l.color < 64 ? l.color : i });
+      const fila = { id, nombre: String(l.nombre == null ? "" : l.nombre).slice(0, 120), votos, color: Number.isInteger(l.color) && l.color >= 0 && l.color < 64 ? l.color : i };
+      /* El número de lista, la organización y los candidatos inscritos vienen
+         del registro de preinscritos del tablero y se conservan tal cual: de
+         ellos sale la adjudicación individual de cada escaño. */
+      if (l.lista != null && l.lista !== "") fila.lista = String(l.lista).slice(0, 24);
+      if (l.partido) fila.partido = String(l.partido).slice(0, 160);
+      if (Array.isArray(l.candidatos) && l.candidatos.length) {
+        fila.candidatos = l.candidatos.slice(0, 80).map((c, j) => ({
+          orden: Number(c && c.orden) > 0 ? Math.trunc(Number(c.orden)) : j + 1,
+          nombre: String((c && c.nombre) == null ? "" : c.nombre).slice(0, 140),
+          suplente: String((c && c.suplente) == null ? "" : c.suplente).slice(0, 140)
+        })).sort((a, b) => a.orden - b.orden);
+      }
+      listas.push(fila);
     });
     const num = (v, def) => Number.isFinite(v) ? v : def;
     return {
@@ -2197,7 +2414,21 @@ textarea.control { height: auto; padding: 10px; line-height: 1.4; resize: vertic
       blancos: num(o.blancos, 0),
       nulos: num(o.nulos, 0),
       desempate: Motor.REGLAS_DESEMPATE[o.desempate] ? o.desempate : "mayor_votos",
-      participante: ["lista", "candidato", "alianza", "organizacion"].includes(o.participante) ? o.participante : "lista"
+      participante: ["lista", "candidato", "alianza", "organizacion"].includes(o.participante) ? o.participante : "lista",
+      /* Votos válidos disponibles para repartir. Los pone el tablero a partir
+         del padrón, el ausentismo y las proporciones de nulos y blancos; sin
+         ellos una simulación en blanco no tendría sobre qué total aplicar los
+         porcentajes. Con datos propios (un archivo) queda en 0. */
+      validosDisponibles: num(Number(o.validosDisponibles), 0),
+      /* De dónde salen estas listas: territorio, dignidad y circunscripción. */
+      origen: o.origen && typeof o.origen === "object" ? {
+        ambito: String(o.origen.ambito || "").slice(0, 160),
+        dignidad: String(o.origen.dignidad || "").slice(0, 80),
+        circunscripcion: String(o.origen.circunscripcion || "").slice(0, 80),
+        fuente: String(o.origen.fuente || "").slice(0, 120),
+        escanosDe: o.origen.escanosDe === "inscritos" ? "inscritos" : "tabla2023",
+        escanosParejo: o.origen.escanosParejo !== false
+      } : null
     };
   }
   function siguienteColor(listas) {
@@ -2270,7 +2501,11 @@ textarea.control { height: auto; padding: 10px; line-height: 1.4; resize: vertic
     });
     return out;
   }
+  /* Ya no hay modo «resultados 2023»: el simulador trabaja siempre en
+     simulación, con la tabla de cocientes editable. */
   var UI_INICIAL = {
+    verEscanos: false,
+    // gráfico de distribución de escaños desplegado
     listaSel: null,
     // lista elegida en "¿Cuántos votos necesito?" y en sensibilidad
     escanoSel: null,
@@ -2285,7 +2520,11 @@ textarea.control { height: auto; padding: 10px; line-height: 1.4; resize: vertic
     carreraTodo: false,
     matrizTodo: false,
     compA: "base",
-    compB: "actual"
+    compB: "actual",
+    // v5.6: amplitud (en puntos) de los escenarios de estabilidad
+    estAmplitud: 2,
+    // v5.6: organización que se sigue en «Cómo se asignan los escaños»
+    comoSel: null
   };
   function estadoInicial() {
     const b = leer(CLAVE_BORRADOR);
@@ -2371,7 +2610,7 @@ textarea.control { height: auto; padding: 10px; line-height: 1.4; resize: vertic
       case "datos/importar": {
         const listas = a.modo === "agregar" ? estado.base.listas.map((l) => Object.assign({}, l)) : [];
         a.filas.forEach((f) => listas.push({ id: nuevoId(), nombre: f.nombre, votos: f.votos, color: siguienteColor(listas) }));
-        const base = Object.assign({}, estado.base, { listas }, a.blancos != null ? { blancos: a.blancos } : {}, a.nulos != null ? { nulos: a.nulos } : {});
+        const base = Object.assign({}, estado.base, { listas }, a.modo === "agregar" ? {} : { validosDisponibles: 0, origen: null }, a.blancos != null ? { blancos: a.blancos } : {}, a.nulos != null ? { nulos: a.nulos } : {});
         return Object.assign({}, estado, {
           base,
           trabajo: clonar(base),
@@ -2388,6 +2627,35 @@ textarea.control { height: auto; padding: 10px; line-height: 1.4; resize: vertic
         const listas = [{ id: nuevoId(), nombre: prefijo + " A", votos: 0, color: 0 }, { id: nuevoId(), nombre: prefijo + " B", votos: 0, color: 1 }];
         const base = Object.assign({}, estado.base, { listas, blancos: 0, nulos: 0 });
         return Object.assign({}, estado, { base, trabajo: clonar(base), esEjemplo: false, deshacer: instantanea(estado), aviso: aviso("Tabla vaciada.", "info", true), ui: Object.assign({}, estado.ui, { listaSel: null, escanoSel: null }) });
+      }
+      /* Vuelve a cero los votos de todas las listas, sin quitar ninguna: las
+         listas inscritas se quedan, con sus candidatos, para escribir otros
+         porcentajes. */
+      case "datos/ceros":
+        return enAmbos(estado, (e) => conListas(e, (ls) => ls.map((l) => Object.assign({}, l, { votos: 0 }))), {
+          esEjemplo: estado.esEjemplo,
+          deshacer: instantanea(estado),
+          aviso: aviso("Porcentajes en cero: escribe los nuevos.", "info", true)
+        });
+      /* --- el tablero: cambió la participación fuera del simulador ---
+         Llegan los votos válidos, los blancos y los nulos nuevos. Los votos de
+         cada lista se reescalan al nuevo total para que su PORCENTAJE se quede
+         como estaba. Solo afecta a escenarios que vienen del tablero (con
+         votos válidos disponibles); los datos propios no dependen del padrón. */
+      case "tablero/participacion": {
+        const V = Math.round(Number(a.validos));
+        if (!(V > 0)) return estado;
+        const entero = (x, def) => Number.isFinite(Number(x)) && Number(x) >= 0 ? Math.round(Number(x)) : def;
+        const ajustar = (e) => {
+          const antes = Number(e.validosDisponibles) || 0;
+          if (!(antes > 0)) return e;
+          const listas = V === antes ? e.listas : e.listas.map((l) => Object.assign({}, l, { votos: Math.max(0, Math.round((Number(l.votos) || 0) * V / antes)) }));
+          const out = Object.assign({}, e, { listas, validosDisponibles: V, blancos: entero(a.blancos, e.blancos), nulos: entero(a.nulos, e.nulos) });
+          return out.listas === e.listas && out.validosDisponibles === e.validosDisponibles && out.blancos === e.blancos && out.nulos === e.nulos ? e : out;
+        };
+        const trabajo = ajustar(estado.trabajo), base = ajustar(estado.base);
+        if (trabajo === estado.trabajo && base === estado.base) return estado;
+        return Object.assign({}, estado, { trabajo, base });
       }
       /* --- simulación: solo el escenario de trabajo --- */
       case "sim/votos":
@@ -2409,7 +2677,7 @@ textarea.control { height: auto; padding: 10px; line-height: 1.4; resize: vertic
         return Object.assign({}, estado, { trabajo: conListas(estado.trabajo, (ls) => ls.map((l) => l.id === a.id ? Object.assign({}, l, { votos: b.votos }) : l)) });
       }
       case "restablecer":
-        return Object.assign({}, estado, { trabajo: clonar(estado.base), deshacer: instantanea(estado), aviso: aviso("Se restablecieron los valores originales.", "info", true) });
+        return Object.assign({}, estado, { trabajo: clonar(estado.base), deshacer: instantanea(estado), aviso: aviso("Se volvió al escenario base: los porcentajes de la tabla.", "info", true) });
       case "fijarBase":
         return Object.assign({}, estado, { base: clonar(estado.trabajo), deshacer: instantanea(estado), aviso: aviso("El estado actual es ahora la base de comparación.", "ok", true) });
       /* --- escenarios guardados --- */
@@ -3350,7 +3618,7 @@ textarea.control { height: auto; padding: 10px; line-height: 1.4; resize: vertic
   }
   function EntradaPct({ id, valor, alCambiar, etiqueta }) {
     const [texto, setTexto] = useState(null);
-    const aTexto = (v) => String(Math.round((Number(v) || 0) * 1e4) / 1e4).replace(".", ",");
+    const aTexto = (v) => String(Math.round((Number(v) || 0) * 100) / 100).replace(".", ",");
     const numero = (t) => {
       const s = String(t).trim().replace(",", ".");
       return /^\d{0,3}(\.\d{0,4})?$/.test(s) && s !== "" && s !== "." ? Number(s) : null;
@@ -3552,7 +3820,7 @@ textarea.control { height: auto; padding: 10px; line-height: 1.4; resize: vertic
       return c.hueco ? /* @__PURE__ */ React.createElement("circle", { key: i, cx, cy, r: r * 0.72, fill: "#ffffff", stroke: c.hex, strokeWidth: r * 0.36 }, /* @__PURE__ */ React.createElement("title", null, l.nombre)) : /* @__PURE__ */ React.createElement("circle", { key: i, cx, cy, r: r * 0.9, fill: c.hex }, /* @__PURE__ */ React.createElement("title", null, l.nombre));
     }), /* @__PURE__ */ React.createElement("text", { x: "0", y: "-11", textAnchor: "middle", className: "hemi__num" }, S), /* @__PURE__ */ React.createElement("text", { x: "0", y: "3", textAnchor: "middle", className: "hemi__txt" }, S === 1 ? "escaño" : "escaños"));
   }
-  function Carrera({ res, porId, dec, todo, alElegir, escanoSel }) {
+  function Carrera({ res, porId, dec, todo, alElegir, escanoSel, resaltar }) {
     const S = res.escanos;
     const orden = res.orden;
     const extra = Math.min(orden.length - S, 8);
@@ -3572,7 +3840,7 @@ textarea.control { height: auto; padding: 10px; line-height: 1.4; resize: vertic
         {
           key: q.posicion,
           role: "listitem",
-          className: cls("carrera__fila", q.gana ? "es-dentro" : "es-fuera", q.gana && escanoSel === q.posicion && "es-sel"),
+          className: cls("carrera__fila", q.gana ? "es-dentro" : "es-fuera", q.gana && escanoSel === q.posicion && "es-sel", resaltar && (q.listaId === resaltar ? "es-resaltada" : "es-atenuada")),
           onClick: q.gana && alElegir ? () => alElegir(q.posicion) : void 0,
           title: q.nombre + ": " + fmtEntero(q.votos) + " ÷ " + fmtDivisor(q.divisor) + " = " + fmtDecimal(q.cociente, 2) + (q.gana ? " · gana el " + ordinal(q.posicion) + " escaño" : " · sin escaño")
         },
@@ -3673,7 +3941,7 @@ textarea.control { height: auto; padding: 10px; line-height: 1.4; resize: vertic
       case "sin_listas":
         return "Agrega al menos " + T.una + " para calcular.";
       case "sin_votos":
-        return "Ingresa los votos de al menos " + T.una + " para calcular.";
+        return "Escribe el porcentaje de al menos " + T.una + " en la tabla de cocientes para calcular.";
       case "nombre_vacio":
         return "Hay " + T.una + " sin nombre.";
       case "nombre_duplicado":
@@ -3697,19 +3965,23 @@ textarea.control { height: auto; padding: 10px; line-height: 1.4; resize: vertic
   function Cabecera({ m }) {
     const { res, ok, esc } = m;
     const metodo = Motor.METODOS[esc.metodo];
-    return /* @__PURE__ */ React.createElement("header", { className: "cabecera" }, /* @__PURE__ */ React.createElement("div", { className: "cabecera__in" }, /* @__PURE__ */ React.createElement("div", { className: "cabecera__marca" }, /* @__PURE__ */ React.createElement("p", { className: "antetitulo" }, "Análisis electoral"), /* @__PURE__ */ React.createElement("h1", { className: "cabecera__titulo" }, "Simulador de escaños electorales")), /* @__PURE__ */ React.createElement("p", { className: "cabecera__meta" }, /* @__PURE__ */ React.createElement("span", null, "Método ", /* @__PURE__ */ React.createElement("b", null, metodo ? metodo.nombre : "—")), /* @__PURE__ */ React.createElement("span", null, "Escaños ", /* @__PURE__ */ React.createElement("b", null, Number.isInteger(esc.escanos) ? fmtEntero(esc.escanos) : "—")), /* @__PURE__ */ React.createElement("span", null, "Votos válidos ", /* @__PURE__ */ React.createElement("b", null, ok ? fmtEntero(res.totales.base) : m.pct ? fmtEntero(m.pct.base) : "—"))), /* @__PURE__ */ React.createElement("div", { className: "cabecera__acc" }, /* @__PURE__ */ React.createElement(Boton, { icono: "restablecer", variante: "oscuro", onClick: () => m.d({ tipo: "restablecer" }), disabled: !m.haySim, titulo: m.haySim ? "Volver a los valores originales" : "No hay cambios que restablecer" }, "Restablecer"), /* @__PURE__ */ React.createElement(Menu, { alinear: "der", ancho: 280, boton: ({ abierto, alternar }) => /* @__PURE__ */ React.createElement(Boton, { icono: "descargar", variante: "oscuro", "aria-expanded": abierto, onClick: alternar, disabled: !ok }, "Exportar") }, /* @__PURE__ */ React.createElement(OpcionMenu, { icono: "tabla", onClick: () => m.acciones.exportar("xlsx"), nota: "Todas las tablas, una hoja por tabla" }, "Excel (.xlsx)"), /* @__PURE__ */ React.createElement(OpcionMenu, { icono: "archivo", onClick: () => m.acciones.exportar("pdf"), nota: "Informe con resultados y tablas" }, "PDF"), /* @__PURE__ */ React.createElement("div", { className: "menu__sep", role: "separator" }), /* @__PURE__ */ React.createElement(OpcionMenu, { icono: "descargar", onClick: () => m.acciones.exportar("csv", "resultados") }, "CSV · Resultados"), /* @__PURE__ */ React.createElement(OpcionMenu, { icono: "descargar", onClick: () => m.acciones.exportar("csv", "adjudicacion") }, "CSV · Adjudicación de escaños"), /* @__PURE__ */ React.createElement(OpcionMenu, { icono: "descargar", onClick: () => m.acciones.exportar("csv", "cocientes") }, "CSV · Cocientes")), /* @__PURE__ */ React.createElement(Boton, { icono: "copiar", variante: "claro", onClick: () => m.acciones.copiar(), disabled: !ok }, "Copiar resultados"))));
+    return /* @__PURE__ */ React.createElement("header", { className: "cabecera" }, /* @__PURE__ */ React.createElement("div", { className: "cabecera__in" }, /* @__PURE__ */ React.createElement("div", { className: "cabecera__marca" }, /* @__PURE__ */ React.createElement("p", { className: "antetitulo" }, "Análisis electoral"), /* @__PURE__ */ React.createElement("h1", { className: "cabecera__titulo" }, "Simulador de escaños electorales")), /* @__PURE__ */ React.createElement("p", { className: "cabecera__meta" }, /* @__PURE__ */ React.createElement("span", null, "Método ", /* @__PURE__ */ React.createElement("b", null, metodo ? metodo.nombre : "—")), /* @__PURE__ */ React.createElement("span", null, "Escaños ", /* @__PURE__ */ React.createElement("b", null, Number.isInteger(esc.escanos) ? fmtEntero(esc.escanos) : "—")), /* @__PURE__ */ React.createElement("span", null, "Votos válidos ", /* @__PURE__ */ React.createElement("b", null, Number(esc.validosDisponibles) > 0 ? fmtEntero(esc.validosDisponibles) : ok ? fmtEntero(res.totales.base) : m.pct ? fmtEntero(m.pct.base) : "—"))), /* @__PURE__ */ React.createElement("div", { className: "cabecera__acc" }, /* @__PURE__ */ React.createElement(Menu, { alinear: "der", ancho: 280, boton: ({ abierto, alternar }) => /* @__PURE__ */ React.createElement(Boton, { icono: "descargar", variante: "oscuro", "aria-expanded": abierto, onClick: alternar, disabled: !ok }, "Exportar") }, /* @__PURE__ */ React.createElement(OpcionMenu, { icono: "tabla", onClick: () => m.acciones.exportar("xlsx"), nota: "Todas las tablas, una hoja por tabla" }, "Excel (.xlsx)"), /* @__PURE__ */ React.createElement(OpcionMenu, { icono: "archivo", onClick: () => m.acciones.exportar("pdf"), nota: "Informe con resultados y tablas" }, "PDF"), /* @__PURE__ */ React.createElement("div", { className: "menu__sep", role: "separator" }), /* @__PURE__ */ React.createElement(OpcionMenu, { icono: "descargar", onClick: () => m.acciones.exportar("csv", "resultados") }, "CSV · Resultados"), /* @__PURE__ */ React.createElement(OpcionMenu, { icono: "descargar", onClick: () => m.acciones.exportar("csv", "adjudicacion") }, "CSV · Adjudicación de escaños"), /* @__PURE__ */ React.createElement(OpcionMenu, { icono: "descargar", onClick: () => m.acciones.exportar("csv", "cocientes") }, "CSV · Cocientes")), /* @__PURE__ */ React.createElement(Boton, { icono: "copiar", variante: "claro", onClick: () => m.acciones.copiar(), disabled: !ok }, "Copiar resultados"))));
   }
   function Configuracion({ m }) {
     const { esc, d } = m;
     const metodo = Motor.METODOS[esc.metodo];
     const set = (campo, valor) => d({ tipo: "config/set", campo, valor });
-    return /* @__PURE__ */ React.createElement("section", { className: "config config--fija", "aria-label": "Configuración de la elección" }, /* @__PURE__ */ React.createElement("div", { className: "campo campo--ancho" }, /* @__PURE__ */ React.createElement("label", { className: "campo__et", htmlFor: "cfg-metodo" }, "Método de asignación"), /* @__PURE__ */ React.createElement("select", { id: "cfg-metodo", className: "control control--select", value: esc.metodo, onChange: (e) => set("metodo", e.target.value) }, Object.keys(Motor.METODOS).map((k) => /* @__PURE__ */ React.createElement("option", { key: k, value: k }, Motor.METODOS[k].nombreLargo))), /* @__PURE__ */ React.createElement("p", { className: "campo__ayuda" }, "Divisores ", metodo ? metodo.serie : "")), /* @__PURE__ */ React.createElement("div", { className: "campo" }, /* @__PURE__ */ React.createElement("p", { className: "campo__et" }, "Escaños"), /* @__PURE__ */ React.createElement("p", { id: "cfg-escanos", className: "cfg-fijo" }, Number.isInteger(esc.escanos) ? fmtEntero(esc.escanos) : "—"), /* @__PURE__ */ React.createElement("p", { className: "campo__ayuda" }, m.estado && m.estado.esEjemplo ? "A repartir" : "Fijos: los que elige el cantón")));
+    return /* @__PURE__ */ React.createElement("section", { className: "config config--fija", "aria-label": "Configuración de la elección" }, /* @__PURE__ */ React.createElement("div", { className: "campo campo--ancho" }, /* @__PURE__ */ React.createElement("label", { className: "campo__et", htmlFor: "cfg-metodo" }, "Método de asignación"), /* @__PURE__ */ React.createElement("select", { id: "cfg-metodo", className: "control control--select", value: esc.metodo, onChange: (e) => set("metodo", e.target.value) }, Object.keys(Motor.METODOS).map((k) => /* @__PURE__ */ React.createElement("option", { key: k, value: k }, Motor.METODOS[k].nombreLargo))), /* @__PURE__ */ React.createElement("p", { className: "campo__ayuda" }, "Divisores ", metodo ? metodo.serie : "")), /* @__PURE__ */ React.createElement("div", { className: "campo" }, /* @__PURE__ */ React.createElement("p", { className: "campo__et" }, "Escaños"), /* @__PURE__ */ React.createElement("p", { id: "cfg-escanos", className: "cfg-fijo" }, Number.isInteger(esc.escanos) ? fmtEntero(esc.escanos) : "—"), /* @__PURE__ */ React.createElement("p", { className: "campo__ayuda" }, m.estado && m.estado.esEjemplo ? "A repartir" : "Fijos: los que elige " + (esc.origen && esc.origen.circunscripcion ? "la circunscripción" : "el cantón") + (esc.origen && esc.origen.escanosDe === "inscritos" ? ", según las listas inscritas" : ""))));
   }
+  /* v5.6: primero se escriben los porcentajes; después, el resultado, el
+     «¿qué pasa si…?» y los análisis. */
   var SECCIONES = [
+    ["cocientes", "Porcentajes y cocientes"],
     ["resultado", "Resultado"],
-    ["cocientes", "Cocientes"],
-    ["simulador", "Simulador"],
-    ["sensibilidad", "Sensibilidad"]
+    ["simulador", "¿Qué pasa si…?"],
+    ["sensibilidad", "Sensibilidad"],
+    ["estabilidad", "Estabilidad"],
+    ["como", "Cómo se asigna"]
   ];
   function Navegacion({ m }) {
     const n = m.difs.length;
@@ -3731,10 +4003,13 @@ textarea.control { height: auto; padding: 10px; line-height: 1.4; resize: vertic
   function Avisos({ m }) {
     const { val, res, ok, T } = m;
     const bloqueantes = val.bloqueantes, avisos = val.avisos;
+    /* Las listas recién cargadas llegan sin votos: no es un error, es el punto
+       de partida. Se dice qué hacer en vez de pintar un aviso rojo. */
+    const porEmpezar = bloqueantes.length === 1 && bloqueantes[0].codigo === "sin_votos" && m.esc.listas.length > 0;
     const decisivos = ok ? res.empates.filter((e) => e.decisivo) : [];
     const falloVerif = ok && !res.verificacion.ok;
     if (!bloqueantes.length && !avisos.length && !decisivos.length && !falloVerif && !m.estado.esEjemplo) return null;
-    return /* @__PURE__ */ React.createElement("div", { className: "avisos", "aria-live": "polite" }, m.estado.esEjemplo && /* @__PURE__ */ React.createElement("div", { className: "aviso aviso--info" }, /* @__PURE__ */ React.createElement(Icono, { n: "info" }), /* @__PURE__ */ React.createElement("p", null, /* @__PURE__ */ React.createElement("b", null, "Datos de ejemplo."), " Reemplázalos con los tuyos: escribe en la tabla, pega celdas desde Excel o carga un archivo CSV o XLSX.")), bloqueantes.length > 0 && /* @__PURE__ */ React.createElement("div", { className: "aviso aviso--error", role: "alert" }, /* @__PURE__ */ React.createElement(Icono, { n: "alerta" }), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("p", null, /* @__PURE__ */ React.createElement("b", null, "No se puede calcular todavía.")), /* @__PURE__ */ React.createElement("ul", null, bloqueantes.map((e, i) => /* @__PURE__ */ React.createElement("li", { key: i }, mensajeDe(e, T)))))), avisos.length > 0 && /* @__PURE__ */ React.createElement("div", { className: "aviso aviso--alerta" }, /* @__PURE__ */ React.createElement(Icono, { n: "alerta" }), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("ul", null, avisos.map((e, i) => /* @__PURE__ */ React.createElement("li", { key: i }, mensajeDe(e, T)))))), decisivos.map((e, i) => /* @__PURE__ */ React.createElement("div", { className: "aviso aviso--empate", key: "e" + i }, /* @__PURE__ */ React.createElement(Icono, { n: "igual" }), /* @__PURE__ */ React.createElement("p", null, /* @__PURE__ */ React.createElement("b", null, "Empate por ", e.plazas === 1 ? "el último escaño" : "los últimos escaños", "."), " ", textoEmpate(e, T), " Puedes cambiar la regla en «Desempate»."))), falloVerif && /* @__PURE__ */ React.createElement("div", { className: "aviso aviso--error", role: "alert" }, /* @__PURE__ */ React.createElement(Icono, { n: "alerta" }), /* @__PURE__ */ React.createElement("p", null, /* @__PURE__ */ React.createElement("b", null, "La verificación interna no coincide."), " Se asignaron ", res.verificacion.asignados, " de ", res.verificacion.disponibles, " escaños. No uses este resultado y avisa del caso.")));
+    return /* @__PURE__ */ React.createElement("div", { className: "avisos", "aria-live": "polite" }, m.estado.esEjemplo && /* @__PURE__ */ React.createElement("div", { className: "aviso aviso--info" }, /* @__PURE__ */ React.createElement(Icono, { n: "info" }), /* @__PURE__ */ React.createElement("p", null, /* @__PURE__ */ React.createElement("b", null, "Datos de ejemplo."), " Reemplázalos con los tuyos: escribe en la tabla, pega celdas desde Excel o carga un archivo CSV o XLSX.")), porEmpezar && /* @__PURE__ */ React.createElement("div", { className: "aviso aviso--info" }, /* @__PURE__ */ React.createElement(Icono, { n: "info" }), /* @__PURE__ */ React.createElement("p", null, /* @__PURE__ */ React.createElement("b", null, "Empieza por los porcentajes."), " Escribe en la tabla de cocientes el porcentaje de cada " + T.sing + ": los votos, los escaños y los candidatos que los ganan salen solos.")), !porEmpezar && bloqueantes.length > 0 && /* @__PURE__ */ React.createElement("div", { className: "aviso aviso--error", role: "alert" }, /* @__PURE__ */ React.createElement(Icono, { n: "alerta" }), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("p", null, /* @__PURE__ */ React.createElement("b", null, "No se puede calcular todavía.")), /* @__PURE__ */ React.createElement("ul", null, bloqueantes.map((e, i) => /* @__PURE__ */ React.createElement("li", { key: i }, mensajeDe(e, T)))))), avisos.length > 0 && /* @__PURE__ */ React.createElement("div", { className: "aviso aviso--alerta" }, /* @__PURE__ */ React.createElement(Icono, { n: "alerta" }), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("ul", null, avisos.map((e, i) => /* @__PURE__ */ React.createElement("li", { key: i }, mensajeDe(e, T)))))), decisivos.map((e, i) => /* @__PURE__ */ React.createElement("div", { className: "aviso aviso--empate", key: "e" + i }, /* @__PURE__ */ React.createElement(Icono, { n: "igual" }), /* @__PURE__ */ React.createElement("p", null, /* @__PURE__ */ React.createElement("b", null, "Empate por ", e.plazas === 1 ? "el último escaño" : "los últimos escaños", "."), " ", textoEmpate(e, T), " Puedes cambiar la regla en «Desempate»."))), falloVerif && /* @__PURE__ */ React.createElement("div", { className: "aviso aviso--error", role: "alert" }, /* @__PURE__ */ React.createElement(Icono, { n: "alerta" }), /* @__PURE__ */ React.createElement("p", null, /* @__PURE__ */ React.createElement("b", null, "La verificación interna no coincide."), " Se asignaron ", res.verificacion.asignados, " de ", res.verificacion.disponibles, " escaños. No uses este resultado y avisa del caso.")));
   }
   function Indicadores({ m }) {
     const { res, ok, T, margenes } = m;
@@ -3743,89 +4018,15 @@ textarea.control { height: auto; padding: 10px; line-height: 1.4; resize: vertic
     const cerca = margenes && margenes.masCercana;
     const conEscano = res.listas.filter((l) => l.escanos > 0).length;
     const dec = m.ui.decimales || (Number.isInteger(u.cociente) ? 0 : u.cociente < 100 ? 2 : 0);
-    return /* @__PURE__ */ React.createElement("div", { className: "kpis" }, /* @__PURE__ */ React.createElement("div", { className: "kpi" }, /* @__PURE__ */ React.createElement("p", { className: "kpi__et" }, "Escaños disponibles"), /* @__PURE__ */ React.createElement("p", { className: "kpi__val" }, fmtEntero(res.escanos)), /* @__PURE__ */ React.createElement("p", { className: "kpi__sub" }, res.verificacion.ok ? /* @__PURE__ */ React.createElement("span", { className: "ok-t" }, /* @__PURE__ */ React.createElement(Icono, { n: "check", t: 14 }), fmtEntero(res.verificacion.asignados), " de ", fmtEntero(res.escanos), " asignados") : "Revisa la verificación")), /* @__PURE__ */ React.createElement("div", { className: "kpi" }, /* @__PURE__ */ React.createElement("p", { className: "kpi__et" }, T.participantes), /* @__PURE__ */ React.createElement("p", { className: "kpi__val" }, fmtEntero(res.totales.listas)), /* @__PURE__ */ React.createElement("p", { className: "kpi__sub" }, res.totales.umbral > 0 ? fmtEntero(res.totales.listasElegibles) + " " + plural(res.totales.listasElegibles, "alcanza", "alcanzan") + " el umbral del " + fmtUmbral(res.totales.umbral) : fmtEntero(conEscano) + " " + plural(conEscano, "obtiene", "obtienen") + " escaño")), /* @__PURE__ */ React.createElement("div", { className: "kpi" }, /* @__PURE__ */ React.createElement("p", { className: "kpi__et" }, "Último cociente ganador"), /* @__PURE__ */ React.createElement("p", { className: "kpi__val" }, fmtCociente(u.cociente, dec)), /* @__PURE__ */ React.createElement("p", { className: "kpi__sub" }, /* @__PURE__ */ React.createElement(NombreLista, { lista: m.porId[u.listaId] }), " ", /* @__PURE__ */ React.createElement("span", { className: "tenue" }, "÷", fmtDivisor(u.divisor), " · ", ordinal(u.numero), " escaño"))), /* @__PURE__ */ React.createElement("div", { className: "kpi kpi--foco" }, /* @__PURE__ */ React.createElement("p", { className: "kpi__et" }, "Competencia por el próximo escaño"), cerca ? /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("p", { className: "kpi__val" }, "+", fmtEntero(cerca.proximo.adicionales), " ", /* @__PURE__ */ React.createElement("span", { className: "kpi__uni" }, plural(cerca.proximo.adicionales, "voto", "votos"))), /* @__PURE__ */ React.createElement("p", { className: "kpi__sub" }, /* @__PURE__ */ React.createElement(NombreLista, { lista: m.porId[cerca.listaId] }), " ", /* @__PURE__ */ React.createElement("span", { className: "tenue" }, "es quien está más cerca"))) : /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("p", { className: "kpi__val" }, "—"), /* @__PURE__ */ React.createElement("p", { className: "kpi__sub" }, "No quedan escaños por disputar"))));
+    const org = m.esc && m.esc.origen;
+    return /* @__PURE__ */ React.createElement("div", { className: "kpis" }, /* @__PURE__ */ React.createElement("div", { className: cls("kpi", "kpi--escenario", "es-sim") }, /* @__PURE__ */ React.createElement("p", { className: "kpi__et" }, "Escenario"), /* @__PURE__ */ React.createElement("p", { className: "kpi__val" }, "Simulación"), /* @__PURE__ */ React.createElement("p", { className: "kpi__sub" }, org ? (m.haySim ? "Listas inscritas, con cambios del simulador" : "Listas inscritas y tus porcentajes") : (m.haySim ? "Con cambios del simulador" : "Con los votos de la tabla"))), /* @__PURE__ */ React.createElement("div", { className: "kpi" }, /* @__PURE__ */ React.createElement("p", { className: "kpi__et" }, "Escaños disponibles"), /* @__PURE__ */ React.createElement("p", { className: "kpi__val" }, fmtEntero(res.escanos)), /* @__PURE__ */ React.createElement("p", { className: "kpi__sub" }, res.verificacion.ok ? /* @__PURE__ */ React.createElement("span", { className: "ok-t" }, /* @__PURE__ */ React.createElement(Icono, { n: "check", t: 14 }), fmtEntero(res.verificacion.asignados), " de ", fmtEntero(res.escanos), " asignados") : "Revisa la verificación")), /* @__PURE__ */ React.createElement("div", { className: "kpi" }, /* @__PURE__ */ React.createElement("p", { className: "kpi__et" }, T.participantes), /* @__PURE__ */ React.createElement("p", { className: "kpi__val" }, fmtEntero(res.totales.listas)), /* @__PURE__ */ React.createElement("p", { className: "kpi__sub" }, res.totales.umbral > 0 ? fmtEntero(res.totales.listasElegibles) + " " + plural(res.totales.listasElegibles, "alcanza", "alcanzan") + " el umbral del " + fmtUmbral(res.totales.umbral) : fmtEntero(conEscano) + " " + plural(conEscano, "obtiene", "obtienen") + " escaño")), /* @__PURE__ */ React.createElement("div", { className: "kpi" }, /* @__PURE__ */ React.createElement("p", { className: "kpi__et" }, "Último cociente ganador"), /* @__PURE__ */ React.createElement("p", { className: "kpi__val" }, fmtCociente(u.cociente, dec)), /* @__PURE__ */ React.createElement("p", { className: "kpi__sub" }, /* @__PURE__ */ React.createElement(NombreLista, { lista: m.porId[u.listaId] }), " ", /* @__PURE__ */ React.createElement("span", { className: "tenue" }, "÷", fmtDivisor(u.divisor), " · ", ordinal(u.numero), " escaño"))), /* @__PURE__ */ React.createElement("div", { className: "kpi kpi--foco" }, /* @__PURE__ */ React.createElement("p", { className: "kpi__et" }, "Competencia por el próximo escaño"), cerca ? /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("p", { className: "kpi__val" }, "+", fmtEntero(cerca.proximo.adicionales), " ", /* @__PURE__ */ React.createElement("span", { className: "kpi__uni" }, plural(cerca.proximo.adicionales, "voto", "votos"))), /* @__PURE__ */ React.createElement("p", { className: "kpi__sub" }, /* @__PURE__ */ React.createElement(NombreLista, { lista: m.porId[cerca.listaId] }), " ", /* @__PURE__ */ React.createElement("span", { className: "tenue" }, "es quien está más cerca"))) : /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("p", { className: "kpi__val" }, "—"), /* @__PURE__ */ React.createElement("p", { className: "kpi__sub" }, "No quedan escaños por disputar"))));
   }
   function ColorLista({ m, l }) {
     const p = paleta();
     return /* @__PURE__ */ React.createElement(Menu, { alinear: "izq", boton: ({ abierto, alternar }) => /* @__PURE__ */ React.createElement("button", { type: "button", className: "color-b", "aria-label": "Cambiar el color de " + (l.nombre || "esta fila"), "aria-expanded": abierto, onClick: alternar, title: "Cambiar color" }, /* @__PURE__ */ React.createElement(Punto, { lista: l, t: 14 })) }, /* @__PURE__ */ React.createElement("div", { className: "colores", role: "group", "aria-label": "Colores disponibles" }, p.map((c, i) => /* @__PURE__ */ React.createElement("button", { type: "button", key: i, "data-cierra": "1", className: cls("colores__b", l.color === i && "es-activo"), style: { "--c": c.hex }, "aria-label": "Color " + (i + 1), onClick: () => m.d({ tipo: "datos/color", id: l.id, color: i }) })), p.map((c, i) => /* @__PURE__ */ React.createElement("button", { type: "button", key: "h" + i, "data-cierra": "1", className: cls("colores__b", "colores__b--hueco", l.color === i + N_COLORES && "es-activo"), style: { "--c": c.hex }, "aria-label": "Color " + (i + 1) + " con borde", onClick: () => m.d({ tipo: "datos/color", id: l.id, color: i + N_COLORES }) }))));
   }
-  function FilaDatos({ m, l, i, n, repetidos }) {
-    const { d, T } = m;
-    const r = m.ok ? m.res.listas[i] : null;
-    const pct = m.pct ? m.pct.listas[i] : null;
-    const b = m.basePorId[l.id];
-    const sim = b && b.votos !== l.votos;
-    const escBase = m.escanosBase[l.id];
-    const refNombre = useRef3(null);
-    useEffect2(() => {
-      if (m.ui.enfocar === l.id && refNombre.current) {
-        refNombre.current.focus();
-        refNombre.current.select();
-        d({ tipo: "ui", cambios: { enfocar: null } });
-      }
-    }, [m.ui.enfocar]);
-    const mal = repetidos[l.id] || !String(l.nombre).trim();
-    return /* @__PURE__ */ React.createElement("tr", { className: "datos__fila" }, /* @__PURE__ */ React.createElement("td", { className: "datos__nombre" }, /* @__PURE__ */ React.createElement("span", { className: "datos__nom-in" }, /* @__PURE__ */ React.createElement(ColorLista, { m, l }), /* @__PURE__ */ React.createElement(
-      "input",
-      {
-        ref: refNombre,
-        id: "nombre-" + l.id,
-        className: cls("control", "control--nombre", mal && "control--mal"),
-        value: l.nombre,
-        maxLength: 120,
-        placeholder: "Nombre de la " + T.sing,
-        "aria-label": "Nombre de la fila " + (i + 1),
-        "aria-invalid": mal || void 0,
-        title: l.nombre,
-        onChange: (e) => d({ tipo: "datos/nombre", id: l.id, nombre: e.target.value }),
-        onPaste: (e) => {
-          const t = e.clipboardData && e.clipboardData.getData("text");
-          if (t && /[\t\n]/.test(t.trim())) {
-            e.preventDefault();
-            m.acciones.abrirImportar(t);
-          }
-        }
-      }
-    ))), /* @__PURE__ */ React.createElement("td", { className: "datos__votos", "data-et": "Votos" }, /* @__PURE__ */ React.createElement(EntradaVotos, { id: "votos-" + l.id, valor: l.votos, etiqueta: "Votos de " + (l.nombre || "la fila " + (i + 1)), alCambiar: (v) => d({ tipo: "datos/votos", id: l.id, votos: v }), alPegarTabla: m.acciones.abrirImportar }), sim && /* @__PURE__ */ React.createElement("span", { className: "datos__sim", title: "Valor original, antes de la simulación" }, "base ", fmtEntero(b.votos))), /* @__PURE__ */ React.createElement("td", { className: "num datos__pct", "data-et": "% de votos" }, pct ? fmtPct(pct.pct) : "—", r && !r.elegible && r.motivoExclusion === "umbral" && /* @__PURE__ */ React.createElement("span", { className: "etiqueta etiqueta--umbral" }, "bajo el umbral")), /* @__PURE__ */ React.createElement("td", { className: "datos__esc", "data-et": "Escaños" }, /* @__PURE__ */ React.createElement("span", { className: "datos__esc-n" }, r ? fmtEntero(r.escanos) : "—"), r && m.haySim && escBase != null && escBase !== r.escanos && /* @__PURE__ */ React.createElement(Delta, { n: r.escanos - escBase })), /* @__PURE__ */ React.createElement("td", { className: "datos__acc" }, /* @__PURE__ */ React.createElement(Boton, { icono: "arriba", variante: "fantasma", chico: true, titulo: "Subir en la tabla", disabled: i === 0, onClick: () => d({ tipo: "datos/mover", id: l.id, dir: -1 }) }), /* @__PURE__ */ React.createElement(Boton, { icono: "abajo", variante: "fantasma", chico: true, titulo: "Bajar en la tabla", disabled: i === n - 1, onClick: () => d({ tipo: "datos/mover", id: l.id, dir: 1 }) }), /* @__PURE__ */ React.createElement(Boton, { icono: "papelera", variante: "fantasma", chico: true, titulo: "Eliminar " + (l.nombre || "fila"), disabled: n <= 1, onClick: () => d({ tipo: "datos/eliminar", id: l.id }) })));
-  }
-  function DatosEntrada({ m }) {
-    const { esc, d, T, pct } = m;
-    const refArchivo = useRef3(null);
-    const repetidos = {};
-    m.val.errores.forEach((e) => {
-      if (e.codigo === "nombre_duplicado") e.listaIds.forEach((id) => {
-        repetidos[id] = 1;
-      });
-    });
-    const set = (campo, valor) => d({ tipo: "config/set", campo, valor });
-    return /* @__PURE__ */ React.createElement(
-      Tarjeta,
-      {
-        className: "tarjeta--datos",
-        titulo: "Datos de entrada",
-        nota: m.estado.esEjemplo ? "Datos de ejemplo" : null,
-        acciones: /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(Boton, { icono: "pegar", chico: true, onClick: () => m.acciones.abrirImportar("") }, "Pegar desde Excel"), /* @__PURE__ */ React.createElement(Boton, { icono: "subir", chico: true, onClick: () => refArchivo.current && refArchivo.current.click() }, "Cargar archivo"), /* @__PURE__ */ React.createElement(
-          "input",
-          {
-            ref: refArchivo,
-            id: "archivo-datos",
-            type: "file",
-            hidden: true,
-            accept: ".csv,.tsv,.txt,.xlsx,.xlsm,.xls,.ods,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            onChange: (e) => {
-              const f = e.target.files && e.target.files[0];
-              e.target.value = "";
-              if (f) m.acciones.abrirArchivo(f);
-            }
-          }
-        ), /* @__PURE__ */ React.createElement(Menu, { alinear: "der", ancho: 230, boton: ({ abierto, alternar }) => /* @__PURE__ */ React.createElement(Boton, { icono: "mas3", variante: "fantasma", chico: true, titulo: "Más acciones", "aria-expanded": abierto, onClick: alternar }) }, /* @__PURE__ */ React.createElement(OpcionMenu, { icono: "ordenar", onClick: () => d({ tipo: "datos/ordenar" }) }, "Ordenar por votos"), /* @__PURE__ */ React.createElement(OpcionMenu, { icono: "archivo", onClick: () => d({ tipo: "datos/ejemplo" }) }, "Cargar datos de ejemplo"), /* @__PURE__ */ React.createElement(OpcionMenu, { icono: "papelera", onClick: () => d({ tipo: "datos/vaciar", prefijo: T.prefijo }) }, "Vaciar la tabla")))
-      },
-      /* @__PURE__ */ React.createElement("div", { className: "tabla-scroll" }, /* @__PURE__ */ React.createElement("table", { className: "datos" }, /* @__PURE__ */ React.createElement("thead", null, /* @__PURE__ */ React.createElement("tr", null, /* @__PURE__ */ React.createElement("th", { scope: "col" }, T.Sing === "Lista" ? "Lista / Candidato" : T.Sing), /* @__PURE__ */ React.createElement("th", { scope: "col", className: "num" }, "Votos"), /* @__PURE__ */ React.createElement("th", { scope: "col", className: "num" }, "% de votos"), /* @__PURE__ */ React.createElement("th", { scope: "col", className: "num" }, "Escaños"), /* @__PURE__ */ React.createElement("th", { scope: "col" }, /* @__PURE__ */ React.createElement("span", { className: "oculto" }, "Acciones")))), /* @__PURE__ */ React.createElement("tbody", null, esc.listas.map((l, i) => /* @__PURE__ */ React.createElement(FilaDatos, { key: l.id, m, l, i, n: esc.listas.length, repetidos }))))),
-      /* @__PURE__ */ React.createElement("div", { className: "datos__pie" }, /* @__PURE__ */ React.createElement(Boton, { icono: "mas", variante: "suave", onClick: () => d({ tipo: "datos/agregar", prefijo: T.prefijo }) }, T.agregar)),
-      /* @__PURE__ */ React.createElement("div", { className: "extra" }, /* @__PURE__ */ React.createElement("div", { className: "campo" }, /* @__PURE__ */ React.createElement("label", { className: "campo__et", htmlFor: "votos-blancos" }, "Votos en blanco"), /* @__PURE__ */ React.createElement(EntradaVotos, { id: "votos-blancos", valor: esc.blancos, etiqueta: "Votos en blanco", alCambiar: (v) => set("blancos", v) })), /* @__PURE__ */ React.createElement("div", { className: "campo" }, /* @__PURE__ */ React.createElement("label", { className: "campo__et", htmlFor: "votos-nulos" }, "Votos nulos"), /* @__PURE__ */ React.createElement(EntradaVotos, { id: "votos-nulos", valor: esc.nulos, etiqueta: "Votos nulos", alCambiar: (v) => set("nulos", v) })), /* @__PURE__ */ React.createElement("div", { className: "campo campo--crece" }, /* @__PURE__ */ React.createElement("label", { className: "campo__et", htmlFor: "cfg-base" }, "Blancos y nulos"), /* @__PURE__ */ React.createElement("select", { id: "cfg-base", className: "control control--select", value: esc.baseModo, onChange: (e) => set("baseModo", e.target.value) }, /* @__PURE__ */ React.createElement("option", { value: "listas" }, "Solo informativos: no entran en el cálculo"), /* @__PURE__ */ React.createElement("option", { value: "listas_blancos" }, "Los blancos cuentan en la base del %"), /* @__PURE__ */ React.createElement("option", { value: "emitidos" }, "Blancos y nulos cuentan en la base del %"))), /* @__PURE__ */ React.createElement("p", { className: "extra__ayuda" }, "Blancos y nulos nunca reciben escaños. Solo pueden cambiar la base sobre la que se calculan los porcentajes.")),
-      /* @__PURE__ */ React.createElement("dl", { className: "totales" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("dt", null, "Total de votos"), /* @__PURE__ */ React.createElement("dd", null, pct ? fmtEntero(pct.emitidos) : "—")), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("dt", null, "Total de ", T.plur), /* @__PURE__ */ React.createElement("dd", null, fmtEntero(esc.listas.length))), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("dt", null, "Escaños disponibles"), /* @__PURE__ */ React.createElement("dd", null, Number.isInteger(esc.escanos) && esc.escanos > 0 ? fmtEntero(esc.escanos) : "—")), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("dt", null, "Votos válidos considerados"), /* @__PURE__ */ React.createElement("dd", null, pct ? fmtEntero(pct.base) : "—")))
-    );
-  }
+  /* FilaDatos y DatosEntrada se retiraron en la v4.8: lo que hacían —escribir
+     listas, votos, blancos y nulos— vive ahora en la tabla de cocientes. */
   function tamanoAsiento(S) {
     return S <= 24 ? 16 : S <= 60 ? 12 : S <= 150 ? 9 : 7;
   }
@@ -3865,6 +4066,41 @@ textarea.control { height: auto; padding: 10px; line-height: 1.4; resize: vertic
 
   // src/ui/modulos2.jsx
   var { useMemo: useMemo2 } = React;
+  /* Quién se lleva cada escaño, con nombre y apellido. Sale cuando las listas
+     vienen del registro de preinscritos, que es lo que carga el tablero; con
+     listas escritas a mano o cargadas de un archivo no hay nombres y la
+     tarjeta no aparece. Los escaños de cada lista se adjudican por su orden de
+     inscripción: el primero que gana es para su ORDEN 1, el segundo para su
+     ORDEN 2, y así. El registro no trae votos por candidato, así que no se
+     simula ningún voto preferente. */
+  function CandidatosAdjudicados({ m }) {
+    const { esc, res, porId, T } = m;
+    if (!esc.listas.some((l) => Array.isArray(l.candidatos) && l.candidatos.length)) return null;
+    const filas = res.adjudicacion.map((a) => {
+      const l = porId[a.listaId] || {};
+      const cands = Array.isArray(l.candidatos) ? l.candidatos : [];
+      return { a, l, cand: cands[a.k - 1] || null, inscritos: cands.length };
+    });
+    const faltan = filas.filter((x) => !x.cand).length;
+    const conEscano = res.listas.filter((l) => l.escanos > 0).length;
+    const org = esc.origen || null;
+    return /* @__PURE__ */ React.createElement(
+      Tarjeta,
+      {
+        className: "tarjeta--cand",
+        titulo: "Candidatos que obtienen escaño",
+        nota: (org && org.fuente ? org.fuente : "Registro de preinscritos") +
+          (org && org.circunscripcion ? " · " + org.circunscripcion : "") +
+          (org && org.escanosDe === "inscritos"
+            ? ". Se reparten los " + fmtEntero(res.escanos) + " escaños que se eligen en 2027, los que inscribió cada lista"
+            : "") +
+          ". Los escaños de cada lista se adjudican por orden de inscripción."
+      },
+      /* @__PURE__ */ React.createElement("div", { className: "tabla-scroll" }, /* @__PURE__ */ React.createElement("table", { className: "tabla tabla--cand" }, /* @__PURE__ */ React.createElement("thead", null, /* @__PURE__ */ React.createElement("tr", null, /* @__PURE__ */ React.createElement("th", { scope: "col", className: "num" }, "Escaño"), /* @__PURE__ */ React.createElement("th", { scope: "col" }, T.Sing), /* @__PURE__ */ React.createElement("th", { scope: "col" }, "Organización política"), /* @__PURE__ */ React.createElement("th", { scope: "col" }, "Candidato adjudicado"), /* @__PURE__ */ React.createElement("th", { scope: "col" }, "Suplente"))), /* @__PURE__ */ React.createElement("tbody", null, filas.map((x) => /* @__PURE__ */ React.createElement("tr", { key: x.a.numero, className: cls(!x.cand && "es-falta") }, /* @__PURE__ */ React.createElement("th", { scope: "row", className: "num" }, fmtEntero(x.a.numero)), /* @__PURE__ */ React.createElement("td", null, /* @__PURE__ */ React.createElement(NombreLista, { lista: x.l, nombre: x.l.lista ? "Lista " + x.l.lista : x.l.nombre })), /* @__PURE__ */ React.createElement("td", { className: "cand__org" }, x.l.partido || x.l.nombre || "—"), /* @__PURE__ */ React.createElement("td", null, x.cand ? /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("b", null, x.cand.nombre), /* @__PURE__ */ React.createElement("small", { className: "cand__orden" }, "Orden ", fmtEntero(x.cand.orden), " de la lista")) : /* @__PURE__ */ React.createElement("span", { className: "tenue" }, "Sin candidato inscrito", /* @__PURE__ */ React.createElement("small", { className: "cand__orden" }, "la lista inscribió ", fmtEntero(x.inscritos), " ", x.inscritos === 1 ? "candidato" : "candidatos"))), /* @__PURE__ */ React.createElement("td", { className: "cand__sup" }, x.cand && x.cand.suplente ? x.cand.suplente : "—")))))),
+      /* @__PURE__ */ React.createElement("p", { className: "cand__resumen" }, fmtEntero(conEscano), " de ", fmtEntero(res.listas.length), " ", T.plur, " ", conEscano === 1 ? "obtiene" : "obtienen", " representación", res.listas.length - conEscano > 0 ? "; " + fmtEntero(res.listas.length - conEscano) + " " + (res.listas.length - conEscano === 1 ? "se queda" : "se quedan") + " sin escaño" : "", "."),
+      faltan > 0 && /* @__PURE__ */ React.createElement("p", { className: "cand__falta" }, /* @__PURE__ */ React.createElement("b", null, "Faltan datos de inscripción."), " ", fmtEntero(faltan), " ", faltan === 1 ? "escaño no se puede adjudicar" : "escaños no se pueden adjudicar", " a una persona: la lista que lo gana inscribió menos candidatos que escaños. El reparto por listas sí vale; el nombre, no.")
+    );
+  }
   function Adjudicacion({ m }) {
     const { res, seguridad, porId, T } = m;
     const dec = m.ui.decimales;
@@ -3933,41 +4169,40 @@ textarea.control { height: auto; padding: 10px; line-height: 1.4; resize: vertic
     ((m.val || {}).errores || []).forEach((e) => {
       if (e.codigo === "nombre_duplicado") e.listaIds.forEach((id) => { repetidos[id] = 1; });
     });
-    /* El % se calcula aquí mismo: esta tarjeta recibe el modelo diferido y no
-       siempre trae los porcentajes ya hechos. */
+    /* El % de cada lista se mide sobre los VOTOS VÁLIDOS DISPONIBLES: los que
+       trae el tablero (padrón − ausentismo − nulos − blancos). No se mueven al
+       escribir porcentajes ni al simular, así que escribir 30 % siempre
+       significa lo mismo y los votos salen solos. Con datos propios (un
+       archivo) el total es el de los votos del escenario base. */
     const sumaListas = esc.listas.reduce((a, x) => a + (Number(x.votos) || 0), 0);
-    const baseCalc = (pct && pct.base) || (res && res.totales && res.totales.base) || sumaListas;
+    const baseValidos = (Number(esc.validosDisponibles) || 0)
+      || ((m.base && m.base.listas) ? m.base.listas.reduce((a, x) => a + (Number(x.votos) || 0), 0) : 0)
+      || sumaListas;
+    const baseCalc = baseValidos;
     const pctPorId = {};
     esc.listas.forEach((x) => {
-      pctPorId[x.id] = baseCalc ? (Number(x.votos) || 0) * 100 / baseCalc : 0;
+      pctPorId[x.id] = baseValidos ? (Number(x.votos) || 0) * 100 / baseValidos : 0;
     });
+    const sumaPct = esc.listas.reduce((a, x) => a + (pctPorId[x.id] || 0), 0);
     /* Escribir un % reparte la diferencia entre las demás listas en proporción
        a lo que tenían: así el total no se mueve y el % escrito sale exacto. */
+    /* Votos de la lista = votos válidos disponibles × % / 100. Solo cambia la
+       lista que se escribe: lo que falte o sobre para llegar al 100 % se
+       informa debajo de la tabla, no se reparte por nuestra cuenta. */
+    /* Lo que se escribe aquí ES el escenario: cambia los votos de la lista en
+       el escenario base y en el de trabajo. El «¿qué pasa si…?» de abajo parte
+       de estos porcentajes y se compara con ellos. */
     const fijarPct = (id, p) => {
-      const base = baseCalc;
-      const suma = sumaListas;
-      if (!base || !isFinite(p)) return;
-      const objetivo = Math.max(0, Math.round(base * Math.min(100, Math.max(0, p)) / 100));
-      const otros = esc.listas.filter((x) => x.id !== id);
-      const sumaOtros = otros.reduce((a, x) => a + (Number(x.votos) || 0), 0);
-      const resto = suma - objetivo;
-      d({ tipo: "datos/votos", id, votos: objetivo });
-      if (resto >= 0 && sumaOtros > 0) {
-        let dado = 0;
-        otros.forEach((x, k) => {
-          const v = k === otros.length - 1
-            ? resto - dado
-            : Math.round(resto * (Number(x.votos) || 0) / sumaOtros);
-          dado += v;
-          d({ tipo: "datos/votos", id: x.id, votos: Math.max(0, v) });
-        });
-      }
+      if (!baseValidos || !isFinite(p)) return;
+      const limpio = Math.max(0, Math.min(100, p));
+      d({ tipo: "datos/votos", id, votos: Math.round(baseValidos * limpio / 100) });
     };
     const S = res.escanos;
     const maxEsc = res.listas.reduce((a, l) => Math.max(a, l.escanos), 0);
     const nBase = Math.min(S, Math.max(5, maxEsc + 2));
     const nCols = m.ui.matrizTodo ? S : nBase;
     const mat = useMemo2(() => Motor.generarCocientes(esc, nCols), [esc, nCols]);
+    const verEscanos = !!(m.ui && m.ui.verEscanos);
     const dec = m.ui.decimales;
     const ordenDe = {};
     res.adjudicacion.forEach((a) => {
@@ -3980,11 +4215,11 @@ textarea.control { height: auto; padding: 10px; line-height: 1.4; resize: vertic
         className: "tarjeta--matriz",
         titulo: "Cocientes electorales",
         nota: "Votos de cada " + T.sing + " divididos entre la serie " + res.metodo.serie,
-        acciones: /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(Boton, { icono: "pegar", chico: true, onClick: () => m.acciones.abrirImportar("") }, "Pegar desde Excel"), /* @__PURE__ */ React.createElement("input", { id: "archivo-datos", type: "file", hidden: true, accept: ".csv,.tsv,.txt,.xlsx,.xlsm,.xls,.ods,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", onChange: (e) => { const f = e.target.files && e.target.files[0]; e.target.value = ""; if (f) m.acciones.abrirArchivo(f); } }), /* @__PURE__ */ React.createElement(Boton, { icono: "subir", chico: true, onClick: () => { const el = document.getElementById("archivo-datos"); if (el) el.click(); } }, "Cargar archivo"), /* @__PURE__ */ React.createElement(Menu, { alinear: "der", ancho: 230, boton: ({ abierto, alternar }) => /* @__PURE__ */ React.createElement(Boton, { icono: "mas3", variante: "fantasma", chico: true, titulo: "Más acciones", "aria-expanded": abierto, onClick: alternar }) }, /* @__PURE__ */ React.createElement(OpcionMenu, { icono: "ordenar", onClick: () => d({ tipo: "datos/ordenar" }) }, "Ordenar por votos"), /* @__PURE__ */ React.createElement(OpcionMenu, { icono: "archivo", onClick: () => d({ tipo: "datos/ejemplo" }) }, "Cargar datos de ejemplo"), /* @__PURE__ */ React.createElement(OpcionMenu, { icono: "papelera", onClick: () => d({ tipo: "datos/vaciar", prefijo: T.prefijo }) }, "Vaciar la tabla")), /* @__PURE__ */ React.createElement(Segmentos, { etiqueta: "Decimales de los cocientes", valor: dec, alCambiar: (v) => m.d({ tipo: "ui", cambios: { decimales: v } }), opciones: [{ v: 0, t: "0", titulo: "Sin decimales" }, { v: 2, t: "0,00", titulo: "Dos decimales" }] }), S > nBase && /* @__PURE__ */ React.createElement(Boton, { chico: true, variante: "fantasma", onClick: () => m.d({ tipo: "ui", cambios: { matrizTodo: !m.ui.matrizTodo } }) }, m.ui.matrizTodo ? "Menos divisores" : "Todos los divisores (" + S + ")"))
+        acciones: /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(Boton, { chico: true, icono: "grafico", variante: verEscanos ? "claro" : "suave", onClick: () => d({ tipo: "ui", cambios: { verEscanos: !verEscanos } }) }, verEscanos ? "Ocultar distribución" : "Ver distribución de escaños"), /* @__PURE__ */ React.createElement("input", { id: "archivo-datos", type: "file", hidden: true, accept: ".csv,.tsv,.txt,.xlsx,.xlsm,.xls,.ods,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", onChange: (e) => { const f = e.target.files && e.target.files[0]; e.target.value = ""; if (f) m.acciones.abrirArchivo(f); } }), /* @__PURE__ */ React.createElement(Boton, { icono: "subir", chico: true, onClick: () => { const el = document.getElementById("archivo-datos"); if (el) el.click(); } }, "Cargar archivo"), /* @__PURE__ */ React.createElement(Menu, { alinear: "der", ancho: 230, boton: ({ abierto, alternar }) => /* @__PURE__ */ React.createElement(Boton, { icono: "mas3", variante: "fantasma", chico: true, titulo: "Más acciones", "aria-expanded": abierto, onClick: alternar }) }, /* @__PURE__ */ React.createElement(OpcionMenu, { icono: "ordenar", onClick: () => d({ tipo: "datos/ordenar" }) }, "Ordenar por votos"), /* @__PURE__ */ React.createElement(OpcionMenu, { icono: "restablecer", onClick: () => d({ tipo: "datos/ceros" }), nota: "Las listas se quedan; sus votos vuelven a cero" }, "Poner los porcentajes en cero")), /* @__PURE__ */ React.createElement(Segmentos, { etiqueta: "Decimales de los cocientes", valor: dec, alCambiar: (v) => m.d({ tipo: "ui", cambios: { decimales: v } }), opciones: [{ v: 0, t: "0", titulo: "Sin decimales" }, { v: 2, t: "0,00", titulo: "Dos decimales" }] }), S > nBase && /* @__PURE__ */ React.createElement(Boton, { chico: true, variante: "fantasma", onClick: () => m.d({ tipo: "ui", cambios: { matrizTodo: !m.ui.matrizTodo } }) }, m.ui.matrizTodo ? "Menos divisores" : "Todos los divisores (" + S + ")"))
       },
-      /* @__PURE__ */ React.createElement("div", { className: "tabla-scroll" }, /* @__PURE__ */ React.createElement("table", { className: "tabla tabla--matriz" }, /* @__PURE__ */ React.createElement("thead", null, /* @__PURE__ */ React.createElement("tr", null, /* @__PURE__ */ React.createElement("th", { scope: "col", className: "fija" }, T.Sing), /* @__PURE__ */ React.createElement("th", { scope: "col", className: "num" }, "Votos"), /* @__PURE__ */ React.createElement("th", { scope: "col", className: "num" }, "% voto"), /* @__PURE__ */ React.createElement("th", { scope: "col", className: "num" }, "Escaños"), mat.divisores.map((dv) => /* @__PURE__ */ React.createElement("th", { scope: "col", className: "num", key: dv.k }, "÷", fmtDivisor(dv))))), /* @__PURE__ */ React.createElement("tbody", null, mat.filas.map((f) => {
+      /* @__PURE__ */ React.createElement("div", { className: "tabla-scroll" }, /* @__PURE__ */ React.createElement("table", { className: "tabla tabla--matriz" }, /* @__PURE__ */ React.createElement("thead", null, /* @__PURE__ */ React.createElement("tr", null, /* @__PURE__ */ React.createElement("th", { scope: "col", className: "fija" }, T.Sing), /* @__PURE__ */ React.createElement("th", { scope: "col", className: "num" }, "% de voto"), /* @__PURE__ */ React.createElement("th", { scope: "col", className: "num" }, "Votos"), /* @__PURE__ */ React.createElement("th", { scope: "col", className: "num" }, "Escaños"), mat.divisores.map((dv) => /* @__PURE__ */ React.createElement("th", { scope: "col", className: "num", key: dv.k }, "÷", fmtDivisor(dv))))), /* @__PURE__ */ React.createElement("tbody", null, mat.filas.map((f) => {
         const c = colorDe(porId[f.listaId]);
-        return /* @__PURE__ */ React.createElement("tr", { key: f.listaId, className: cls(!f.elegible && "es-off") }, /* @__PURE__ */ React.createElement("th", { scope: "row", className: "fija" }, /* @__PURE__ */ React.createElement("span", { className: "coc-nom" }, /* @__PURE__ */ React.createElement("i", { className: "coc-punto", style: { background: c.hex } }), /* @__PURE__ */ React.createElement("input", { id: "nombre-" + f.listaId, className: cls("control", "control--nombre", (repetidos[f.listaId] || !String((porId[f.listaId] || {}).nombre || "").trim()) && "control--mal"), value: (porId[f.listaId] || {}).nombre || "", maxLength: 120, placeholder: "Nombre de la " + T.sing, "aria-label": "Nombre de la fila", title: (porId[f.listaId] || {}).nombre || "", onChange: (e) => d({ tipo: "datos/nombre", id: f.listaId, nombre: e.target.value }), onPaste: (e) => { const t = e.clipboardData && e.clipboardData.getData("text"); if (t && /[\t\n]/.test(t.trim())) { e.preventDefault(); m.acciones.abrirImportar(t); } } }), /* @__PURE__ */ React.createElement(Boton, { icono: "papelera", variante: "fantasma", chico: true, titulo: "Eliminar la fila", disabled: esc.listas.length <= 1, onClick: () => d({ tipo: "datos/eliminar", id: f.listaId }) })), !f.elegible && /* @__PURE__ */ React.createElement("span", { className: "etiqueta etiqueta--umbral" }, f.motivoExclusion === "umbral" ? "bajo el umbral" : "sin votos")), /* @__PURE__ */ React.createElement("td", { className: "num celda-ent" }, /* @__PURE__ */ React.createElement(EntradaVotos, { id: "votos-" + f.listaId, valor: (porId[f.listaId] || {}).votos || 0, etiqueta: "Votos de " + ((porId[f.listaId] || {}).nombre || "la fila"), alCambiar: (v) => d({ tipo: "datos/votos", id: f.listaId, votos: v }), alPegarTabla: m.acciones.abrirImportar })), /* @__PURE__ */ React.createElement("td", { className: "num celda-ent" }, /* @__PURE__ */ React.createElement(EntradaPct, { id: "pct-" + f.listaId, valor: pctPorId[f.listaId] || 0, alCambiar: (v) => fijarPct(f.listaId, v), etiqueta: "Porcentaje de " + ((porId[f.listaId] || {}).nombre || "la fila") })), /* @__PURE__ */ React.createElement("td", { className: "num celda-esc" }, /* @__PURE__ */ React.createElement("span", { className: "datos__esc-n" }, res.listas[f.idx] ? fmtEntero(res.listas[f.idx].escanos) : "—")), f.cocientes.map((q) => {
+        return /* @__PURE__ */ React.createElement("tr", { key: f.listaId, className: cls(!f.elegible && "es-off") }, /* @__PURE__ */ React.createElement("th", { scope: "row", className: "fija" }, /* @__PURE__ */ React.createElement("span", { className: "coc-nom" }, /* @__PURE__ */ React.createElement("i", { className: "coc-punto", style: { background: c.hex } }), (/* @__PURE__ */ React.createElement("input", { id: "nombre-" + f.listaId, className: cls("control", "control--nombre", (repetidos[f.listaId] || !String((porId[f.listaId] || {}).nombre || "").trim()) && "control--mal"), value: (porId[f.listaId] || {}).nombre || "", maxLength: 120, placeholder: "Nombre de la " + T.sing, "aria-label": "Nombre de la fila", title: (porId[f.listaId] || {}).nombre || "", onChange: (e) => d({ tipo: "datos/nombre", id: f.listaId, nombre: e.target.value }), onPaste: (e) => { const t = e.clipboardData && e.clipboardData.getData("text"); if (t && /[\t\n]/.test(t.trim())) { e.preventDefault(); m.acciones.abrirImportar(t); } } })), /* @__PURE__ */ React.createElement(Boton, { icono: "papelera", variante: "fantasma", chico: true, titulo: "Eliminar la fila", disabled: esc.listas.length <= 1, onClick: () => d({ tipo: "datos/eliminar", id: f.listaId }) })), !f.elegible && /* @__PURE__ */ React.createElement("span", { className: "etiqueta etiqueta--umbral" }, f.motivoExclusion === "umbral" ? "bajo el umbral" : "sin votos")), /* @__PURE__ */ React.createElement("td", { className: "num celda-ent" }, (/* @__PURE__ */ React.createElement(EntradaPct, { id: "pct-" + f.listaId, valor: pctPorId[f.listaId] || 0, alCambiar: (v) => fijarPct(f.listaId, v), etiqueta: "Porcentaje de " + ((porId[f.listaId] || {}).nombre || "la fila") }))), /* @__PURE__ */ React.createElement("td", { className: "num celda-votos", title: "Calculado: votos válidos × % / 100" }, fmtEntero((porId[f.listaId] || {}).votos || 0)), /* @__PURE__ */ React.createElement("td", { className: "num celda-esc" }, /* @__PURE__ */ React.createElement("span", { className: "datos__esc-n" }, res.listas[f.idx] ? fmtEntero(res.listas[f.idx].escanos) : "—")), f.cocientes.map((q) => {
           const num = f.elegible ? ordenDe[f.listaId + "|" + q.k] : null;
           const fuera = f.elegible && ex && ex.listaId === f.listaId && ex.k === q.k;
           return /* @__PURE__ */ React.createElement(
@@ -4000,9 +4235,11 @@ textarea.control { height: auto; padding: 10px; line-height: 1.4; resize: vertic
           );
         }));
       })))),
+      /* @__PURE__ */ React.createElement("p", { className: cls("coc-suma", sumaPct > 100.05 && "es-mal", sumaPct < 99.95 && "es-aviso") }, Math.abs(sumaPct - 100) < 0.05 ? "Los porcentajes suman 100 %: todos los votos válidos están repartidos." : sumaPct > 100 ? "Los porcentajes suman " + fmtPct(sumaPct) + ": se pasan " + fmtPct(sumaPct - 100) + " del 100 %. Baja alguna lista." : "Los porcentajes suman " + fmtPct(sumaPct) + ": queda " + fmtPct(100 - sumaPct) + " sin repartir (" + fmtEntero(Math.max(0, baseValidos - sumaListas)) + " votos)."),
+      (verEscanos && m.ok) && /* @__PURE__ */ React.createElement("div", { className: "dist-escanos" }, /* @__PURE__ */ React.createElement("p", { className: "dist-tit" }, "Escaños por lista"), /* @__PURE__ */ React.createElement("p", { className: "dist-sub" }, "De mayor a menor, con los votos que hay ahora en pantalla."), (() => { const filas = esc.listas.map(function (l, i) { return { l: l, n: (res.listas[i] || {}).escanos || 0 }; }) .sort(function (a, b) { return b.n - a.n || (Number(b.l.votos) || 0) - (Number(a.l.votos) || 0); }); const maxN = Math.max(1, ...filas.map(function (x) { return x.n; })); return filas.map(function (x) { return /* @__PURE__ */ React.createElement("div", { key: x.l.id, className: cls("dist-fila", !x.n && "es-cero") }, /* @__PURE__ */ React.createElement("span", { className: "dist-nom", title: x.l.nombre }, /* @__PURE__ */ React.createElement("i", { className: "coc-punto", style: { background: colorDe(porId[x.l.id]).hex } }), x.l.nombre), /* @__PURE__ */ React.createElement("span", { className: "dist-barra" }, /* @__PURE__ */ React.createElement("i", { style: { width: (x.n * 100 / maxN) + "%", background: colorDe(porId[x.l.id]).hex } })), /* @__PURE__ */ React.createElement("b", { className: "dist-n" }, fmtEntero(x.n))); }); })()),
       /* @__PURE__ */ React.createElement("div", { className: "datos__pie" }, /* @__PURE__ */ React.createElement(Boton, { icono: "mas", variante: "suave", onClick: () => d({ tipo: "datos/agregar", prefijo: T.prefijo }) }, T.agregar)),
       /* @__PURE__ */ React.createElement("div", { className: "extra" }, /* @__PURE__ */ React.createElement("div", { className: "campo" }, /* @__PURE__ */ React.createElement("label", { className: "campo__et", htmlFor: "votos-blancos" }, "Votos en blanco"), /* @__PURE__ */ React.createElement(EntradaVotos, { id: "votos-blancos", valor: esc.blancos, etiqueta: "Votos en blanco", alCambiar: (v) => set("blancos", v) })), /* @__PURE__ */ React.createElement("div", { className: "campo" }, /* @__PURE__ */ React.createElement("label", { className: "campo__et", htmlFor: "votos-nulos" }, "Votos nulos"), /* @__PURE__ */ React.createElement(EntradaVotos, { id: "votos-nulos", valor: esc.nulos, etiqueta: "Votos nulos", alCambiar: (v) => set("nulos", v) })), /* @__PURE__ */ React.createElement("div", { className: "campo campo--crece" }, /* @__PURE__ */ React.createElement("label", { className: "campo__et", htmlFor: "cfg-base" }, "Blancos y nulos"), /* @__PURE__ */ React.createElement("select", { id: "cfg-base", className: "control control--select", value: esc.baseModo, onChange: (e) => set("baseModo", e.target.value) }, /* @__PURE__ */ React.createElement("option", { value: "listas" }, "Solo informativos: no entran en el cálculo"), /* @__PURE__ */ React.createElement("option", { value: "listas_blancos" }, "Los blancos cuentan en la base del %"), /* @__PURE__ */ React.createElement("option", { value: "emitidos" }, "Blancos y nulos cuentan en la base del %"))), /* @__PURE__ */ React.createElement("p", { className: "extra__ayuda" }, "Blancos y nulos nunca reciben escaños. Solo pueden cambiar la base sobre la que se calculan los porcentajes.")),
-      /* @__PURE__ */ React.createElement("dl", { className: "totales" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("dt", null, "Total de votos"), /* @__PURE__ */ React.createElement("dd", null, pct ? fmtEntero(pct.emitidos) : "—")), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("dt", null, "Total de ", T.plur), /* @__PURE__ */ React.createElement("dd", null, fmtEntero(esc.listas.length))), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("dt", null, "Escaños disponibles"), /* @__PURE__ */ React.createElement("dd", null, Number.isInteger(esc.escanos) && esc.escanos > 0 ? fmtEntero(esc.escanos) : "—")), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("dt", null, "Votos válidos considerados"), /* @__PURE__ */ React.createElement("dd", null, pct ? fmtEntero(pct.base) : "—"))),
+      /* @__PURE__ */ React.createElement("dl", { className: "totales" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("dt", null, "Total de votos"), /* @__PURE__ */ React.createElement("dd", null, fmtEntero(sumaListas + (Number(esc.blancos) || 0) + (Number(esc.nulos) || 0)))), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("dt", null, "Total de ", T.plur), /* @__PURE__ */ React.createElement("dd", null, fmtEntero(esc.listas.length))), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("dt", null, "Escaños disponibles"), /* @__PURE__ */ React.createElement("dd", null, Number.isInteger(esc.escanos) && esc.escanos > 0 ? fmtEntero(esc.escanos) : "—")), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("dt", null, "Votos válidos considerados"), /* @__PURE__ */ React.createElement("dd", null, fmtEntero(baseCalc)))),
       /* @__PURE__ */ React.createElement("p", { className: "leyenda" }, /* @__PURE__ */ React.createElement("span", { className: "leyenda__i" }, /* @__PURE__ */ React.createElement("span", { className: "leyenda__m leyenda__m--gana" }), "Cociente con escaño; el número pequeño es el orden de adjudicación"), /* @__PURE__ */ React.createElement("span", { className: "leyenda__i" }, /* @__PURE__ */ React.createElement("span", { className: "leyenda__m leyenda__m--fuera" }), "Primer cociente que queda fuera"))
     );
   }
@@ -4169,7 +4406,7 @@ textarea.control { height: auto; padding: 10px; line-height: 1.4; resize: vertic
       {
         className: "tarjeta--sim",
         titulo: "Simulador de votos",
-        nota: "Mueve los votos de cada " + T.sing + " y todo se recalcula al instante. Los datos originales se conservan: vuelves a ellos con «Restablecer».",
+        nota: "Mueve los votos de cada " + T.sing + " y todo se recalcula al instante. Los porcentajes que escribiste en la tabla de cocientes se conservan: vuelves a ellos con «Restablecer».",
         acciones: /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(
           Segmentos,
           {
@@ -4182,8 +4419,7 @@ textarea.control { height: auto; padding: 10px; line-height: 1.4; resize: vertic
       },
       /* @__PURE__ */ React.createElement("ul", { className: "deslizadores" }, esc.listas.map((l, i) => /* @__PURE__ */ React.createElement(Deslizador, { key: l.id, m, l, i }))),
       /* @__PURE__ */ React.createElement(Trasvase, { m }),
-      /* @__PURE__ */ React.createElement("div", { className: "probar" }, /* @__PURE__ */ React.createElement("p", { className: "mini-titulo" }, "¿Qué pasa si cambian las reglas?")),
-      /* @__PURE__ */ React.createElement("div", { className: "sim__pie" }, /* @__PURE__ */ React.createElement(Boton, { icono: "restablecer", variante: "suave", disabled: !m.haySim, onClick: () => d({ tipo: "restablecer" }) }, "Restablecer"), /* @__PURE__ */ React.createElement(Boton, { icono: "fijar", variante: "suave", disabled: !m.haySim, onClick: () => d({ tipo: "fijarBase" }), titulo: "Convierte el estado simulado en los nuevos datos originales" }, "Fijar como base"))
+      /* @__PURE__ */ React.createElement("div", { className: "sim__pie" }, /* @__PURE__ */ React.createElement(Boton, { icono: "restablecer", variante: "suave", disabled: !m.haySim, onClick: () => d({ tipo: "restablecer" }) }, "Restablecer"), /* @__PURE__ */ React.createElement(Boton, { icono: "fijar", variante: "suave", disabled: !m.haySim, onClick: () => d({ tipo: "fijarBase" }), titulo: "Convierte lo simulado en el nuevo escenario base" }, "Fijar como base"))
     );
   }
   function textoDif(x, T) {
@@ -4206,12 +4442,12 @@ textarea.control { height: auto; padding: 10px; line-height: 1.4; resize: vertic
       Tarjeta,
       {
         className: "tarjeta--ad",
-        titulo: "Antes y después",
+        titulo: "Escenario base frente a la simulación",
         nota: m.haySim ? null : "Aquí verás qué " + T.plur + " ganan o pierden escaños cuando simules un cambio."
       },
       m.haySim && /* @__PURE__ */ React.createElement("div", { className: "ad__cambios" }, m.difs.slice(0, 8).map((x, i) => /* @__PURE__ */ React.createElement("span", { className: "chip chip--fijo", key: i }, textoDif(x, T))), m.difs.length > 8 && /* @__PURE__ */ React.createElement("span", { className: "chip chip--fijo" }, "y ", m.difs.length - 8, " más")),
-      /* @__PURE__ */ React.createElement("div", { className: "tabla-scroll" }, /* @__PURE__ */ React.createElement("table", { className: "tabla tabla--ad" }, /* @__PURE__ */ React.createElement("thead", null, /* @__PURE__ */ React.createElement("tr", null, /* @__PURE__ */ React.createElement("th", { scope: "col" }, T.Sing), /* @__PURE__ */ React.createElement("th", { scope: "col", className: "num ad__col-antes" }, "Antes"), /* @__PURE__ */ React.createElement("th", { scope: "col", className: "num ad__col-desp" }, "Después"), /* @__PURE__ */ React.createElement("th", { scope: "col" }, "Cambio"), /* @__PURE__ */ React.createElement("th", { scope: "col", className: "num" }, "Votos antes"), /* @__PURE__ */ React.createElement("th", { scope: "col", className: "num" }, "Votos después"))), /* @__PURE__ */ React.createElement("tbody", null, filas.map((f) => /* @__PURE__ */ React.createElement("tr", { key: f.l.id, className: cls(f.delta > 0 && "es-sube", f.delta < 0 && "es-baja") }, /* @__PURE__ */ React.createElement("th", { scope: "row" }, /* @__PURE__ */ React.createElement(NombreLista, { lista: f.l })), /* @__PURE__ */ React.createElement("td", { className: "num ad__col-antes" }, f.antes != null ? fmtEntero(f.antes) : "—"), /* @__PURE__ */ React.createElement("td", { className: "num ad__col-desp fuerte" }, f.despues != null ? fmtEntero(f.despues) : "—"), /* @__PURE__ */ React.createElement("td", null, f.delta != null ? /* @__PURE__ */ React.createElement(Delta, { n: f.delta, neutro: "=" }) : "—"), /* @__PURE__ */ React.createElement("td", { className: "num" }, f.votosAntes != null ? fmtEntero(f.votosAntes) : "—"), /* @__PURE__ */ React.createElement("td", { className: cls("num", f.votosAntes !== f.votosDespues && "fuerte") }, fmtEntero(f.votosDespues))))))),
-      /* @__PURE__ */ React.createElement("p", { className: "ad__resumen" }, !m.ok ? "El escenario simulado no se puede calcular: revisa los avisos." : !m.haySim ? "Sin cambios respecto a los datos originales." : movidos === 0 ? "Los cambios simulados no mueven ningún escaño." : movidos + " " + plural(movidos, "escaño cambia", "escaños cambian") + " de manos" + (esc.escanos !== base.escanos ? " (el total pasa de " + base.escanos + " a " + esc.escanos + ")" : "") + ".")
+      /* @__PURE__ */ React.createElement("div", { className: "tabla-scroll" }, /* @__PURE__ */ React.createElement("table", { className: "tabla tabla--ad" }, /* @__PURE__ */ React.createElement("thead", null, /* @__PURE__ */ React.createElement("tr", null, /* @__PURE__ */ React.createElement("th", { scope: "col" }, T.Sing), /* @__PURE__ */ React.createElement("th", { scope: "col", className: "num ad__col-antes" }, "Escaños base"), /* @__PURE__ */ React.createElement("th", { scope: "col", className: "num ad__col-desp" }, "Escaños simulados"), /* @__PURE__ */ React.createElement("th", { scope: "col" }, "Cambio"), /* @__PURE__ */ React.createElement("th", { scope: "col", className: "num" }, "Votos base"), /* @__PURE__ */ React.createElement("th", { scope: "col", className: "num" }, "Votos simulados"))), /* @__PURE__ */ React.createElement("tbody", null, filas.map((f) => /* @__PURE__ */ React.createElement("tr", { key: f.l.id, className: cls(f.delta > 0 && "es-sube", f.delta < 0 && "es-baja") }, /* @__PURE__ */ React.createElement("th", { scope: "row" }, /* @__PURE__ */ React.createElement(NombreLista, { lista: f.l })), /* @__PURE__ */ React.createElement("td", { className: "num ad__col-antes" }, f.antes != null ? fmtEntero(f.antes) : "—"), /* @__PURE__ */ React.createElement("td", { className: "num ad__col-desp fuerte" }, f.despues != null ? fmtEntero(f.despues) : "—"), /* @__PURE__ */ React.createElement("td", null, f.delta != null ? /* @__PURE__ */ React.createElement(Delta, { n: f.delta, neutro: "=" }) : "—"), /* @__PURE__ */ React.createElement("td", { className: "num" }, f.votosAntes != null ? fmtEntero(f.votosAntes) : "—"), /* @__PURE__ */ React.createElement("td", { className: cls("num", f.votosAntes !== f.votosDespues && "fuerte") }, fmtEntero(f.votosDespues))))))),
+      /* @__PURE__ */ React.createElement("p", { className: "ad__resumen" }, !m.ok ? "El escenario simulado no se puede calcular: revisa los avisos." : !m.haySim ? "Sin cambios respecto al escenario base." : movidos === 0 ? "Los cambios simulados no mueven ningún escaño." : movidos + " " + plural(movidos, "escaño cambia", "escaños cambian") + " de manos" + (esc.escanos !== base.escanos ? " (el total pasa de " + base.escanos + " a " + esc.escanos + ")" : "") + ".")
     );
   }
   function Sensibilidad({ m }) {
@@ -4269,6 +4505,419 @@ textarea.control { height: auto; padding: 10px; line-height: 1.4; resize: vertic
       },
       m.ui.sensVista === "grafico" ? /* @__PURE__ */ React.createElement(GraficoSensibilidad, { sens, lista, unidad: m.ui.sensUnidad }) : /* @__PURE__ */ React.createElement("div", { className: "tabla-scroll tabla-scroll--alta" }, /* @__PURE__ */ React.createElement("table", { className: "tabla tabla--sens" }, /* @__PURE__ */ React.createElement("thead", null, /* @__PURE__ */ React.createElement("tr", null, /* @__PURE__ */ React.createElement("th", { scope: "col", className: "num" }, "Cambio en votos"), /* @__PURE__ */ React.createElement("th", { scope: "col", className: "num" }, "Cambio %"), /* @__PURE__ */ React.createElement("th", { scope: "col", className: "num" }, "Votos"), /* @__PURE__ */ React.createElement("th", { scope: "col", className: "num" }, "Escaños"), /* @__PURE__ */ React.createElement("th", { scope: "col" }, "Nota"))), /* @__PURE__ */ React.createElement("tbody", null, tabla.map((f) => /* @__PURE__ */ React.createElement("tr", { key: f.delta, className: cls(f.delta === 0 && "es-hoy", f.marca && "es-quiebre") }, /* @__PURE__ */ React.createElement("td", { className: "num" }, f.delta === 0 ? "0" : fmtSigno(f.delta)), /* @__PURE__ */ React.createElement("td", { className: "num" }, v > 0 ? f.delta === 0 ? "0%" : fmtSignoDec(f.delta / v * 100, 1) + "%" : "—"), /* @__PURE__ */ React.createElement("td", { className: "num" }, fmtEntero(f.votos)), /* @__PURE__ */ React.createElement("td", { className: "num fuerte" }, fmtEntero(f.escanos), " ", f.escanos !== s0 && /* @__PURE__ */ React.createElement(Delta, { n: f.escanos - s0 })), /* @__PURE__ */ React.createElement("td", null, f.delta === 0 ? "Hoy" : f.marca)))))),
       /* @__PURE__ */ React.createElement("div", { className: "sens__quiebres" }, /* @__PURE__ */ React.createElement("p", { className: "mini-titulo" }, "Puntos de quiebre en este rango"), sens.quiebres.length === 0 ? /* @__PURE__ */ React.createElement("p", { className: "tenue" }, "Dentro de este rango ", lista.nombre, " mantiene ", nEscanos(s0), ". Amplía el rango para ver el siguiente cambio.") : /* @__PURE__ */ React.createElement("ul", { className: "quiebres-lista" }, sens.quiebres.map((q) => q.delta > 0 ? /* @__PURE__ */ React.createElement("li", { key: q.votos, className: "es-sube" }, /* @__PURE__ */ React.createElement("span", { className: "num fuerte" }, fmtSigno(q.delta), " votos"), /* @__PURE__ */ React.createElement("span", { "aria-hidden": "true" }, "→"), nEscanos(q.escanos)) : /* @__PURE__ */ React.createElement("li", { key: q.votos, className: "es-baja" }, /* @__PURE__ */ React.createElement("span", { className: "num fuerte" }, fmtSigno(q.delta - 1), " votos"), /* @__PURE__ */ React.createElement("span", { "aria-hidden": "true" }, "→"), nEscanos(q.escanosAntes)))))
+    );
+  }
+
+  // src/ui/modulos6.jsx — v5.6: resumen, histograma, estabilidad y explicación
+  var { useMemo: useMemo7, useState: useState7 } = React;
+  var ce = React.createElement;
+  /* Nombre de una organización en dos partes: el número de lista y la
+     organización, tal como llegan del registro de inscripción. Con datos
+     propios (sin registro) queda solo el nombre escrito en la tabla. */
+  function partesOrg(l) {
+    const lista = l && l.lista ? "Lista " + l.lista : "";
+    const org = l && l.partido ? l.partido : (l && l.nombre) || "Sin nombre";
+    return { lista, org, completo: (l && l.nombre) || (lista ? lista + " · " + org : org) };
+  }
+  /* El mismo total sobre el que la tabla de cocientes mide el % de cada
+     lista: los votos válidos disponibles que manda el tablero o, con datos
+     propios, la suma de votos del escenario base. */
+  function baseDeValidos(esc, base) {
+    const suma = (e) => e && Array.isArray(e.listas) ? e.listas.reduce((a, x) => a + (Number(x.votos) || 0), 0) : 0;
+    return (Number(esc.validosDisponibles) || 0) || suma(base) || suma(esc);
+  }
+  function decCociente(x) {
+    return Number.isInteger(x) ? 0 : x < 100 ? 2 : 0;
+  }
+  function fmtPuntos(x) {
+    const a = Math.abs(x);
+    return fmtDecimal(a, Number.isInteger(a) ? 0 : Math.abs(a * 10 - Math.round(a * 10)) < 1e-9 ? 1 : 2);
+  }
+  /* Distrito que se simula, tal como lo manda el tablero. La circunscripción
+     va con su nombre LITERAL (el del Excel de escaños o el del registro). */
+  function LineaDistrito({ esc }) {
+    const o = esc && esc.origen;
+    if (!o) return ce("span", null, "Con los votos de la tabla de cocientes.");
+    const partes = [];
+    if (o.dignidad) partes.push(ce("span", { key: "d" }, o.dignidad));
+    if (o.circunscripcion) partes.push(ce("b", { key: "c", className: "res-circ" }, o.circunscripcion));
+    if (o.ambito) partes.push(ce("span", { key: "a" }, o.ambito));
+    return ce("span", { className: "res-distrito" }, partes.reduce((acc, el, i) => i === 0 ? [el] : acc.concat([ce("span", { key: "s" + i, className: "res-distrito__sep", "aria-hidden": "true" }, "·"), el]), []));
+  }
+  /* ---------- resumen ---------- */
+  function ResumenResultados({ m }) {
+    const { res, ok, esc, porId, margenes } = m;
+    if (!ok) return null;
+    const S = res.escanos;
+    const con = res.listas.filter((l) => l.escanos > 0).length;
+    const total = res.listas.length;
+    const u = res.corte.ultimoGanador;
+    const dec = m.ui.decimales || decCociente(u.cociente);
+    const cerca = margenes && margenes.masCercana;
+    const V = res.totales.votosListas;
+    const disp = Number(esc.validosDisponibles) || 0;
+    const conVotos = res.listas.filter((l) => l.votos > 0).length;
+    return ce(
+      "div",
+      { className: "kpis kpis--res" },
+      ce("div", { className: "kpi" }, ce("p", { className: "kpi__et" }, "Escaños asignados"), ce("p", { className: "kpi__val" }, fmtEntero(res.verificacion.asignados), ce("span", { className: "kpi__uni" }, " de ", fmtEntero(S))), ce("p", { className: "kpi__sub" }, res.verificacion.ok ? ce("span", { className: "ok-t" }, ce(Icono, { n: "check", t: 14 }), "Suman los escaños del distrito") : "Revisa la verificación")),
+      ce("div", { className: "kpi" }, ce("p", { className: "kpi__et" }, "Organizaciones con representación"), ce("p", { className: "kpi__val" }, fmtEntero(con), ce("span", { className: "kpi__uni" }, " de ", fmtEntero(total))), ce("p", { className: "kpi__sub" }, total - con > 0 ? fmtEntero(total - con) + " " + plural(total - con, "se queda", "se quedan") + " sin escaño" : "Todas obtienen escaño")),
+      ce("div", { className: "kpi" }, ce("p", { className: "kpi__et" }, "Votos válidos de las listas"), ce("p", { className: "kpi__val" }, fmtEntero(V)), ce("p", { className: "kpi__sub" }, disp > 0 ? fmtPct(V * 100 / disp) + " de los " + fmtEntero(disp) + " disponibles" : fmtEntero(conVotos) + " " + plural(conVotos, "organización con votos", "organizaciones con votos"))),
+      ce("div", { className: "kpi" }, ce("p", { className: "kpi__et" }, "Último cociente ganador"), ce("p", { className: "kpi__val" }, fmtCociente(u.cociente, dec)), ce("p", { className: "kpi__sub" }, ce(NombreLista, { lista: porId[u.listaId] }), " ", ce("span", { className: "tenue" }, "÷", fmtDivisor(u.divisor), " · ", ordinal(u.numero), " escaño"))),
+      ce("div", { className: "kpi kpi--foco" }, ce("p", { className: "kpi__et" }, "Competencia por el próximo escaño"), cerca ? ce(React.Fragment, null, ce("p", { className: "kpi__val" }, "+", fmtEntero(cerca.proximo.adicionales), " ", ce("span", { className: "kpi__uni" }, plural(cerca.proximo.adicionales, "voto", "votos"))), ce("p", { className: "kpi__sub" }, ce(NombreLista, { lista: porId[cerca.listaId] }), " ", ce("span", { className: "tenue" }, "es quien está más cerca"))) : ce(React.Fragment, null, ce("p", { className: "kpi__val" }, "—"), ce("p", { className: "kpi__sub" }, "No quedan escaños por disputar")))
+    );
+  }
+  /* ---------- histograma ---------- */
+  /* Eje de escaños con marcas enteras y aire arriba para la cifra de la barra
+     más alta. */
+  function ejeEscanos(max, alto) {
+    const paso = max <= 8 ? 1 : max <= 16 ? 2 : max <= 40 ? 5 : 10;
+    let tope = Math.max(paso, Math.ceil(max / paso) * paso);
+    if (tope === max) tope += paso;
+    while ((tope - max) / tope * alto < 50) tope += paso;
+    const marcas = [];
+    for (let v = 0; v <= tope; v += paso) marcas.push(v);
+    return { tope, marcas };
+  }
+  function HistogramaEscanos({ m }) {
+    const { res, ok, esc, porId } = m;
+    const titulo = "Distribución de escaños por organización política";
+    if (!ok) return ce(Tarjeta, { className: "tarjeta--histo", id: "histograma", titulo }, ce("p", { className: "vacio vacio--guia" }, "Escribe los porcentajes en la tabla de cocientes: aquí aparecerán los escaños de cada organización, de la que más tiene a la que menos."));
+    const S = res.escanos;
+    const B = baseDeValidos(esc, m.base);
+    const filas = res.listas.map((r) => ({ r, l: porId[r.id] || esc.listas[r.idx] || {}, pct: B > 0 ? r.votos * 100 / B : 0 })).sort((a, b) => b.r.escanos - a.r.escanos || b.r.votos - a.r.votos || a.r.idx - b.r.idx);
+    const con = filas.filter((x) => x.r.escanos > 0);
+    const sin = filas.filter((x) => x.r.escanos === 0);
+    const ALTO = 300;
+    const eje = ejeEscanos(con.length ? con[0].r.escanos : 1, ALTO);
+    const asignados = con.reduce((a, x) => a + x.r.escanos, 0);
+    const cuadra = res.verificacion.ok && asignados === S;
+    const resumen = con.map((x) => partesOrg(x.l).completo + ": " + nEscanos(x.r.escanos)).join("; ");
+    return ce(
+      Tarjeta,
+      {
+        className: "tarjeta--histo",
+        id: "histograma",
+        titulo,
+        nota: "Escaños de cada organización, de mayor a menor. Sobre cada barra, el número exacto y su parte del total.",
+        acciones: ce(
+          React.Fragment,
+          null,
+          ce("span", { className: cls("sello", cuadra ? "sello--ok" : "sello--mal"), title: "Suma de las barras frente a los escaños que elige el distrito" }, ce(Icono, { n: cuadra ? "check" : "alerta", t: 14 }), fmtEntero(asignados), " de ", fmtEntero(S), " ", plural(S, "escaño asignado", "escaños asignados")),
+          ce("span", { className: "sello sello--info" }, fmtEntero(con.length), " de ", fmtEntero(filas.length), " ", plural(filas.length, "organización", "organizaciones"), " con representación")
+        )
+      },
+      ce(
+        "figure",
+        { className: "histo", style: { "--alto": ALTO + "px" } },
+        ce("figcaption", { className: "oculto" }, "Escaños por organización política: " + resumen + "."),
+        ce("div", { className: "histo__y", "aria-hidden": "true" }, ce("span", { className: "histo__y-t" }, "Escaños"), eje.marcas.map((v) => ce("span", { key: v, className: "histo__y-m", style: { bottom: v / eje.tope * 100 + "%" } }, v))),
+        ce(
+          "div",
+          { className: "histo__scroll" },
+          ce(
+            "div",
+            { className: "histo__cols", role: "list" },
+            ce("div", { className: "histo__rejilla", "aria-hidden": "true" }, eje.marcas.map((v) => ce("i", { key: v, className: v === 0 ? "es-base" : null, style: { bottom: v / eje.tope * 100 + "%" } }))),
+            con.map((x) => {
+              const c = colorDe(x.l);
+              const p = partesOrg(x.l);
+              return ce(
+                "div",
+                { key: x.r.id, className: "histo__col", role: "listitem", style: estiloColor(x.l), "aria-label": p.completo + ": " + nEscanos(x.r.escanos) + ", " + fmtPct(x.r.pctEscanos, 1) + " de los escaños" },
+                ce("div", { className: "histo__zona" }, ce("div", { className: cls("histo__barra", c.hueco && "histo__barra--hueca"), style: { height: x.r.escanos / eje.tope * 100 + "%" }, title: p.completo + ": " + nEscanos(x.r.escanos) + " · " + fmtPct(x.pct) + " de los votos" }, ce("span", { className: "histo__val" }, ce("b", { className: "histo__n" }, fmtEntero(x.r.escanos)), ce("span", { className: "histo__pct" }, fmtPct(x.r.pctEscanos, 1))))),
+                ce("div", { className: "histo__et" }, p.lista && ce("span", { className: "histo__lista" }, ce(Punto, { lista: x.l }), p.lista), ce("span", { className: "histo__org" }, !p.lista && ce(Punto, { lista: x.l }), p.org), ce("span", { className: "histo__votos" }, fmtPct(x.pct), " de los votos"))
+              );
+            })
+          )
+        )
+      ),
+      sin.length > 0 && ce("div", { className: "histo-sin" }, ce("p", { className: "mini-titulo" }, "Sin escaño en esta simulación · ", fmtEntero(sin.length)), ce("ul", { className: "histo-sin__lista" }, sin.map((x) => ce("li", { key: x.r.id }, ce(Punto, { lista: x.l }), ce("span", { className: "histo-sin__nom" }, partesOrg(x.l).completo), ce("span", { className: "histo-sin__v" }, x.r.votos > 0 ? fmtPct(x.pct) : "sin votos")))))
+    );
+  }
+  /* ---------- estabilidad y cambios en la representación ---------- */
+  var AMPLITUDES_EST = [1, 2, 3, 5];
+  var PASO_EST = 0.5;
+  /* Mueve `delta` votos de la lista i y reparte la diferencia entre las demás
+     en proporción a sus votos, con restos mayores: el total no cambia ni en
+     un voto y las listas sin votos se quedan sin votos. */
+  function compensar(votos, i, delta) {
+    const out = votos.slice();
+    out[i] = votos[i] + delta;
+    const resto = votos.reduce((a, v, k) => k === i ? a : a + v, 0);
+    if (resto <= 0 || delta === 0) return out;
+    const objetivo = resto - delta;
+    let suma = 0;
+    const crudos = votos.map((v, k) => k === i ? 0 : v * objetivo / resto);
+    const pisos = crudos.map((x, k) => {
+      if (k === i) return 0;
+      const f = Math.floor(x);
+      suma += f;
+      return f;
+    });
+    let falta = objetivo - suma;
+    const orden = [];
+    votos.forEach((v, k) => {
+      if (k !== i && v > 0) orden.push({ k, r: crudos[k] - pisos[k] });
+    });
+    orden.sort((a, b) => b.r - a.r || votos[b.k] - votos[a.k] || a.k - b.k);
+    for (let t = 0; falta > 0 && orden.length; t = (t + 1) % orden.length) {
+      pisos[orden[t].k]++;
+      falta--;
+    }
+    votos.forEach((v, k) => {
+      if (k !== i) out[k] = pisos[k];
+    });
+    return out;
+  }
+  /* Escenarios hipotéticos: cada organización con votos sube o baja de 0,5 en
+     0,5 puntos hasta la amplitud elegida, las demás compensan en proporción a
+     sus votos y cada reparto se calcula con las reglas reales del escenario
+     (método, escaños, umbral, base y desempate) mediante Motor.contarEscanos. */
+  function analizarEstabilidad(esc, res, amplitud, B) {
+    const votos = esc.listas.map((l) => Math.max(0, Math.round(Number(l.votos) || 0)));
+    const actual = res.listas.map((l) => l.escanos);
+    const conVotos = [];
+    votos.forEach((v, k) => {
+      if (v > 0) conVotos.push(k);
+    });
+    const pasos = Math.round(amplitud / PASO_EST);
+    const escenarios = [];
+    if (conVotos.length >= 2 && B > 0) {
+      conVotos.forEach((i) => {
+        const resto = votos.reduce((a, v, k) => k === i ? a : a + v, 0);
+        [1, -1].forEach((dir) => {
+          for (let s = 1; s <= pasos; s++) {
+            const pedidos = dir * s * PASO_EST;
+            let delta = Math.round(pedidos * B / 100);
+            let tope = false;
+            if (dir > 0 && delta >= resto) {
+              delta = resto;
+              tope = true;
+            }
+            if (dir < 0 && -delta >= votos[i]) {
+              delta = -votos[i];
+              tope = true;
+            }
+            if (delta !== 0) {
+              const nuevos = compensar(votos, i, delta);
+              const r = Motor.contarEscanos(Object.assign({}, esc, { listas: esc.listas.map((l, k) => Object.assign({}, l, { votos: nuevos[k] })) }));
+              if (r) {
+                const cambios = [];
+                let movidos = 0;
+                r.forEach((e, k) => {
+                  const dd = e - actual[k];
+                  if (dd) cambios.push({ k, d: dd });
+                  if (dd > 0) movidos += dd;
+                });
+                escenarios.push({ i, dir, puntos: pedidos, puntosReales: delta * 100 / B, delta, tope, escanos: r, cambios, movidos });
+              }
+            }
+            if (tope) break;
+          }
+        });
+      });
+    }
+    const porOrg = esc.listas.map((l, k) => ({ k, min: actual[k], max: actual[k], mantiene: 0, gana: 0, pierde: 0 }));
+    escenarios.forEach((e) => e.escanos.forEach((s, k) => {
+      const o = porOrg[k];
+      if (s < o.min) o.min = s;
+      if (s > o.max) o.max = s;
+      if (s > actual[k]) o.gana++;
+      else if (s < actual[k]) o.pierde++;
+      else o.mantiene++;
+    }));
+    const eventos = [];
+    conVotos.forEach((i) => [1, -1].forEach((dir) => {
+      const e = escenarios.find((x) => x.i === i && x.dir === dir && x.movidos > 0);
+      if (e) eventos.push(e);
+    }));
+    eventos.sort((a, b) => Math.abs(a.puntosReales) - Math.abs(b.puntosReales) || b.movidos - a.movidos || a.i - b.i);
+    return {
+      N: escenarios.length,
+      porOrg,
+      actual,
+      conCambio: escenarios.filter((e) => e.movidos > 0).length,
+      maxMovidos: escenarios.reduce((a, e) => Math.max(a, e.movidos), 0),
+      firmes: porOrg.reduce((a, o) => a + o.min, 0),
+      eventos,
+      conVotos: conVotos.length,
+      sinVotos: votos.length - conVotos.length
+    };
+  }
+  function nivelSensibilidad(frac) {
+    if (frac <= 0) return { n: 0, t: "Muy estable" };
+    if (frac < 0.15) return { n: 1, t: "Estable" };
+    if (frac < 0.35) return { n: 2, t: "Sensible" };
+    return { n: 3, t: "Muy sensible" };
+  }
+  function estadoOrg(o, act) {
+    const gana = o.max > act, pierde = o.min < act;
+    if (act === 0) return gana ? { c: "entra", t: "Puede entrar" } : { c: "sin", t: "Sin escaño" };
+    if (gana && pierde) return { c: "disputa", t: "En disputa" };
+    if (gana) return { c: "gana", t: "Puede ganar" };
+    if (pierde) return { c: "pierde", t: "Puede perder" };
+    return { c: "estable", t: "Estable" };
+  }
+  function Estabilidad({ m }) {
+    const { esc, res, ok, d } = m;
+    const amp = AMPLITUDES_EST.includes(m.ui.estAmplitud) ? m.ui.estAmplitud : 2;
+    const B = baseDeValidos(esc, m.base);
+    const [todos, setTodos] = useState7(false);
+    const A = useMemo7(() => ok ? analizarEstabilidad(esc, res, amp, B) : null, [esc, res, ok, amp, B]);
+    if (!ok || !A) return null;
+    const S = res.escanos;
+    const nombre = (k) => partesOrg(esc.listas[k]).completo;
+    const acciones = ce(Segmentos, { etiqueta: "Amplitud de los cambios", valor: amp, alCambiar: (v) => d({ tipo: "ui", cambios: { estAmplitud: v } }), opciones: AMPLITUDES_EST.map((v) => ({ v, t: "±" + v + " " + plural(v, "punto", "puntos") })) });
+    const nota = ce(React.Fragment, null, ce("span", { className: "est-hipo" }, "Escenarios hipotéticos"), " Cada organización con votos sube o baja de 0,5 en 0,5 puntos, hasta ±", fmtEntero(amp), " ", plural(amp, "punto", "puntos"), " de los votos válidos, y las demás compensan en proporción a sus votos. Cada reparto se calcula con ", res.metodo.nombre, ", los mismos ", fmtEntero(S), " escaños y las mismas reglas que el resultado. No es una proyección.");
+    if (A.conVotos < 2) return ce(Tarjeta, { className: "tarjeta--est", titulo: "Escaños firmes y escaños en juego", nota, acciones }, ce("p", { className: "vacio vacio--guia" }, "Hace falta que al menos dos organizaciones tengan votos para comparar escenarios: con una sola, se lleva todos los escaños en cualquier caso."));
+    const frac = A.N ? A.conCambio / A.N : 0;
+    const niv = nivelSensibilidad(frac);
+    const enJuego = S - A.firmes;
+    const filas = A.porOrg.filter((o) => (Number(esc.listas[o.k].votos) || 0) > 0).map((o) => Object.assign({}, o, { act: A.actual[o.k], l: esc.listas[o.k], est: estadoOrg(o, A.actual[o.k]) }));
+    filas.sort((a, b) => {
+      if ((a.act > 0) !== (b.act > 0)) return a.act > 0 ? -1 : 1;
+      if (a.act > 0) return b.mantiene - a.mantiene || b.act - a.act || b.l.votos - a.l.votos;
+      if ((a.max > 0) !== (b.max > 0)) return a.max > 0 ? -1 : 1;
+      return b.l.votos - a.l.votos;
+    });
+    const siempreSin = filas.filter((f) => f.act === 0 && f.max === 0);
+    const visibles = filas.filter((f) => !(f.act === 0 && f.max === 0));
+    const estables = filas.filter((f) => f.act > 0 && f.est.c === "estable").length;
+    const conEscano = filas.filter((f) => f.act > 0).length;
+    const maxEsc = Math.max(1, ...visibles.map((f) => f.max));
+    const pctDe = (n) => A.N ? n * 100 / A.N : 0;
+    const evs = todos ? A.eventos : A.eventos.slice(0, 8);
+    return ce(
+      Tarjeta,
+      { className: "tarjeta--est", titulo: "Escaños firmes y escaños en juego", nota, acciones },
+      ce(
+        "div",
+        { className: "est-kpis" },
+        ce("div", { className: "est-kpi" }, ce("p", { className: "est-kpi__et" }, "Escaños firmes"), ce("p", { className: "est-kpi__val" }, fmtEntero(A.firmes), ce("small", null, " de ", fmtEntero(S))), ce("p", { className: "est-kpi__sub" }, enJuego > 0 ? fmtEntero(enJuego) + " " + plural(enJuego, "escaño está", "escaños están") + " en juego en algún escenario" : "Ninguno cambia de organización en los escenarios")),
+        ce("div", { className: "est-kpi" }, ce("p", { className: "est-kpi__et" }, "Escenarios con cambios"), ce("p", { className: "est-kpi__val" }, fmtEntero(A.conCambio), ce("small", null, " de ", fmtEntero(A.N))), ce("p", { className: "est-kpi__sub" }, fmtPct(frac * 100, 1), " de los escenarios mueve al menos un escaño")),
+        ce("div", { className: "est-kpi" }, ce("p", { className: "est-kpi__et" }, "Escaños que cambian"), ce("p", { className: "est-kpi__val" }, fmtEntero(A.maxMovidos), ce("small", null, " como máximo")), ce("p", { className: "est-kpi__sub" }, "en un mismo escenario")),
+        ce("div", { className: cls("est-kpi", "est-kpi--n" + niv.n) }, ce("p", { className: "est-kpi__et" }, "Sensibilidad del reparto"), ce("p", { className: "est-kpi__val est-kpi__val--t" }, niv.t), ce("p", { className: "est-kpi__sub" }, fmtEntero(estables), " de ", fmtEntero(conEscano), " ", plural(conEscano, "organización con escaño", "organizaciones con escaño"), " ", plural(estables, "conserva", "conservan"), " los suyos en todos los escenarios"))
+      ),
+      ce(
+        "div",
+        { className: "est-tabla", role: "table", "aria-label": "Estabilidad de cada organización" },
+        ce("div", { className: "est-cab", role: "row" }, ce("span", { role: "columnheader" }, "Organización, de la más estable a la menos"), ce("span", { role: "columnheader", className: "est-c" }, "Escaños hoy"), ce("span", { role: "columnheader" }, "Rango posible · 0 a ", fmtEntero(maxEsc)), ce("span", { role: "columnheader" }, "En los ", fmtEntero(A.N), " escenarios"), ce("span", { role: "columnheader" }, "Situación")),
+        visibles.map((f) => ce(
+          "div",
+          { key: f.l.id, className: "est-fila", role: "row", style: estiloColor(f.l) },
+          ce("span", { className: "est-org", role: "cell" }, ce(Punto, { lista: f.l }), ce("span", null, nombre(f.k))),
+          ce("span", { className: "est-act", role: "cell", "data-et": "Escaños hoy" }, fmtEntero(f.act)),
+          ce("span", { className: "est-rango", role: "cell", "data-et": "Rango posible", title: f.min === f.max ? "Siempre " + nEscanos(f.act) : "Entre " + f.min + " y " + nEscanos(f.max) + " según el escenario" }, ce("span", { className: "est-rango__pista", "aria-hidden": "true" }, ce("span", { className: "est-rango__banda", style: { left: f.min / maxEsc * 100 + "%", width: (f.max - f.min) / maxEsc * 100 + "%" } }), ce("span", { className: cls("est-rango__punto", colorDe(f.l).hueco && "est-rango__punto--hueco"), style: { left: f.act / maxEsc * 100 + "%" } })), ce("span", { className: "est-rango__txt" }, f.min === f.max ? "siempre " + nEscanos(f.act) : "de " + fmtEntero(f.min) + " a " + nEscanos(f.max))),
+          ce("span", { className: "est-esc", role: "cell", "data-et": "En los escenarios" }, ce("span", { className: "est-barra", "aria-hidden": "true" }, f.mantiene > 0 && ce("i", { className: "est-barra__m", style: { width: pctDe(f.mantiene) + "%" } }), f.gana > 0 && ce("i", { className: "est-barra__g", style: { width: pctDe(f.gana) + "%" } }), f.pierde > 0 && ce("i", { className: "est-barra__p", style: { width: pctDe(f.pierde) + "%" } })), ce("span", { className: "est-esc__txt" }, "mantiene ", fmtPct(pctDe(f.mantiene), 0), f.gana > 0 ? " · gana " + fmtPct(pctDe(f.gana), 0) : "", f.pierde > 0 ? " · pierde " + fmtPct(pctDe(f.pierde), 0) : "")),
+          ce("span", { className: "est-sit", role: "cell" }, ce("span", { className: "est-estado est-estado--" + f.est.c }, f.est.t))
+        ))
+      ),
+      siempreSin.length > 0 && ce("div", { className: "est-sin" }, ce("span", { className: "est-sin__t" }, "Sin escaño en ningún escenario · ", fmtEntero(siempreSin.length)), ce("ul", { className: "est-sin__lista" }, siempreSin.map((f) => ce("li", { key: f.l.id }, ce(Punto, { lista: f.l }), nombre(f.k))))),
+      ce("p", { className: "leyenda est-leyenda" }, ce("span", { className: "leyenda__i" }, ce("span", { className: "est-ley est-ley--m" }), "Mantiene sus escaños"), ce("span", { className: "leyenda__i" }, ce("span", { className: "est-ley est-ley--g" }), "Gana escaños"), ce("span", { className: "leyenda__i" }, ce("span", { className: "est-ley est-ley--p" }), "Pierde escaños"), ce("span", { className: "leyenda__i" }, ce("span", { className: "est-ley est-ley--banda" }), "Rango de escaños en los escenarios; el punto es el resultado de hoy")),
+      ce(
+        "div",
+        { className: "est-eventos" },
+        ce("p", { className: "mini-titulo" }, "Cambios más cercanos"),
+        A.eventos.length === 0 ? ce("p", { className: "est-nada" }, ce(Icono, { n: "check", t: 15 }), "Con cambios de hasta ±", fmtEntero(amp), " ", plural(amp, "punto", "puntos"), " el reparto no se mueve: los ", fmtEntero(S), " ", plural(S, "escaño se queda", "escaños se quedan"), " con las mismas organizaciones en todos los escenarios.") : ce(
+          "ul",
+          { className: "est-ev" },
+          evs.map((e) => {
+            const sube = e.dir > 0;
+            const ganan = e.cambios.filter((c) => c.d > 0), pierden = e.cambios.filter((c) => c.d < 0);
+            return ce(
+              "li",
+              { key: e.i + "|" + e.dir, className: cls("est-ev__i", sube ? "es-sube" : "es-baja") },
+              ce("span", { className: "est-ev__ic", "aria-hidden": "true" }, sube ? "▲" : "▼"),
+              ce("span", { className: "est-ev__txt" }, "Si ", ce("b", null, nombre(e.i)), e.tope && !sube ? ce(React.Fragment, null, " se queda sin votos (", fmtSigno(e.delta), " votos, ", fmtDecimal(Math.abs(e.puntosReales), 2), " puntos)") : e.tope ? ce(React.Fragment, null, " suma todos los votos de las demás (", fmtSigno(e.delta), " votos, ", fmtDecimal(Math.abs(e.puntosReales), 2), " puntos)") : ce(React.Fragment, null, sube ? " sube " : " baja ", ce("b", { className: "num" }, fmtPuntos(e.puntos), " ", plural(Math.abs(e.puntos), "punto", "puntos")), " (", fmtSigno(e.delta), " votos)"), ":"),
+              ce("span", { className: "est-ev__cambios" }, ganan.map((c) => ce("span", { key: "g" + c.k, className: "est-cambio est-cambio--g" }, "+", fmtEntero(c.d), " ", nombre(c.k))), pierden.map((c) => ce("span", { key: "p" + c.k, className: "est-cambio est-cambio--p" }, "−", fmtEntero(-c.d), " ", nombre(c.k))))
+            );
+          })
+        ),
+        A.eventos.length > 8 && ce(Boton, { chico: true, variante: "fantasma", onClick: () => setTodos(!todos) }, todos ? "Ver solo los 8 más cercanos" : "Ver los " + A.eventos.length + " cambios"),
+        A.sinVotos > 0 && ce("p", { className: "pie-nota" }, fmtEntero(A.sinVotos), " ", plural(A.sinVotos, "organización sin votos en la simulación no entra", "organizaciones sin votos en la simulación no entran"), " en el análisis.")
+      )
+    );
+  }
+  /* ---------- cómo se asignan los escaños ---------- */
+  function ComoSeAsigna({ m }) {
+    const { esc, res, ok, porId, d } = m;
+    const opciones = ok ? res.listas.filter((l) => l.votos > 0).slice().sort((a, b) => b.escanos - a.escanos || b.votos - a.votos || a.idx - b.idx) : [];
+    const selId = opciones.some((l) => l.id === m.ui.comoSel) ? m.ui.comoSel : opciones.length ? opciones[0].id : null;
+    const r = ok ? res.listas.find((l) => l.id === selId) : null;
+    const S = ok ? res.escanos : 0;
+    const K = r ? Math.min(S, Math.max(r.escanos + 2, 3)) : 0;
+    const mat = useMemo7(() => ok && K ? Motor.generarCocientes(esc, K) : null, [esc, ok, K]);
+    const info = useMemo7(() => ok && r ? Motor.votosAdicionalesNecesarios(esc, r.id, { resultado: res }) : null, [esc, res, ok, selId]);
+    if (!ok || !r || !mat) return null;
+    const l = porId[r.id] || esc.listas[r.idx];
+    const p = partesOrg(l);
+    const u = res.corte.ultimoGanador;
+    const fc = (x) => fmtCociente(x, m.ui.decimales || decCociente(x));
+    const B = baseDeValidos(esc, m.base);
+    const V = res.totales.votosListas;
+    const elegibles = res.listas.filter((x) => x.elegible).length;
+    const conEscano = res.listas.filter((x) => x.escanos > 0).length;
+    const fila = mat.filas[r.idx];
+    const qs = fila ? fila.cocientes : [];
+    const maxQ = res.orden.length ? res.orden[0].cociente || 1 : 1;
+    const corte = Math.min(100, u.cociente / maxQ * 100);
+    const numeroDe = {};
+    res.adjudicacion.forEach((a) => {
+      if (a.listaId === r.id) numeroDe[a.k] = a.numero;
+    });
+    const sig = qs[r.escanos];
+    const empataFuera = sig && r.elegible && sig.cociente === u.cociente;
+    let frase;
+    if (!r.elegible) frase = r.motivoExclusion === "umbral" ? [p.completo, " no alcanza el umbral del ", fmtUmbral(res.totales.umbral), ": sus cocientes no entran en la comparación."] : [p.completo, " no tiene votos en esta simulación."];
+    else if (r.escanos >= S) frase = elegibles === 1 ? [p.completo, " es la única organización en el reparto: se lleva ", S === 1 ? "el único escaño." : "los " + fmtEntero(S) + " escaños."] : S === 1 ? [p.completo, " obtiene el único escaño: su votación completa (", fmtEntero(r.votos), " ÷ 1) es el cociente más alto."] : [p.completo, " obtiene los ", fmtEntero(S), " escaños: sus cocientes de ÷1 a ÷", fmtEntero(S), " superan a todos los de las demás organizaciones."];
+    else if (r.escanos > 0) frase = [p.completo, " obtiene ", nEscanos(r.escanos), " porque ", r.escanos === 1 ? "su primer cociente está" : "sus " + r.escanos + " primeros cocientes están", " entre los ", fmtEntero(S), " mayores. El siguiente, ", fc(sig.cociente), " (÷", fmtDivisor(sig.divisor), "), ", empataFuera ? "empata con el último cociente ganador y lo pierde por la regla de desempate." : ["queda por debajo del último cociente ganador: ", fc(u.cociente), "."]];
+    else frase = [p.completo, " no obtiene escaño: su votación completa (", fmtEntero(r.votos), " ÷ 1 = ", fc(qs[0].cociente), ") ", empataFuera ? "empata con el último cociente ganador y lo pierde por la regla de desempate." : ["no alcanza el último cociente ganador, ", fc(u.cociente), "."]];
+    const cands = Array.isArray(l.candidatos) ? l.candidatos : [];
+    const electos = cands.slice(0, r.escanos);
+    const pasos = [
+      { t: "Resultados", v: fmtEntero(r.votos), u: plural(r.votos, "voto", "votos"), x: [fmtPct(B > 0 ? r.votos * 100 / B : 0), " de los votos válidos. Entre todas las organizaciones suman ", fmtEntero(V), "."] },
+      { t: "Fórmula", v: "÷ " + (qs.slice(0, 3).map((q) => fmtDivisor(q.divisor)).join(", ")) + (S > 3 ? " …" : ""), u: "", x: S === 1 ? [res.metodo.nombre, ": con un solo escaño, cada votación se divide solo para ", qs[0] ? fmtDivisor(qs[0].divisor) : "1", ". ", qs[0] ? fmtEntero(r.votos) + " ÷ " + fmtDivisor(qs[0].divisor) + " = " + fc(qs[0].cociente) + "." : ""] : [res.metodo.nombre, ": su votación se divide para la serie ", res.metodo.serie, " hasta ", fmtEntero(S), ". ", qs.slice(0, 2).map((q) => fmtEntero(r.votos) + " ÷ " + fmtDivisor(q.divisor) + " = " + fc(q.cociente)).join("; "), "."] },
+      { t: "Comparación", v: fmtEntero(elegibles * S), u: plural(elegibles * S, "cociente", "cocientes"), x: elegibles === 1 ? ["Solo una organización entra en el reparto: sus cocientes se ordenan de mayor a menor."] : ["Los de las ", fmtEntero(elegibles), " organizaciones en el reparto se ordenan de mayor a menor."] },
+      { t: "Distribución", v: fc(u.cociente), u: "último cociente ganador", x: [S === 1 ? "Gana el escaño el cociente más alto. " : "Ganan escaño los " + fmtEntero(S) + " mayores. ", r.escanos > 0 ? [fmtEntero(r.escanos), " ", plural(r.escanos, "cociente", "cocientes"), " de ", p.lista || p.org, " ", plural(r.escanos, "entra", "entran"), S === 1 ? " ahí." : " en ese grupo."] : ["Ninguno de ", p.lista || p.org, S === 1 ? " lo alcanza." : " entra en ese grupo."]] },
+      { t: "Escaños", v: fmtEntero(r.escanos), u: plural(r.escanos, "escaño", "escaños"), x: [r.escanos > 0 ? (cands.length ? "Para sus candidatos, en el orden de inscripción. " : "") : "Sin representación. ", "En total, ", fmtEntero(conEscano), " ", plural(conEscano, "organización obtiene", "organizaciones obtienen"), " escaño."] }
+    ];
+    return ce(
+      Tarjeta,
+      { className: "tarjeta--como", titulo: "Del voto al escaño, paso a paso", nota: "Con los datos de esta simulación. Elige una organización para seguir su resultado en cada paso." },
+      ce("ol", { className: "como-pasos", style: estiloColor(l) }, pasos.map((x, i) => ce("li", { key: x.t, className: "como-paso" }, ce("span", { className: "como-paso__n", "aria-hidden": "true" }, i + 1), ce("p", { className: "como-paso__t" }, x.t), ce("p", { className: "como-paso__v" }, x.v), x.u && ce("p", { className: "como-paso__u" }, x.u), ce("p", { className: "como-paso__x" }, x.x)))),
+      ce(
+        "div",
+        { className: "como-det" },
+        ce("div", { className: "como-orgs", role: "group", "aria-label": "Organización que se sigue" }, ce("p", { className: "mini-titulo" }, "Organización"), opciones.map((o) => ce("button", { type: "button", key: o.id, className: cls("como-org", o.id === selId && "es-activo"), "aria-pressed": o.id === selId, style: estiloColor(porId[o.id]), onClick: () => d({ tipo: "ui", cambios: { comoSel: o.id } }) }, ce(Punto, { lista: porId[o.id] }), ce("span", { className: "como-org__nom" }, partesOrg(porId[o.id]).completo), ce("b", { className: "como-org__n", title: nEscanos(o.escanos) }, fmtEntero(o.escanos))))),
+        ce(
+          "div",
+          { className: "como-sigue", style: estiloColor(l) },
+          ce("p", { className: "como-sigue__tit" }, ce(Punto, { lista: l }), p.completo),
+          ce(
+            "div",
+            { className: "como-esc", role: "list", "aria-label": "Cocientes de " + p.completo },
+            qs.map((q) => {
+              const gana = r.elegible && q.k <= r.escanos;
+              return ce("div", { key: q.k, role: "listitem", className: cls("como-esc__fila", gana ? "es-gana" : "es-fuera") }, ce("span", { className: "como-esc__div" }, "÷", fmtDivisor(q.divisor)), ce("span", { className: "como-esc__pista" }, ce("span", { className: cls("como-esc__barra", colorDe(l).hueco && "como-esc__barra--hueca"), style: { width: Math.max(0.8, q.cociente / maxQ * 100) + "%" } }), ce("i", { className: "como-esc__corte", style: { left: corte + "%" }, "aria-hidden": "true" })), ce("span", { className: "como-esc__val num" }, fc(q.cociente)), ce("span", { className: "como-esc__res" }, gana ? ce("span", { className: "como-esc__si" }, ce(Icono, { n: "check", t: 13 }), ordinal(numeroDe[q.k]), " escaño") : ce("span", { className: "tenue" }, "sin escaño")));
+            }),
+            ce("p", { className: "como-esc__ley" }, ce("i", { className: "como-esc__ley-c", "aria-hidden": "true" }), "Último cociente ganador: ", fc(u.cociente))
+          ),
+          ce("p", { className: "como-frase" }, frase),
+          info && info.posible && ce("p", { className: "como-nec" }, "Para ", r.escanos > 0 ? "un escaño más" : "su primer escaño", " necesitaría ", ce("b", { className: "num" }, "+", fmtEntero(info.adicionales), " ", plural(info.adicionales, "voto", "votos")), info.viabilidad ? " (" + fmtDecimal(info.viabilidad.puntos, 2) + " puntos de los votos válidos)" : "", ", con los votos de las demás organizaciones fijos."),
+          electos.length > 0 && ce("div", { className: "como-cands" }, ce("p", { className: "mini-titulo" }, plural(electos.length, "Ocupa el escaño", "Ocupan los escaños")), ce("ol", null, electos.map((c) => ce("li", { key: c.orden + "|" + c.nombre }, ce("b", null, c.nombre), ce("small", null, "Orden ", fmtEntero(c.orden), c.suplente ? " · suplente: " + c.suplente : ""))))),
+          r.escanos > cands.length && cands.length > 0 && ce("p", { className: "cand__falta" }, "La lista inscribió ", fmtEntero(cands.length), " ", plural(cands.length, "candidato", "candidatos"), " y gana ", nEscanos(r.escanos), ".")
+        )
+      ),
+      ce(
+        "div",
+        { className: "como-carrera" },
+        ce("div", { className: "como-carrera__cab" }, ce("p", { className: "mini-titulo" }, "Todos los cocientes, de mayor a menor"), res.escanos > 14 && ce(Boton, { chico: true, variante: "fantasma", onClick: () => d({ tipo: "ui", cambios: { carreraTodo: !m.ui.carreraTodo } }) }, m.ui.carreraTodo ? "Ver solo el corte" : "Ver todos")),
+        ce(Carrera, { res, porId, dec: m.ui.decimales, todo: m.ui.carreraTodo, resaltar: r.id, alElegir: (pos) => {
+          const q = res.orden[pos - 1];
+          if (q) d({ tipo: "ui", cambios: { comoSel: q.listaId } });
+        } })
+      )
     );
   }
 
@@ -4440,13 +5089,14 @@ textarea.control { height: auto; padding: 10px; line-height: 1.4; resize: vertic
       escanoSel: res.ok ? Number.isInteger(ui.escanoSel) && ui.escanoSel >= 1 && ui.escanoSel <= res.escanos ? ui.escanoSel : res.escanos : null
     };
   }
+  /* v5.6: «Orden de adjudicación» ya no se muestra (sus cálculos siguen en el
+     motor y en las exportaciones) y los candidatos pasan al resultado. */
   var DetalleArriba = React.memo(function DetalleArriba2({ m }) {
-    const { T } = m;
-    return /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(Seccion, { id: "cocientes", titulo: "Cocientes electorales", sub: "La cuenta completa, para auditar el resultado." }, /* @__PURE__ */ React.createElement(Matriz, { m })));
+    return /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(Seccion, { id: "cocientes", titulo: "Cocientes electorales", sub: "Escribe el porcentaje de cada lista: los votos, los cocientes y los escaños salen solos." }, /* @__PURE__ */ React.createElement(Matriz, { m })));
   });
   var DetalleAbajo = React.memo(function DetalleAbajo2({ m }) {
     if (!m.ok) return null;
-    return /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(Seccion, { id: "sensibilidad", titulo: "Análisis de sensibilidad", sub: "Dónde están los puntos en que un cambio de votos mueve un escaño." }, /* @__PURE__ */ React.createElement(Sensibilidad, { m })));
+    return /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(Seccion, { id: "sensibilidad", titulo: "Análisis de sensibilidad", sub: "Dónde están los puntos en que un cambio de votos mueve un escaño." }, /* @__PURE__ */ React.createElement(Sensibilidad, { m })), React.createElement(Seccion, { id: "estabilidad", titulo: "Estabilidad y cambios en la representación", sub: "Qué escaños se sostienen y cuáles cambiarían de organización si los votos se mueven unos puntos." }, React.createElement(Estabilidad, { m })), React.createElement(Seccion, { id: "como", titulo: "Cómo se asignan los escaños", sub: "De los votos a los escaños, en cinco pasos, con los datos de esta simulación." }, React.createElement(ComoSeAsigna, { m })));
   });
   function App() {
     const [estado, d] = useReducer(reducir, void 0, estadoInicial);
@@ -4486,6 +5136,29 @@ textarea.control { height: auto; padding: 10px; line-height: 1.4; resize: vertic
       const t = setTimeout(() => guardarBorrador(estado), 400);
       return () => clearTimeout(t);
     }, [esc, base, estado.esEjemplo, ui.decimales, ui.rangoSliders]);
+    /* El tablero que envuelve al simulador manda la participación —votos
+       válidos, blancos y nulos— cada vez que cambia, y al arrancar se le avisa
+       para que mande la de ese momento. Fuera del tablero no pasa nada. */
+    useEffect4(() => {
+      const padre = window.parent && window.parent !== window ? window.parent : null;
+      const propio = window.location.origin;
+      const alMensaje = (e) => {
+        if (!padre || e.source !== padre) return;
+        if (propio && propio !== "null" && e.origin !== propio) return;
+        const x = e.data;
+        if (x && typeof x === "object" && x.tipo === "tablero/participacion") {
+          d({ tipo: "tablero/participacion", validos: x.validos, blancos: x.blancos, nulos: x.nulos });
+        }
+      };
+      window.addEventListener("message", alMensaje);
+      if (padre) {
+        try {
+          padre.postMessage({ tipo: "simulador/listo" }, propio && propio !== "null" ? propio : "*");
+        } catch (e) {
+        }
+      }
+      return () => window.removeEventListener("message", alMensaje);
+    }, []);
     const ultimaSinc = useRef5(null);
     async function conectarNube() {
       const remotos = await Nube.leer();
@@ -4627,7 +5300,7 @@ textarea.control { height: auto; padding: 10px; line-height: 1.4; resize: vertic
         comparacion: r.ok ? Motor.compararEscenarios([{ id: "actual", nombre: "Actual", escenario: e }].concat(guardados.map((g) => ({ id: g.id, nombre: g.nombre, escenario: g.escenario })))) : null
       }, elegidos(e, ui));
     }, [escLento, base, guardados, ui, nube]);
-    return /* @__PURE__ */ React.createElement("div", { className: "app" }, /* @__PURE__ */ React.createElement(Cabecera, { m }), /* @__PURE__ */ React.createElement("div", { className: "pagina pagina--config" }, /* @__PURE__ */ React.createElement(Configuracion, { m })), /* @__PURE__ */ React.createElement(Navegacion, { m }), /* @__PURE__ */ React.createElement("main", { className: "pagina" }, /* @__PURE__ */ React.createElement(Avisos, { m }), /* @__PURE__ */ React.createElement("section", { className: "seccion seccion--primera", id: "resultado", "aria-label": "Resultado" }, /* @__PURE__ */ React.createElement(Indicadores, { m })), /* @__PURE__ */ React.createElement("div", { className: cls("diferido", pendiente && "es-pendiente") }, /* @__PURE__ */ React.createElement(DetalleArriba, { m: mLento })), /* @__PURE__ */ React.createElement(Seccion, { id: "simulador", titulo: "Simulador: ¿qué pasa si…?", sub: "Prueba cambios de votos o de reglas y compara con los datos originales." }, /* @__PURE__ */ React.createElement(Simulador, { m })), /* @__PURE__ */ React.createElement("div", { className: cls("diferido", pendiente && "es-pendiente") }, /* @__PURE__ */ React.createElement(DetalleAbajo, { m: mLento })), /* @__PURE__ */ React.createElement("footer", { className: "pie" }, /* @__PURE__ */ React.createElement("p", null, /* @__PURE__ */ React.createElement("b", null, "Cómo se calcula."), " Los cocientes se ordenan con aritmética exacta: ni el orden ni los empates dependen de redondeos. Los «votos necesarios» son el mínimo entero hallado sobre el reparto real, suponiendo que las demás ", T.plur, " conservan sus votos. El umbral se cumple al alcanzarlo o igualarlo. La cercanía al siguiente escaño mide distancia en votos; no es una probabilidad."))), modal && modal.tipo === "importar" && /* @__PURE__ */ React.createElement(ImportarModal, { m, inicial: modal, alCerrar: () => setModal(null) }), modal && modal.tipo === "texto" && /* @__PURE__ */ React.createElement(TextoModal, { titulo: modal.titulo, texto: modal.texto, nota: modal.nota, alCerrar: () => setModal(null) }), /* @__PURE__ */ React.createElement(Tostada, { m }));
+    return /* @__PURE__ */ React.createElement("div", { className: "app" }, /* @__PURE__ */ React.createElement(Cabecera, { m }), /* @__PURE__ */ React.createElement("div", { className: "pagina pagina--config" }, /* @__PURE__ */ React.createElement(Configuracion, { m })), /* @__PURE__ */ React.createElement(Navegacion, { m }), /* @__PURE__ */ React.createElement("main", { className: "pagina" }, /* @__PURE__ */ React.createElement(Avisos, { m }), /* @__PURE__ */ React.createElement("div", { className: cls("diferido", pendiente && "es-pendiente") }, /* @__PURE__ */ React.createElement(DetalleArriba, { m: mLento })), React.createElement(Seccion, { id: "resultado", titulo: "Resultado de la simulación", sub: React.createElement(LineaDistrito, { esc }), acciones: React.createElement("span", { className: "res-modo" }, m.haySim ? "Con los cambios del «¿qué pasa si…?»" : esc.origen ? "Listas inscritas y tus porcentajes" : "Con los votos de la tabla") }, React.createElement(ResumenResultados, { m }), React.createElement(HistogramaEscanos, { m }), m.ok && React.createElement(CandidatosAdjudicados, { m })), /* @__PURE__ */ React.createElement(Seccion, { id: "simulador", titulo: "Simulador: ¿qué pasa si…?", sub: "Prueba cambios de votos y compáralos con tu escenario base: los porcentajes de la tabla de cocientes." }, /* @__PURE__ */ React.createElement(Simulador, { m })), /* @__PURE__ */ React.createElement("div", { className: cls("diferido", pendiente && "es-pendiente") }, /* @__PURE__ */ React.createElement(DetalleAbajo, { m: mLento })), /* @__PURE__ */ React.createElement("footer", { className: "pie" }, /* @__PURE__ */ React.createElement("p", null, /* @__PURE__ */ React.createElement("b", null, "Cómo se calcula."), " Los cocientes se ordenan con aritmética exacta: ni el orden ni los empates dependen de redondeos. Los «votos necesarios» son el mínimo entero hallado sobre el reparto real, suponiendo que las demás ", T.plur, " conservan sus votos. El umbral se cumple al alcanzarlo o igualarlo. La cercanía al siguiente escaño mide distancia en votos; no es una probabilidad."))), modal && modal.tipo === "importar" && /* @__PURE__ */ React.createElement(ImportarModal, { m, inicial: modal, alCerrar: () => setModal(null) }), modal && modal.tipo === "texto" && /* @__PURE__ */ React.createElement(TextoModal, { titulo: modal.titulo, texto: modal.texto, nota: modal.nota, alCerrar: () => setModal(null) }), /* @__PURE__ */ React.createElement(Tostada, { m }));
   }
   var Barrera = class extends React.Component {
     constructor(p) {

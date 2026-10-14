@@ -195,7 +195,7 @@ La barra bajo el encabezado alterna entre tres secciones:
 |---|---|---|
 | 👥 **Preinscritos** | ¿Cómo está compuesto el padrón de preinscritos y de electores? | 2027 |
 | 📊 **Histórico electoral** | ¿Cómo ha cambiado el voto y qué pasó en la última elección? | 2004 → 2023 |
-| 🪑 **Asignación** | Con esta participación, ¿cuántos concejales le toca a cada lista? | 2004 → 2023 |
+| 🪑 **Asignación** | Con las listas inscritas y esta participación, ¿cuántos concejales le toca a cada lista y a qué candidatos? | 2027 |
 
 **Preinscritos conserva todo lo que ya tenía** y suma al final un
 **histograma de distribución por grupo etario** (2027), que muestra solo el
@@ -587,7 +587,7 @@ CARPETA_ELECTORAL/
 │   └── styles.css          Sistema visual completo
 ├── js/
 │   ├── secciones.js        Histórico, Resultados y Análisis territorial
-│   ├── asignacion.js       Sección Asignación: panel, puente y marco
+│   ├── asignacion.js       Sección Asignación: panel, participación, puente y marco
 │   ├── data.js             ⭐ CONFIGURACIÓN + carga y cruce de datos
 │   ├── map.js              Mapa Leaflet, coropletas, leyenda, exportar PNG
 │   ├── charts.js           Los cuatro gráficos
@@ -606,7 +606,7 @@ CARPETA_ELECTORAL/
 │   ├── distributivo.json     Juntas y recintos de todo el país  (534 KB)
 │   └── etario2027.json       Padrón 2027 por grupo etario       (10 KB)
 ├── asignacion/
-│   └── simulador.html      Simulador de escaños completo (solo D'Hondt)
+│   └── simulador.html      Simulador de escaños con las listas inscritas (solo D'Hondt)
 └── assets/
     └── logo.svg            Logo (reemplazable)
 ```
@@ -869,65 +869,186 @@ que sea el comportamiento por defecto, cambia `contexto: false` a `true` en
 
 ---
 
-## 6b-2 · Asignación de escaños
+## 6b-2 · Asignación-Escaños
 
-La tercera sección **es el Simulador de Escaños Electorales completo**, el
-mismo que entregaste, incrustado en `asignacion/simulador.html`. No se le
-recortó ninguna función.
+La tercera sección reparte los escaños de concejales de un cantón. Dentro va el
+**Simulador de Escaños Electorales**, incrustado en `asignacion/simulador.html`,
+con el tablero alrededor: el territorio, el padrón y las listas se eligen fuera
+y entran solos.
 
-### Lo que puedes hacer dentro
+**Trabaja siempre con las listas y los candidatos inscritos para 2027**, del
+registro de preinscritos. Ya no carga los resultados ni los partidos de 2023:
+no hay botón «Simular asignación», ni «Llevar al simulador», ni «Volver a los
+datos de 2023», ni «Volver a resultados 2023». La simulación con los inscritos
+es lo que se ve siempre.
 
-Escribir las listas y sus votos a mano, añadirlas y quitarlas, cambiarles el
-color y el nombre, pegar desde Excel o cargar un archivo, poner blancos y
-nulos, umbral, regla de desempate y cómo se llaman los participantes (listas,
-candidatos, alianzas u organizaciones). Y luego mirar el resultado por siete
-caminos:
+Solo los **concejales** tienen escaños, así que la sección trabaja únicamente
+con concejales urbanos y rurales. Va sobre fondo claro —es la única del tablero
+que lo hace— para que las tarjetas de colores se lean mejor.
 
-| Sección | Qué muestra |
+### Cómo se usa
+
+La pantalla sigue un orden fijo: **selección → opciones → mapa → resultado →
+análisis**.
+
+1. **Provincia y cantón**, en la columna de la izquierda o haciendo clic en el
+   mapa provincial. El territorio que venía de las otras secciones se respeta.
+2. **Concejalía.** Tras elegir el cantón aparecen solo las concejalías que ese
+   cantón elige de verdad, con sus escaños: urbanos y rurales en la mayoría,
+   solo urbanos en los 39 cantones sin parroquias rurales (Durán, Huaquillas…).
+   Si el cantón elige una sola, queda marcada sin preguntar. En la pantalla
+   inicial no hay botones fijos de urbanos ni de rurales.
+3. **Circunscripción.** En los 17 cantones que eligen a sus urbanos por
+   circunscripción aparece un botón por cada una, con su **nombre literal**
+   (ver *Circunscripciones*). Hay que elegir una: cada circunscripción tiene
+   sus propias listas, candidatos y escaños.
+4. Arriba, la **ruta** dice en todo momento qué se analiza (Ecuador › provincia
+   › cantón › concejalía › circunscripción); cada paso ya dado es un botón para
+   volver a él. Al cambiar de provincia o de cantón, lo que ya no corresponde se
+   suelta solo.
+5. En cuanto el distrito está completo, el simulador se llena con las **listas
+   inscritas** de ese distrito, con sus candidatos y sin votos, y con los
+   escaños que se eligen en 2027. En la tabla de cocientes se escribe el
+   porcentaje de cada lista y todo lo demás sale solo.
+
+Mientras falta algún paso, en el sitio del simulador hay un aviso que dice cuál
+(así nunca queda a la vista un borrador guardado de otro territorio).
+
+### El mapa electoral del cantón
+
+Con el cantón elegido, el mapa dibuja sus parroquias con su forma real (la capa
+parroquial del proyecto) y las agrupa por distrito electoral:
+
+- **Cada circunscripción tiene su color** y el límite entre circunscripciones se
+  traza como una línea oscura propia, calculada sobre la topología de la capa
+  (los tramos que comparten parroquias de distritos distintos). El borde del
+  cantón va aparte. Las parroquias rurales van en verde.
+- **Al elegir una circunscripción** —con su botón, en el panel de la derecha o
+  haciendo clic en el mapa— su territorio se resalta con halo y contorno grueso
+  y el resto se atenúa. La ficha muestra su **nombre exacto**, sus escaños, su
+  padrón y la lista de **parroquias** que la integran.
+- Cada distrito lleva un único marcador con sus escaños, dentro de su propio
+  territorio; no hay etiquetas por parroquia, para no saturar.
+- La **leyenda** explica colores, límites y rayas.
+
+Lo que la cartografía no permite trazar se dice en vez de inventarse:
+
+| Caso | Qué pasa |
 |---|---|
-| **Resultado** | escaños por lista, hemiciclo y la competencia por el próximo escaño |
-| **Adjudicación** | escaño por escaño, con su divisor y su cociente |
-| **Cocientes** | todos los cocientes ordenados, con el límite del último escaño |
-| **Votos necesarios** | cuántos votos le faltan a cada lista, y el trasvase mínimo entre dos |
-| **Simulador** | mover votos y ver en vivo qué escaños cambian |
-| **Sensibilidad** | dónde está el punto en que un cambio mueve un escaño |
-| **Escenarios** | guardar variantes, compararlas y fijar una como base |
+| Parroquias repartidas entre dos circunscripciones (Esmeraldas: 5 DE AGOSTO; Daule: LA AURORA; Durán: ELOY ALFARO /DURAN; Milagro: MILAGRO; Quevedo: QUEVEDO; Rumiñahui: SANGOLQUI; La Libertad: LA LIBERTAD) | Van rayadas con los colores de las dos: la capa no tiene el límite que pasa por dentro de la parroquia. La ficha lo explica. |
+| URBIMANTA (Manta) | Está en el distributivo, pero la capa parroquial no tiene su polígono: sale en la ficha como «sin polígono». |
 
-Más exportar a CSV, Excel y PDF, copiar resultados, deshacer y guardar
-borrador: el simulador recuerda lo que tienes en pantalla aunque cierres.
+### El resultado
 
-### Dos cambios respecto del original
+Dentro del simulador, en este orden:
 
-1. **Solo D'Hondt.** Webster / Sainte-Laguë y Sainte-Laguë modificado se
-   quitaron de su tabla `METODOS`, y con ellos la sección que los comparaba.
-   Para devolverlos basta con añadir su entrada en esa tabla, al inicio del
-   archivo.
-2. **Bloque de participación.** Encima del simulador, el tablero calcula de
-   cuántos votos válidos se parte y cuántos escaños se reparten.
+1. **Cocientes electorales**: la tabla donde se escriben los porcentajes. Sigue
+   igual, con su menú «⋯» (ordenar, poner los porcentajes en cero), la carga de
+   archivos y los blancos y nulos.
+2. **Resultado de la simulación**, encabezado con el distrito (concejalía,
+   circunscripción con su nombre literal y cantón):
+   - **Resumen**: escaños asignados frente a los del distrito, organizaciones con
+     representación, votos válidos repartidos, último cociente ganador y quién
+     está más cerca del próximo escaño.
+   - **Distribución de escaños por organización política**: histograma grande con
+     las organizaciones en el eje horizontal (número de lista y nombre completo,
+     sin cortes) y los escaños en el vertical, de mayor a menor. Encima de cada
+     barra, los escaños exactos y su parte del total; debajo, el % de votos. Solo
+     aparecen las que obtienen escaño; las demás van aparte, en *Sin escaño en
+     esta simulación*. Un sello comprueba que la suma de las barras es la del
+     distrito.
+   - **Candidatos que obtienen escaño**, como antes.
+3. **Simulador ¿qué pasa si…?**: deslizadores y trasvase de votos a partir de
+   los porcentajes escritos; *Restablecer* vuelve a ellos. El resultado y los
+   análisis se recalculan al instante.
+4. **Análisis de sensibilidad**: sin cambios.
+5. **Estabilidad y cambios en la representación** (nuevo, ver abajo).
+6. **Cómo se asignan los escaños** (nuevo, ver abajo).
 
-Nada más se tocó: el motor, la interfaz y los cálculos son los suyos.
+Se quitaron de la vista la tabla **Orden de adjudicación** y la tarjeta
+**2023 frente a la simulación** (en la v5.5 se llamaba *Escenario base frente
+a la simulación*). Los cálculos siguen intactos en el motor: la adjudicación
+escaño por escaño se sigue usando en los candidatos, en la explicación y en
+las exportaciones (CSV · Adjudicación de escaños, Excel y PDF).
+
+### Estabilidad y cambios en la representación
+
+Responde a *qué parte del reparto es firme y qué parte depende de unos pocos
+votos*. Es distinto de la sensibilidad, que mueve los votos de **una** lista con
+las demás fijas:
+
+- Cada organización con votos **sube o baja de 0,5 en 0,5 puntos**, hasta la
+  amplitud elegida (±1, ±2, ±3 o ±5 puntos de los votos válidos), y **las demás
+  compensan en proporción a sus votos** (restos mayores: el total no cambia ni
+  en un voto).
+- Cada escenario se reparte con el **mismo motor** del resultado
+  (`Motor.contarEscanos`: D'Hondt, los mismos escaños, umbral y regla de
+  desempate). Nada se aproxima.
+- Muestra: **escaños firmes** (los que conserva cada organización en todos los
+  escenarios) y **en juego**; cuántos escenarios mueven algún escaño; el máximo
+  de escaños que cambian en uno; un nivel de **sensibilidad del reparto**
+  (*Muy estable* si ningún escenario cambia, *Estable* por debajo del 15 % de
+  escenarios con cambios, *Sensible* por debajo del 35 %, *Muy sensible* desde
+  ahí); y, por organización, de la más estable a la menos, su **rango posible
+  de escaños**, el reparto de escenarios en que mantiene, gana o pierde, y su
+  situación (*Estable*, *Puede ganar*, *Puede perder*, *En disputa*, *Puede
+  entrar*). Las que no tienen escaño en ningún escenario van en una sola línea.
+- **Cambios más cercanos**: el menor movimiento de cada organización que cambia
+  el reparto, con los votos exactos y quién gana y quién pierde.
+
+Va rotulado como **escenarios hipotéticos**: no es una proyección ni un
+resultado oficial.
+
+### Cómo se asignan los escaños
+
+Una explicación en cinco pasos con los datos de la simulación —**Resultados →
+Fórmula → Comparación → Distribución → Escaños**— que sigue a una organización
+(se elige en la lista de la izquierda, o haciendo clic en la carrera de
+cocientes):
+
+- sus votos y su %; la división de sus votos para 1, 2, 3…; cuántos cocientes
+  entran en la comparación; el último cociente ganador (la cifra que hay que
+  igualar o superar) y cuántos de los suyos lo hacen; sus escaños.
+- La **escalera de sus cocientes** con la línea del último cociente ganador:
+  los que la superan llevan el número de escaño que ganaron.
+- Una frase que explica por qué obtiene esos escaños (o por qué ninguno),
+  cuántos votos le faltarían para uno más con las demás fijas, y quiénes ocupan
+  sus escaños por orden de inscripción.
+- **Todos los cocientes, de mayor a menor**, con el límite del último escaño y
+  la organización elegida resaltada.
+
+No cambia la fórmula: explica la que usa el sistema.
+
+### Solo D'Hondt
+
+Webster / Sainte-Laguë y Sainte-Laguë modificado se quitaron de su tabla
+`METODOS`, y con ellos la sección que los comparaba. Para devolverlos basta con
+añadir su entrada en esa tabla, al inicio del archivo.
 
 ### El bloque de participación
 
-Parte del padrón y descuenta, en este orden, quien no vota, lo nulo y lo
-blanco:
+Son dos pasos, cada porcentaje sobre su propia base, igual que en los datos
+oficiales:
 
 ```
-electores − ausentes − nulos − blancos = votos válidos
+electores − ausentes                 = votos emitidos
+votos emitidos − nulos − blancos     = votos válidos
 ```
 
-Los cuatro porcentajes van **sobre el padrón**, no sobre los votos emitidos.
-Por eso suman exactamente 100 y la resta cuadra al voto. Los cuatro campos se
-escriben; lo que se escribe no se vuelve a recalcular hasta cambiar de cantón
-o pulsar *Volver a los datos de 2023*.
-
-**De dónde salen los valores por defecto**
+El **ausentismo va sobre el padrón**; los **nulos y los blancos, sobre los
+votos emitidos**. Los tres campos y el padrón se escriben; lo escrito no se
+vuelve a calcular hasta cambiar de cantón o de circunscripción, y cada cambio
+pasa solo al simulador, sin botón.
 
 | Campo | Origen |
 |---|---|
-| Electores | el padrón vigente (2027) de las parroquias que eligen esta dignidad |
-| % ausentismo | ese padrón menos quienes votaron en la elección elegida |
-| % nulos, % blancos | los de esa elección, divididos por el mismo padrón |
+| Electores | el padrón vigente (2027) de las parroquias que eligen esa dignidad |
+| % ausentismo | punto de partida: ese padrón menos quienes votaron en la última elección (2023) |
+| % nulos, % blancos | punto de partida: los de la última elección, sobre sus votos emitidos |
+
+De la elección anterior **solo se toman esos tres porcentajes de partida**; las
+listas, los candidatos y los escaños son los inscritos. Si un territorio no
+tiene elección anterior, los tres empiezan en cero para escribirlos a mano.
 
 El padrón **no es el del cantón entero**: a los concejales urbanos los eligen
 solo las parroquias urbanas y a los rurales solo las rurales. El tipo de cada
@@ -937,53 +1058,124 @@ ausentismo de Quito del 19 % al 43 %.
 
 ### Los escaños no se preguntan
 
-Cada cantón elige un número fijo de concejales urbanos y rurales, y el tablero
-lo sabe: está en `data/escanos.json`, con Quito 15 + 6, Guayaquil 14 + 1,
-Cuenca 10 + 5, La Maná 4 + 1, Pedernales 4 + 3. El bloque lo muestra en su
-esquina y lo manda al simulador; dentro se puede cambiar.
+**Cuántos elige cada territorio en 2027 lo dice el propio registro de
+inscripción**: la ley obliga a cada lista a inscribir tantos candidatos
+principales como escaños haya que llenar, así que el número de candidatos de
+una lista *es* el número de escaños. En los distritos del archivo todas las
+listas coinciden entre sí, de modo que el dato es firme.
 
-Ese archivo se **cuenta**, no se supone: la base consolidada marca con
-`ELECTOS` a quienes ganaron, y el número de electos de un cantón en una
-dignidad es el número de escaños que repartió.
+Ese número es el que usa **toda la sección**: el mapa y las tarjetas de la
+vista provincial, el sello del bloque de participación y el simulador. En los
+cantones que eligen a sus urbanos por circunscripción, el total del cantón es
+la suma de lo que elige cada una (Quito 5 + 4 + 5 = 14).
+
+`data/escanos.json`, el consolidado oficial de escaños de 2023 que entregó el
+cliente, queda solo como **respaldo**: se usa únicamente si para algún filtro el
+registro no trajera candidatos, y entonces el sello lo dice («tabla oficial»).
+Hoy los 424 distritos —los urbanos de 221 cantones (en 17 de ellos, por
+circunscripción) y los rurales de 182— tienen inscritos.
+
+Ese Excel es de 2023 y no siempre coincide con 2027: en 90 de los 402 casos de
+cantón y concejalía el registro elige otro número de concejales (Machala
+urbanos, 10 → 12; Cuenca urbanos, 10 → 9…), y **Rocafuerte** elige por primera
+vez un concejal rural, por la parroquia rural Sosote, que el Excel no tiene. Se
+reparten siempre los del registro de 2027. Para regenerarlo:
 
 ```bash
-python preparar_escanos.py RUTA\Base_Consolidada_Concejales_Vocales_2004_2023.sav
+python preparar_escanos.py RUTA\Escanos_2023-consolidado_v1.xlsx
 ```
 
-La marca de electos solo está en 2004, 2009 y 2014, así que se usa **2014**,
-el más reciente que la tiene; el archivo lo deja escrito. En la mayoría de los
-cantones el número no ha cambiado —depende de tramos de población que se
-mueven despacio—, pero donde haya cambiado se corrige dentro del simulador.
+### Circunscripciones
 
-### Llevar al simulador
+Diecisiete cantones eligen a sus concejales urbanos en varias
+**circunscripciones**: Quito, Guayaquil, Santo Domingo y Durán en 3, y trece
+más en 2. Cada una elige sus propios escaños con sus propias listas y sus
+propios candidatos.
 
-El botón **Llevar al simulador** manda tres cosas: los escaños del cantón, los
-blancos y nulos de la cuenta, y una lista por organización con **su porcentaje
-de aquella elección aplicado al total de válidos calculado**. Si no se tocó
-nada, ese total es el real y los votos salen tal cual.
+```bash
+python preparar_circunscripciones.py RUTA\14_DISTRI_FEBRERO_2026_zona_CIRCUNS_1.xls
+python preparar_nombres_circunscripciones.py RUTA\Escanos_2023-consolidado.xlsx
+```
 
-Al repartir con porcentajes sobran o faltan unos pocos votos por el redondeo;
-la diferencia se le suma a la lista más votada, que es la única forma de que
-el total cuadre sin alterar el orden. Es un escenario simulado: el histórico
-guarda los votos reales intactos.
+El primero escribe `data/circunscripciones.json` con las parroquias y el padrón
+de cada circunscripción (el tablero usa la **proporción** del padrón, no la
+cifra absoluta, para no mezclar el padrón de 2026 con el de 2027). El segundo,
+que se corre después, le pone a cada una su **nombre oficial**, tomado
+**literalmente** de la hoja `CONCEJALES_URBANOS_CIRCUNS` del Excel de escaños
+del cliente: sin cambiar mayúsculas, tildes, palabras ni orden. Las reglas:
 
-Funciona sin tocar el código del simulador: él guarda lo que tiene en pantalla
-en `localStorage` (clave `simuladorEscanos.v1.borrador`) y lo recupera al
-arrancar, así que el tablero escribe ahí ese mismo borrador y recarga el
-marco. Ojo: **reemplaza lo que hubiera dentro**. *Empezar en blanco*, en el
-panel, deja tres listas vacías.
+1. Se empareja por **número** («CIRCUNSCRIPCION URBANA 2» con la 2 del registro).
+2. Si el Excel usa nombres de **orientación** (NORTE, CENTRO, SUR…), se empareja
+   por **ubicación**: el centro de las parroquias de cada circunscripción del
+   registro. Así sale Quito: 1 = CIRCUNSCRIPCION URBANA NORTE, 2 = CENTRO,
+   3 = SUR. La ficha recuerda la numeración del registro.
+3. Si el Excel no trae esa circunscripción, se usa el nombre **del registro de
+   inscripción 2027**, también literal. Nada se inventa.
+
+El mismo script imprime las diferencias entre el Excel y los datos del sistema,
+y el tablero las enseña en la ficha de cada circunscripción. Las de hoy:
+
+| Cantón | Diferencia | Qué se hace |
+|---|---|---|
+| Daule, Ibarra, Rumiñahui, La Libertad | El Excel no trae circunscripciones; el registro 2027 trae 2 | Nombres del registro |
+| Durán, Santo Domingo | El Excel trae 2; el registro 2027 trae 3 | La 3 lleva el nombre del registro |
+| Quito | Excel con nombres de orientación; registro numerado | Emparejado por ubicación (ver arriba) |
+| Cuenca 2; Machala 1 y 2; Esmeraldas 1; Durán 1 y 2; Guayaquil 2 y 3; Quevedo 1 y 2; Portoviejo 1; Quito CENTRO; Santo Domingo 1 y 2 | El Excel (2023) trae otro número de escaños que el registro de inscripción 2027 | Se reparten los del registro; la ficha da las dos cifras |
+
+Ya no existe la opción «Todo el cantón»: repartir juntas varias
+circunscripciones mezclaba listas y candidatos que no compiten entre sí.
+
+### Las listas y los candidatos inscritos
+
+**Ver listas preinscritas**, encima del simulador, abre el registro: cada lista
+con su número, su organización y sus candidatos en el orden en que se
+inscribieron, con su suplente. Sale de `data/preinscritos.xlsx`, el mismo
+archivo de la primera sección, filtrado por provincia, cantón, circunscripción
+y dignidad. No se inventa ni se completa nada: lo que no está inscrito, no sale.
+Son las mismas listas que carga el simulador.
+
+La tarjeta **Candidatos que obtienen escaño** dice quién se lleva cada uno, con
+su lista y su organización. Los escaños de una lista se adjudican **por orden
+de inscripción**: el primero que gana va a su ORDEN 1, el segundo al ORDEN 2.
+El registro no trae votos por candidato, así que no se simula ningún voto
+preferente. Si una lista gana más escaños de los que inscribió, la tarjeta lo
+dice en vez de inventar un nombre.
+
+### El puente con el simulador
+
+Al elegir el distrito, el tablero escribe el escenario —las listas inscritas,
+los escaños, los votos válidos, los blancos, los nulos y el nombre literal de la
+circunscripción— en el borrador que el simulador lee al arrancar
+(`localStorage`, clave `simuladorEscanos.v1.borrador`) y recarga el marco.
+
+La participación, que cambia mientras se trabaja, viaja **en vivo** por
+`postMessage`, sin recargar: el simulador reescala los votos de cada lista al
+nuevo total de válidos, de modo que los porcentajes escritos se quedan como
+estaban. Al arrancar, el simulador avisa al tablero (`simulador/listo`) y este
+le manda la cuenta de ese momento, por si cambió mientras cargaba.
 
 ### Dónde vive
 
 ```
-asignacion/simulador.html   el simulador completo (320 KB)
-js/asignacion.js            el panel, la participación y el marco
-data/escanos.json           concejales que elige cada cantón
-preparar_escanos.py         lo genera desde la base consolidada
+asignacion/simulador.html               el simulador (resultado, histograma, estabilidad, explicación)
+js/asignacion.js                        selección, mapa, participación, registro y marco
+data/escanos.json                       respaldo: concejales de la tabla oficial de 2023
+data/circunscripciones.json             circunscripciones urbanas: parroquias, padrón y nombre oficial
+preparar_escanos.py                     genera escanos.json desde el consolidado de 2023
+preparar_circunscripciones.py           genera circunscripciones.json desde el distributivo del CNE
+preparar_nombres_circunscripciones.py   añade los nombres literales del Excel de escaños
 ```
 
-Carga React desde cdnjs, igual que el tablero carga Leaflet y Chart.js, así
-que necesita conexión la primera vez.
+Carga React desde cdnjs, igual que el tablero carga Leaflet y Chart.js, así que
+necesita conexión la primera vez.
+
+### Carpetas por territorio
+
+`compilar_usuario.py` copia `js/`, `css/` y `asignacion/` tal cual y recorta
+`circunscripciones.json` al territorio, así que las carpetas recortadas
+(Pedernales, La Maná, Pichincha) toman este mismo comportamiento al volver a
+compilarlas. En las de un solo cantón la concejalía queda marcada si el cantón
+elige solo una; si elige urbanos y rurales (Pedernales), se escoge con su botón.
 
 ---
 

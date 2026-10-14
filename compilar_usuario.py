@@ -220,6 +220,15 @@ if es:
     escribir('escanos.json', es)
     print('     ' + ', '.join(f'{d}: {len(v)}' for d, v in es['escanos'].items()))
 
+# ── Circunscripciones urbanas ────────────────────────────────────────────
+print('\n6c · Circunscripciones urbanas')
+ci = leer('circunscripciones.json')
+if ci:
+    ci['cantones'] = {k: v for k, v in ci.get('cantones', {}).items()
+                      if k.startswith(PROVK + '|') and (not CANTK or k == f'{PROVK}|{CANTK}')}
+    escribir('circunscripciones.json', ci)
+    print(f"     {len(ci['cantones'])} cantones eligen por circunscripción")
+
 # ── Histórico ────────────────────────────────────────────────────────────
 print('\n7 · Histórico electoral')
 h = leer('historico.json')

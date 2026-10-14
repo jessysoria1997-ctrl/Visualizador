@@ -11,7 +11,7 @@ const CONFIG = {
   /* Versión del tablero. Aparece al pie del panel lateral y en la consola
      del navegador: sirve para comprobar de un vistazo que no se está
      ejecutando una copia antigua guardada en la caché.                    */
-  version: '4.9',
+  version: '5.6.1',
 
   /* ── ✏️ EDITAR · MARCA ───────────────────────────────────────────────────
      Nombre de tu consultora, títulos del encabezado y logo.               */
@@ -77,6 +77,12 @@ const CONFIG = {
     lista:       ['LISTA', 'NUMERO_LISTA', 'LISTA_NUMERO'],
     nombre:      ['NOMBRE', 'CANDIDATO', 'NOMBRE_CANDIDATO', 'NOMBRES'],
     cedula:      ['CEDULA', 'CÉDULA', 'IDENTIFICACION', 'DOCUMENTO'],
+    /* Orden del candidato dentro de su lista, tal como la organización lo
+       inscribió, y el nombre de su suplente. El ORDEN es el que decide la
+       adjudicación individual: el primer escaño que gana una lista es para su
+       ORDEN 1, el segundo para su ORDEN 2, y así. */
+    orden:       ['ORDEN', 'ORDEN_LISTA', 'NUMERO_ORDEN', 'N_ORDEN'],
+    suplente:    ['NOMBRE_SUPLENTE', 'SUPLENTE', 'NOMBRE DEL SUPLENTE'],
     /* Solo concejales urbanos por circunscripción: a cuál pertenece la lista. */
     circunscripcion: ['CIRCUNSCRIPCION', 'CIRCUNS. CANTONAL', 'CIRCUNSCRIPCION_CANTONAL'],
     /* Columna OPCIONAL con el conteo ya agregado.
@@ -455,6 +461,10 @@ function normalizarRegistros(filas, cols) {
       lista:   cols.lista   ? String(fila[cols.lista]   ?? '').trim() : '',
       nombre:  cols.nombre  ? String(fila[cols.nombre]  ?? '').trim() : '',
       cedula:  cols.cedula  ? String(fila[cols.cedula]  ?? '').trim() : '',
+      /* Orden de inscripción y suplente: solo los usa la adjudicación de
+         escaños, que reparte los de cada lista por ese orden. */
+      orden:    cols.orden ? (parseInt(String(fila[cols.orden] ?? '').replace(/[^\d]/g, ''), 10) || 0) : 0,
+      suplente: cols.suplente ? String(fila[cols.suplente] ?? '').trim() : '',
       /* Texto original de la dignidad y circunscripción: solo rotulan la
          fila en la tabla de detalle (ver subtipos en CONFIG.dignidades). */
       dignidadTexto: String(fila[cols.dignidad] ?? '').trim(),

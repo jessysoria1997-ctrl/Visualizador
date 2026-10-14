@@ -6,19 +6,20 @@ El tablero necesita saberlo para no preguntárselo al usuario y para dejar el
 número FIJO en la pantalla de asignación.
 
 Fuente
-  · Escanos_2023-consolidado.xlsx, entregado por el usuario, con cuatro hojas:
+  · Escanos_2023-consolidado_v1.xlsx, entregado por el usuario. Solo se leen
+    sus tres hojas de concejales:
       CONCEJALES_URBANOS          un cantón por fila
       CONCEJALES_URBANOS_CIRCUNS  los cantones grandes, partidos en
                                   circunscripciones urbanas (una fila cada una)
       CONCEJALES_RURALES          un cantón por fila
-      JUNTAS_PARROQUIALES         vocales por parroquia
 
   Los cantones con circunscripciones NO están en la primera hoja: las dos se
   suman. Para esos cantones se guarda además el detalle, porque la elección
   real se reparte dentro de cada circunscripción y no en el cantón entero.
 
-  La hoja de juntas parroquiales no se usa: en este tablero los escaños solo
-  se aplican a concejales.
+  Las hojas PREFECTOS, ALCALDES y JUNTAS_PARROQUIALES no se usan: en este
+  tablero los escaños solo se aplican a concejales. La última fila de cada
+  hoja es un total sin cantón y se descarta sola.
 
 Nombres
   Los de la hoja vienen con tildes y con abreviaturas del CNE. Se normalizan
