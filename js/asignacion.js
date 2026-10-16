@@ -81,6 +81,7 @@ const ASIG = {
   tocado: {},        // qué campos escribió el usuario: esos no se recalculan
   montado: false,
   cargado: null,     // qué hay en el simulador, para contarlo en la cabecera
+  escanosPrueba: null, // escaños que se prueban en el simulador si no son los del distrito
   mapaProv: null     // el mapa de la sección, para no rehacerlo cada vez
 };
 
@@ -748,6 +749,7 @@ function textoNoElige() {
 
 /** Deja un escenario escrito para el simulador y recarga el marco. */
 function ponerEnSimulador(escenario) {
+  ASIG.escanosPrueba = null;
   try {
     localStorage.setItem(ASIG_CLAVE_BORRADOR, JSON.stringify({
       trabajo: escenario, base: escenario, esEjemplo: false,
@@ -769,6 +771,7 @@ function ponerEnSimulador(escenario) {
     y en su sitio queda el aviso, para no dejar a la vista otro territorio. */
 function retirarSimulador(texto) {
   ASIG.cargado = null;
+  ASIG.escanosPrueba = null;
   const marco = document.getElementById('a-marco');
   if (marco && marco.getAttribute('src') && marco.getAttribute('src') !== 'about:blank') {
     marco.src = 'about:blank';
@@ -808,6 +811,13 @@ function escucharAlSimulador() {
     if (destino !== '*' && e.origin !== destino) return;
     const d = e.data;
     if (d && typeof d === 'object' && d.tipo === 'simulador/listo') enviarParticipacion();
+    /* El selector de escaños del simulador: si se prueba otro número que el
+       del distrito, la cabecera lo dice. */
+    if (d && typeof d === 'object' && d.tipo === 'simulador/escanos') {
+      const n = Math.round(Number(d.escanos)), b = Math.round(Number(d.base));
+      ASIG.escanosPrueba = n > 0 && b > 0 && n !== b ? n : null;
+      actualizarCabeceraAsignacion();
+    }
   });
 }
 
@@ -1623,16 +1633,8 @@ function pintarFichaCanton(D, sel) {
   const ex = avisosExcel(o.provK, o.cantK);
   const datos = sel.datos || null;
   const notas = [];
-  if (sel.esCircun && datos) {
-    if (datos.fuenteNombre === 'excel') {
-      notas.push(`Nombre tal como figura en el Excel de escaños (${escaparHTML((CIRCUNS.nombres || {}).fuente || 'Escanos_2023-consolidado.xlsx')}).`);
-    } else {
-      notas.push('Esta circunscripción no figura en el Excel de escaños: el nombre es el del registro de inscripción 2027.');
-    }
-    if (datos.emparejado === 'ubicacion' && datos.nombreRegistro && datos.nombreRegistro !== datos.nombreOficial) {
-      notas.push(`El registro de inscripción 2027 la numera como «${escaparHTML(datos.nombreRegistro)}»; se
-        identificó con el nombre del Excel por la ubicación de sus parroquias.`);
-    }
+  if (sel.esCircun && datos && datos.fuenteNombre !== 'excel') {
+    notas.push('Esta circunscripción no figura en el Excel de escaños: el nombre es el del registro de inscripción 2027.');
   }
   repartidas.forEach(k => {
     const otros = D.compartidas.get(k).filter(id => id !== sel.id).map(nombreDist);
@@ -1830,7 +1832,6 @@ function pintarParticipacion() {
         : `Elige ${ASIG_NIVEL_TXT[falta]} en el panel de la izquierda para partir de su padrón.`}</p>`;
     return;
   }
-  const etq = etiquetaDignidad(o.dignidad);
   const ambito = ambitoTexto({ provK: o.provK, cantK: o.cantK, parrK: '' });
   if (noEligeDignidad()) {
     caja.innerHTML = `<h2 class="tarjeta-tit">Participación · ${escaparHTML(ambito)}</h2>
@@ -1851,7 +1852,6 @@ function pintarParticipacion() {
                step="${suf ? '0.01' : '1'}" min="0" aria-label="${et}">
         ${suf ? `<span class="part-suf">${suf}</span>` : ''}
       </div>
-      <p class="part-ayuda">${ayuda}</p>
     </div>`;
 
   caja.innerHTML = `
@@ -1879,16 +1879,14 @@ function pintarParticipacion() {
           : 'Padrón del cantón'), PART_COLOR.electores)}
       ${campo('p-aus', 'Ausentismo', c.pa.toFixed(2), '%', 'Sobre el padrón', PART_COLOR.ausentismo)}
       <div class="part-campo part-calc" style="--part-color:${PART_COLOR.emitidos}">
-        <p class="part-et">Votantes efectivos</p>
+        <p class="part-et">Sufragantes</p>
         <p class="part-val">${fmtNum(c.emitidos)}</p>
-        <p class="part-ayuda">Electores − ausentes · ${dec(c.pp, 2)} % de participación</p>
       </div>
       ${campo('p-nulos', 'Nulos', c.pn.toFixed(2), '%', 'Sobre los emitidos', PART_COLOR.nulos)}
       ${campo('p-blancos', 'Blancos', c.pb.toFixed(2), '%', 'Sobre los emitidos', PART_COLOR.blancos)}
       <div class="part-campo part-calc destacado${c.pv < 0 ? ' mal' : ''}" style="--part-color:${PART_COLOR.votos}">
         <p class="part-et">Votos válidos</p>
         <p class="part-val">${c.pv < 0 ? '—' : fmtNum(c.validos)}</p>
-        <p class="part-ayuda">${dec(c.pv, 2)} % de los emitidos · sobre estos se aplican los porcentajes</p>
       </div>
     </div>
 
@@ -1909,31 +1907,7 @@ function pintarParticipacion() {
     </div>
 
     ${c.pv < 0 ? `<p class="sec-nota" style="color:var(--rampa-4)">
-      Los porcentajes de nulos y blancos suman más de 100: no queda ningún voto válido. Bájalos.</p>` : ''}
-
-    <p class="sec-nota">
-      Cada porcentaje va sobre su propia base, igual que en los datos oficiales: el
-      <b>ausentismo sobre el padrón</b>, y los <b>nulos y los blancos sobre los votos
-      emitidos</b>. Por eso la cuenta son dos pasos y no una resta sola. ${ASIG.tipoPadron
-        ? `El padrón es el vigente y es el de las parroquias <b>${ASIG.tipoPadron === 'urbano' ? 'urbanas' : 'rurales'}</b>,
-           que son las que eligen a estos concejales, no el del cantón entero.`
-        : 'Es el padrón vigente del cantón completo.'}
-      ${ASIG.sinReferencia
-        ? 'No hay una elección anterior de esta dignidad en este territorio de la que partir: escribe el ausentismo, los nulos y los blancos.'
-        : `Los porcentajes de partida son los de ${escaparHTML(etq.toLowerCase())} en la última elección seccional
-           (${o.anio || ASIG_ANIO}) en ${escaparHTML(ambito)}; cámbialos según tu escenario.`}
-      Al cambiar cualquier dato, el simulador recibe el total nuevo y conserva el porcentaje que
-      hayas escrito para cada lista.${nEsc != null
-        ? ` Se ${nEsc === 1 ? 'reparte' : 'reparten'} los <b>${fmtNum(nEsc)} ${nEsc === 1 ? 'escaño' : 'escaños'}</b>
-            que elige ${cActiva ? `la <span class="asig-circ-nom">${escaparHTML(nombreCircun(cActiva))}</span>` : escaparHTML(ambito)}${esc.fuente === 'inscritos'
-              ? `: los que inscribió cada lista${esc.parejo === false ? ' (alguna inscribió menos que las demás)' : ''}.`
-              : ', según la tabla oficial de escaños, porque el registro no trae candidatos para este filtro.'}`
-        : ''}${cActiva
-        ? ` El padrón de la <span class="asig-circ-nom">${escaparHTML(nombreCircun(cActiva))}</span> es la parte que le
-            toca del padrón urbano del cantón, en la proporción del distributivo del CNE
-            (${dec(cActiva.parte * 100, 1)} %); los porcentajes de partida son los del cantón entero,
-            porque la cifra oficial no está partida por circunscripción.`
-        : ''}</p>`;
+      Los porcentajes de nulos y blancos suman más de 100: no queda ningún voto válido. Bájalos.</p>` : ''}`;
 
   const leer = (id, campoEstado) => {
     const inp = document.getElementById(id);
@@ -2012,7 +1986,8 @@ function actualizarCabeceraAsignacion() {
       ? `En el simulador: ${fmtNum(t.listas)} ${t.listas === 1 ? 'lista inscrita' : 'listas inscritas'}${t.candidatos
           ? ` y ${fmtNum(t.candidatos)} ${t.candidatos === 1 ? 'candidato' : 'candidatos'}` : ''}`
       : 'Sin listas inscritas: el simulador trae listas en blanco para escribirlas a mano')
-    + `, repartiendo <b>${fmtNum(t.escanos)} ${t.escanos === 1 ? 'escaño' : 'escaños'}</b> sobre
+    + `, repartiendo <b>${fmtNum(ASIG.escanosPrueba || t.escanos)} ${(ASIG.escanosPrueba || t.escanos) === 1 ? 'escaño' : 'escaños'}</b>${ASIG.escanosPrueba
+        ? ` (prueba; el distrito elige ${fmtNum(t.escanos)})` : ''} sobre
        ${c.validos > 0 ? fmtNum(c.validos) : '—'} votos válidos. Escribe el porcentaje de cada lista
        en el simulador.`;
 }

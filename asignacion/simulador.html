@@ -848,6 +848,75 @@ textarea.control { height: auto; padding: 10px; line-height: 1.4; resize: vertic
 .carrera__fila.es-resaltada .carrera__nombre { color: var(--marino); }
 @media (max-width: 460px) { .como-esc { grid-template-columns: 34px minmax(0, 1fr) auto; } .como-esc__res { grid-column: 2 / -1; } }
 
+/* ---------- v5.7 · franja de totales sobre el simulador, escaños y escaño adicional ---------- */
+.franja-sim { background: var(--tarjeta); border: 1px solid var(--linea); border-radius: var(--radio); padding: 14px 18px; }
+.sim-esc { display: inline-flex; align-items: center; gap: 8px; }
+.sim-esc__et { font-size: 11.5px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--tinta-3); }
+.sim-esc__de { font-size: 12.5px; color: var(--tinta-3); white-space: nowrap; }
+.sim-esc .contador { height: 30px; grid-template-columns: 30px minmax(40px, 52px) 30px; }
+.adicional { border-top: 1px solid var(--linea-suave); padding-top: 14px; display: flex; flex-direction: column; gap: 6px; }
+.adicional__cab { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px 16px; flex-wrap: wrap; }
+.adicional__cab .mini-titulo { margin-bottom: 2px; }
+.adicional__nota { font-size: 12.5px; color: var(--tinta-3); }
+.adicional__ficha dt { max-width: 60%; }
+/* ---------- v5.8 · columna de votos mínimo y máximo en el simulador de votos ---------- */
+@media (min-width: 861px) { .desliz { grid-template-columns: minmax(120px, 170px) minmax(0, 1fr) minmax(230px, 270px) minmax(118px, 138px); } }
+.desliz__rango { display: flex; flex-direction: column; gap: 1px; min-width: 0; background: #f6f8fc; border-radius: 9px; padding: 6px 10px; }
+.desliz__rango-t { font-size: 10.5px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--tinta-3); white-space: nowrap; }
+.desliz__rango-f { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-size: 13px; font-variant-numeric: tabular-nums; }
+.desliz__rango-f small { font-size: 11.5px; color: var(--tinta-3); }
+.desliz__rango-f b { color: var(--marino); font-weight: 700; }
+@media (max-width: 860px) { .desliz { grid-template-areas: "cab val" "ctl ctl" "rango rango"; } .desliz__rango { grid-area: rango; flex-direction: row; flex-wrap: wrap; align-items: baseline; gap: 4px 14px; } }
+@media (max-width: 560px) { .desliz { grid-template-areas: "cab" "ctl" "val" "rango"; } }
+/* ---------- v5.9 · «Nuevo»: reparto de escaños en el simulador de votos ---------- */
+.reparto-aviso { display: flex; flex-direction: column; gap: 8px; border: 1px solid #f2dc9b; background: var(--aviso-fondo); color: var(--aviso-tinta); border-radius: 11px; padding: 10px 14px; }
+.reparto-aviso.es-completo { border-color: #bfe3c4; background: var(--bien-fondo); color: var(--bien-tinta); }
+.reparto-aviso__cab { display: flex; align-items: baseline; justify-content: space-between; gap: 4px 16px; flex-wrap: wrap; }
+.reparto-aviso__t { display: inline-flex; align-items: center; gap: 7px; font-size: 14.5px; font-weight: 700; }
+.reparto-aviso__t .icono { flex: none; }
+.reparto-aviso__n { font-size: 12.5px; font-variant-numeric: tabular-nums; }
+.reparto-aviso__barra { display: flex; gap: 3px; height: 10px; }
+.reparto-aviso__c { flex: 1 1 0%; min-width: 0; border-radius: 3px; background: rgba(255, 255, 255, .7); box-shadow: inset 0 0 0 1px currentColor; opacity: .5; }
+.reparto-aviso__c.es-lleno { background: var(--c); box-shadow: none; opacity: 1; }
+.reparto__ctl { position: relative; }
+.reparto__pista { position: absolute; left: 10px; right: 10px; top: 50%; height: 10px; margin-top: -5px; display: flex; gap: 2px; pointer-events: none; }
+.reparto__ctl.es-denso .reparto__pista { gap: 1px; }
+.reparto__seg { flex: 1 1 0%; min-width: 0; border-radius: 3px; background: #d6dce8; }
+.reparto__seg.es-lleno { background: var(--c); }
+.reparto__seg.es-bloq { background: repeating-linear-gradient(-45deg, #dfe4ec 0 3px, #f5f7fa 3px 6px); box-shadow: inset 0 0 0 1px #e1e6ee; }
+.rango--reparto { position: relative; }
+.rango--reparto::-webkit-slider-runnable-track { background: transparent; }
+.rango--reparto::-moz-range-track { background: transparent; }
+.reparto__marcas { position: relative; height: 16px; margin: 2px 10px 0; font-size: 11px; line-height: 16px; font-variant-numeric: tabular-nums; color: var(--tinta-3); }
+.reparto__m { position: absolute; top: 0; transform: translateX(-50%); padding: 0 3px; cursor: pointer; }
+.reparto__m:hover { color: var(--marino); }
+.reparto__m.es-aqui { color: var(--tinta); font-weight: 800; }
+.reparto__m.es-bloq { color: #b4bccb; cursor: not-allowed; }
+.desliz--reparto .desliz__esc.reparto__lleno { color: var(--tinta-3); }
+.desliz__val--reparto { grid-template-columns: auto minmax(0, 1fr); }
+.reparto__de { font-size: 13px; color: var(--tinta-2); white-space: nowrap; }
+/* ---------- v5.9.1 · puestos de los escaños por organización política ---------- */
+.puestos__scroll { overflow-x: auto; min-width: 0; }
+.puestos { --org: 280px; width: 100%; min-width: calc(var(--org) + var(--n) * 30px); max-width: calc(var(--org) + var(--n) * 96px); table-layout: fixed; border-collapse: separate; border-spacing: 0; }
+.puestos__k-org { width: var(--org); }
+.puestos th, .puestos td { padding: 5px 2px; }
+.puestos thead th { padding: 0 2px 8px; font-size: 11.5px; font-weight: 700; color: var(--tinta-3); text-align: center; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.puestos thead th.puestos__org { text-align: left; font-size: 10.5px; letter-spacing: .05em; text-transform: uppercase; }
+.puestos tbody tr > * { border-top: 1px solid var(--linea-suave); }
+.puestos__org { position: sticky; left: 0; z-index: 1; background: var(--tarjeta); text-align: left; padding-right: 14px !important; }
+.puestos__nom { display: flex; align-items: flex-start; gap: 8px; font-size: 13px; font-weight: 700; line-height: 1.3; color: var(--tinta); }
+.puestos__nom .punto { margin-top: 4px; }
+.puestos__nom-t { min-width: 0; overflow-wrap: anywhere; }
+.puestos__res { display: block; margin: 2px 0 0 18px; font-size: 12px; font-weight: 500; color: var(--tinta-2); font-variant-numeric: tabular-nums; }
+.puestos__res b { color: var(--tinta); }
+.puestos__c, .puestos__v { display: grid; place-items: center; height: 34px; border-radius: 6px; font-variant-numeric: tabular-nums; }
+.puestos__c { background: var(--c); color: var(--ct); font-size: 14px; font-weight: 800; }
+.puestos__c--hueca { background: #ffffff; color: var(--tinta); box-shadow: inset 0 0 0 2.5px var(--c); }
+.puestos__v { background: #f1f4f9; }
+.puestos tbody tr:hover > * { background: #f8fafd; }
+.puestos tbody tr:hover .puestos__v { background: #e9edf4; }
+@media (max-width: 860px) { .puestos { --org: 210px; } }
+@media (max-width: 560px) { .puestos { --org: 136px; } .puestos__nom { font-size: 12.5px; } .puestos__res { margin-left: 0; } }
 /* ---------- pie y estados de carga ---------- */
 .pie { border-top: 1px solid var(--linea); padding-top: 18px; font-size: 12.5px; color: var(--tinta-3); }
 .pie p { max-width: 96ch; }
@@ -2524,7 +2593,11 @@ textarea.control { height: auto; padding: 10px; line-height: 1.4; resize: vertic
     // v5.6: amplitud (en puntos) de los escenarios de estabilidad
     estAmplitud: 2,
     // v5.6: organización que se sigue en «Cómo se asignan los escaños»
-    comoSel: null
+    comoSel: null,
+    // v5.7: lista elegida en «Escaño adicional» (¿qué pasa si…?)
+    necSel: null,
+    // v5.9: escenario «Nuevo» (reparto de escaños): null, o { idLista: escaños }
+    reparto: null
   };
   function estadoInicial() {
     const b = leer(CLAVE_BORRADOR);
@@ -2538,6 +2611,7 @@ textarea.control { height: auto; padding: 10px; line-height: 1.4; resize: vertic
     }
     const ids = (e) => e.listas.map((l) => l.id).join("|");
     if (ids(trabajo) !== ids(base)) base = clonar(trabajo);
+    if (trabajo.escanos !== base.escanos) trabajo = Object.assign({}, trabajo, { escanos: base.escanos });
     const ui = Object.assign({}, UI_INICIAL, b && b.ui && typeof b.ui === "object" ? {
       decimales: b.ui.decimales === 2 ? 2 : 0,
       rangoSliders: [0.1, 0.25, 0.5, 1].includes(b.ui.rangoSliders) ? b.ui.rangoSliders : 0.5
@@ -2557,7 +2631,7 @@ textarea.control { height: auto; padding: 10px; line-height: 1.4; resize: vertic
     return Object.assign({}, esc, { listas: fn(esc.listas) });
   }
   function instantanea(estado, etiqueta) {
-    return { etiqueta, trabajo: estado.trabajo, base: estado.base, esEjemplo: estado.esEjemplo };
+    return { etiqueta, trabajo: estado.trabajo, base: estado.base, esEjemplo: estado.esEjemplo, reparto: estado.ui ? estado.ui.reparto : null };
   }
   var nAviso = 0;
   function aviso(texto, tipo, conDeshacer) {
@@ -2676,6 +2750,39 @@ textarea.control { height: auto; padding: 10px; line-height: 1.4; resize: vertic
         if (!b) return estado;
         return Object.assign({}, estado, { trabajo: conListas(estado.trabajo, (ls) => ls.map((l) => l.id === a.id ? Object.assign({}, l, { votos: b.votos }) : l)) });
       }
+      /* v5.9 · «Nuevo»: otro escenario. Los votos vuelven a los de la tabla de
+         cocientes y se abre el reparto de escaños con todas las listas en 0:
+         cada una puede llegar a los escaños del distrito. No se toca ningún
+         dato de origen. */
+      case "sim/nuevo": {
+        const trabajo = clonar(estado.base);
+        const S = trabajo.escanos;
+        const texto = Number.isInteger(S) && S > 0 ? "Escenario nuevo: " + textoRestante(S, S).replace(/^T/, "t") + "." : "Escenario nuevo.";
+        return Object.assign({}, estado, { trabajo, ui: Object.assign({}, estado.ui, { reparto: {} }), deshacer: instantanea(estado), aviso: aviso(texto, "info", true) });
+      }
+      /* Una barra del escenario «Nuevo»: los escaños de una lista, entre 0 y
+         los suyos más los que siguen libres. Si se pide más, se queda en lo
+         que cabe y el aviso lo dice; cada cambio avisa cuántos faltan. */
+      case "reparto/escanos": {
+        const S = estado.trabajo.escanos;
+        if (!estado.ui.reparto || !(Number.isInteger(S) && S > 0)) return estado;
+        const ef = repartoEfectivo(estado.ui.reparto, estado.trabajo.listas, S);
+        if (!(a.id in ef.valores)) return estado;
+        const actual = ef.valores[a.id];
+        const tope = actual + ef.restante;
+        const pedido = Math.max(0, Math.min(S, Math.round(Number(a.valor)) || 0));
+        const k = Math.min(pedido, tope);
+        const restante = ef.restante + actual - k;
+        let av;
+        if (pedido > tope && k === actual) av = aviso("Ya repartiste " + (S === 1 ? "el escaño" : "los " + nEscanos(S)) + ": baja otra lista para liberar uno.", "info");
+        else if (pedido > tope) av = aviso("Solo " + (ef.restante === 1 ? "quedaba 1 escaño libre" : "quedaban " + fmtEntero(ef.restante) + " escaños libres") + ". " + textoRestante(restante, S) + ".", restante === 0 ? "ok" : "info");
+        else if (k !== actual) av = aviso(textoRestante(restante, S) + ".", restante === 0 ? "ok" : "info");
+        else return estado;
+        return Object.assign({}, estado, { ui: Object.assign({}, estado.ui, { reparto: Object.assign({}, ef.valores, { [a.id]: k }) }), aviso: av });
+      }
+      case "reparto/salir":
+        if (!estado.ui.reparto) return estado;
+        return Object.assign({}, estado, { ui: Object.assign({}, estado.ui, { reparto: null }), aviso: null });
       case "restablecer":
         return Object.assign({}, estado, { trabajo: clonar(estado.base), deshacer: instantanea(estado), aviso: aviso("Se volvió al escenario base: los porcentajes de la tabla.", "info", true) });
       case "fijarBase":
@@ -2714,7 +2821,7 @@ textarea.control { height: auto; padding: 10px; line-height: 1.4; resize: vertic
       /* --- varios --- */
       case "deshacer":
         if (!estado.deshacer) return estado;
-        return Object.assign({}, estado, { trabajo: estado.deshacer.trabajo, base: estado.deshacer.base, esEjemplo: estado.deshacer.esEjemplo, deshacer: null, aviso: null });
+        return Object.assign({}, estado, { trabajo: estado.deshacer.trabajo, base: estado.deshacer.base, esEjemplo: estado.deshacer.esEjemplo, deshacer: null, aviso: null, ui: "reparto" in estado.deshacer ? Object.assign({}, estado.ui, { reparto: estado.deshacer.reparto }) : estado.ui });
       case "aviso":
         return Object.assign({}, estado, { aviso: aviso(a.texto, a.clase) });
       case "aviso/cerrar":
@@ -3971,7 +4078,7 @@ textarea.control { height: auto; padding: 10px; line-height: 1.4; resize: vertic
     const { esc, d } = m;
     const metodo = Motor.METODOS[esc.metodo];
     const set = (campo, valor) => d({ tipo: "config/set", campo, valor });
-    return /* @__PURE__ */ React.createElement("section", { className: "config config--fija", "aria-label": "Configuración de la elección" }, /* @__PURE__ */ React.createElement("div", { className: "campo campo--ancho" }, /* @__PURE__ */ React.createElement("label", { className: "campo__et", htmlFor: "cfg-metodo" }, "Método de asignación"), /* @__PURE__ */ React.createElement("select", { id: "cfg-metodo", className: "control control--select", value: esc.metodo, onChange: (e) => set("metodo", e.target.value) }, Object.keys(Motor.METODOS).map((k) => /* @__PURE__ */ React.createElement("option", { key: k, value: k }, Motor.METODOS[k].nombreLargo))), /* @__PURE__ */ React.createElement("p", { className: "campo__ayuda" }, "Divisores ", metodo ? metodo.serie : "")), /* @__PURE__ */ React.createElement("div", { className: "campo" }, /* @__PURE__ */ React.createElement("p", { className: "campo__et" }, "Escaños"), /* @__PURE__ */ React.createElement("p", { id: "cfg-escanos", className: "cfg-fijo" }, Number.isInteger(esc.escanos) ? fmtEntero(esc.escanos) : "—"), /* @__PURE__ */ React.createElement("p", { className: "campo__ayuda" }, m.estado && m.estado.esEjemplo ? "A repartir" : "Fijos: los que elige " + (esc.origen && esc.origen.circunscripcion ? "la circunscripción" : "el cantón") + (esc.origen && esc.origen.escanosDe === "inscritos" ? ", según las listas inscritas" : ""))));
+    return /* @__PURE__ */ React.createElement("section", { className: "config config--fija", "aria-label": "Configuración de la elección" }, /* @__PURE__ */ React.createElement("div", { className: "campo campo--ancho" }, /* @__PURE__ */ React.createElement("p", { className: "campo__et" }, "Método de asignación"), React.createElement("p", { id: "cfg-metodo", className: "cfg-fijo" }, metodo ? metodo.nombreLargo : "D'Hondt"), /* @__PURE__ */ React.createElement("p", { className: "campo__ayuda" }, "Divisores ", metodo ? metodo.serie : "")), /* @__PURE__ */ React.createElement("div", { className: "campo" }, /* @__PURE__ */ React.createElement("p", { className: "campo__et" }, "Escaños"), /* @__PURE__ */ React.createElement("p", { id: "cfg-escanos", className: "cfg-fijo" }, Number.isInteger(esc.escanos) ? fmtEntero(esc.escanos) : "—"), /* @__PURE__ */ React.createElement("p", { className: "campo__ayuda" }, m.base && Number.isInteger(m.base.escanos) && esc.escanos !== m.base.escanos ? "En prueba; los originales son " + fmtEntero(m.base.escanos) : m.estado && m.estado.esEjemplo ? "A repartir" : "Fijos: los que elige " + (esc.origen && esc.origen.circunscripcion ? "la circunscripción" : "el cantón") + (esc.origen && esc.origen.escanosDe === "inscritos" ? ", según las listas inscritas" : ""))));
   }
   /* v5.6: primero se escriben los porcentajes; después, el resultado, el
      «¿qué pasa si…?» y los análisis. */
@@ -4092,7 +4199,9 @@ textarea.control { height: auto; padding: 10px; line-height: 1.4; resize: vertic
         nota: (org && org.fuente ? org.fuente : "Registro de preinscritos") +
           (org && org.circunscripcion ? " · " + org.circunscripcion : "") +
           (org && org.escanosDe === "inscritos"
-            ? ". Se reparten los " + fmtEntero(res.escanos) + " escaños que se eligen en 2027, los que inscribió cada lista"
+            ? (m.base && Number.isInteger(m.base.escanos) && res.escanos !== m.base.escanos
+              ? ". Prueba con " + nEscanos(res.escanos) + "; en 2027 se eligen " + fmtEntero(m.base.escanos)
+              : ". Se reparten los " + fmtEntero(res.escanos) + " escaños que se eligen en 2027, los que inscribió cada lista")
             : "") +
           ". Los escaños de cada lista se adjudican por orden de inscripción."
       },
@@ -4238,8 +4347,6 @@ textarea.control { height: auto; padding: 10px; line-height: 1.4; resize: vertic
       /* @__PURE__ */ React.createElement("p", { className: cls("coc-suma", sumaPct > 100.05 && "es-mal", sumaPct < 99.95 && "es-aviso") }, Math.abs(sumaPct - 100) < 0.05 ? "Los porcentajes suman 100 %: todos los votos válidos están repartidos." : sumaPct > 100 ? "Los porcentajes suman " + fmtPct(sumaPct) + ": se pasan " + fmtPct(sumaPct - 100) + " del 100 %. Baja alguna lista." : "Los porcentajes suman " + fmtPct(sumaPct) + ": queda " + fmtPct(100 - sumaPct) + " sin repartir (" + fmtEntero(Math.max(0, baseValidos - sumaListas)) + " votos)."),
       (verEscanos && m.ok) && /* @__PURE__ */ React.createElement("div", { className: "dist-escanos" }, /* @__PURE__ */ React.createElement("p", { className: "dist-tit" }, "Escaños por lista"), /* @__PURE__ */ React.createElement("p", { className: "dist-sub" }, "De mayor a menor, con los votos que hay ahora en pantalla."), (() => { const filas = esc.listas.map(function (l, i) { return { l: l, n: (res.listas[i] || {}).escanos || 0 }; }) .sort(function (a, b) { return b.n - a.n || (Number(b.l.votos) || 0) - (Number(a.l.votos) || 0); }); const maxN = Math.max(1, ...filas.map(function (x) { return x.n; })); return filas.map(function (x) { return /* @__PURE__ */ React.createElement("div", { key: x.l.id, className: cls("dist-fila", !x.n && "es-cero") }, /* @__PURE__ */ React.createElement("span", { className: "dist-nom", title: x.l.nombre }, /* @__PURE__ */ React.createElement("i", { className: "coc-punto", style: { background: colorDe(porId[x.l.id]).hex } }), x.l.nombre), /* @__PURE__ */ React.createElement("span", { className: "dist-barra" }, /* @__PURE__ */ React.createElement("i", { style: { width: (x.n * 100 / maxN) + "%", background: colorDe(porId[x.l.id]).hex } })), /* @__PURE__ */ React.createElement("b", { className: "dist-n" }, fmtEntero(x.n))); }); })()),
       /* @__PURE__ */ React.createElement("div", { className: "datos__pie" }, /* @__PURE__ */ React.createElement(Boton, { icono: "mas", variante: "suave", onClick: () => d({ tipo: "datos/agregar", prefijo: T.prefijo }) }, T.agregar)),
-      /* @__PURE__ */ React.createElement("div", { className: "extra" }, /* @__PURE__ */ React.createElement("div", { className: "campo" }, /* @__PURE__ */ React.createElement("label", { className: "campo__et", htmlFor: "votos-blancos" }, "Votos en blanco"), /* @__PURE__ */ React.createElement(EntradaVotos, { id: "votos-blancos", valor: esc.blancos, etiqueta: "Votos en blanco", alCambiar: (v) => set("blancos", v) })), /* @__PURE__ */ React.createElement("div", { className: "campo" }, /* @__PURE__ */ React.createElement("label", { className: "campo__et", htmlFor: "votos-nulos" }, "Votos nulos"), /* @__PURE__ */ React.createElement(EntradaVotos, { id: "votos-nulos", valor: esc.nulos, etiqueta: "Votos nulos", alCambiar: (v) => set("nulos", v) })), /* @__PURE__ */ React.createElement("div", { className: "campo campo--crece" }, /* @__PURE__ */ React.createElement("label", { className: "campo__et", htmlFor: "cfg-base" }, "Blancos y nulos"), /* @__PURE__ */ React.createElement("select", { id: "cfg-base", className: "control control--select", value: esc.baseModo, onChange: (e) => set("baseModo", e.target.value) }, /* @__PURE__ */ React.createElement("option", { value: "listas" }, "Solo informativos: no entran en el cálculo"), /* @__PURE__ */ React.createElement("option", { value: "listas_blancos" }, "Los blancos cuentan en la base del %"), /* @__PURE__ */ React.createElement("option", { value: "emitidos" }, "Blancos y nulos cuentan en la base del %"))), /* @__PURE__ */ React.createElement("p", { className: "extra__ayuda" }, "Blancos y nulos nunca reciben escaños. Solo pueden cambiar la base sobre la que se calculan los porcentajes.")),
-      /* @__PURE__ */ React.createElement("dl", { className: "totales" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("dt", null, "Total de votos"), /* @__PURE__ */ React.createElement("dd", null, fmtEntero(sumaListas + (Number(esc.blancos) || 0) + (Number(esc.nulos) || 0)))), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("dt", null, "Total de ", T.plur), /* @__PURE__ */ React.createElement("dd", null, fmtEntero(esc.listas.length))), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("dt", null, "Escaños disponibles"), /* @__PURE__ */ React.createElement("dd", null, Number.isInteger(esc.escanos) && esc.escanos > 0 ? fmtEntero(esc.escanos) : "—")), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("dt", null, "Votos válidos considerados"), /* @__PURE__ */ React.createElement("dd", null, fmtEntero(baseCalc)))),
       /* @__PURE__ */ React.createElement("p", { className: "leyenda" }, /* @__PURE__ */ React.createElement("span", { className: "leyenda__i" }, /* @__PURE__ */ React.createElement("span", { className: "leyenda__m leyenda__m--gana" }), "Cociente con escaño; el número pequeño es el orden de adjudicación"), /* @__PURE__ */ React.createElement("span", { className: "leyenda__i" }, /* @__PURE__ */ React.createElement("span", { className: "leyenda__m leyenda__m--fuera" }), "Primer cociente que queda fuera"))
     );
   }
@@ -4352,10 +4459,20 @@ textarea.control { height: auto; padding: 10px; line-height: 1.4; resize: vertic
     const r = rangoDeslizador(b.votos, l.votos, m.ui.rangoSliders, m.totalBase);
     const sens = useMemo4(() => m.ok ? Motor.calcularSensibilidad(esc, l.id, { desde: r.min - l.votos, hasta: r.max - l.votos }) : null, [esc, l.id, r.min, r.max, m.ok]);
     const escanos = m.ok ? res.listas[i].escanos : null;
+    /* v5.8: votos mínimo y máximo con los que esta lista tiene los escaños que
+       tiene ahora, con las demás listas como están (búsqueda exacta del motor). */
+    const rangoEsc = useMemo4(() => {
+      if (!m.ok) return null;
+      const s = res.listas[i].escanos;
+      const S = esc.escanos;
+      const min = s > 0 ? Motor.votosMinimosPara(esc, l.id, s) : 0;
+      const sig = s < S ? Motor.votosMinimosPara(esc, l.id, s + 1) : null;
+      return { s, min, max: sig != null ? sig - 1 : null };
+    }, [esc, l.id, i, m.ok]);
     const escBase = m.escanosBase[l.id];
     const delta = l.votos - b.votos;
     const ancho = r.max - r.min || 1;
-    return /* @__PURE__ */ React.createElement("li", { className: cls("desliz", delta !== 0 && "es-cambiado"), style: estiloColor(l) }, /* @__PURE__ */ React.createElement("div", { className: "desliz__cab" }, /* @__PURE__ */ React.createElement("label", { className: "desliz__nombre", htmlFor: "desliz-" + l.id }, /* @__PURE__ */ React.createElement(NombreLista, { lista: l, fuerte: true })), /* @__PURE__ */ React.createElement("span", { className: "desliz__esc" }, escanos != null ? nEscanos(escanos) : "—", escanos != null && escBase != null && escBase !== escanos && /* @__PURE__ */ React.createElement(Delta, { n: escanos - escBase }))), /* @__PURE__ */ React.createElement("div", { className: "desliz__ctl" }, /* @__PURE__ */ React.createElement(
+    return /* @__PURE__ */ React.createElement("li", { className: cls("desliz", delta !== 0 && "es-cambiado"), style: estiloColor(l) }, /* @__PURE__ */ React.createElement("div", { className: "desliz__cab" }, /* @__PURE__ */ React.createElement("label", { className: "desliz__nombre", htmlFor: "desliz-" + l.id }, /* @__PURE__ */ React.createElement(NombreLista, { lista: l, fuerte: true })), /* @__PURE__ */ React.createElement("span", { className: "desliz__esc" }, escanos != null ? nEscanos(escanos) + (escanos > 0 ? ": " + posicionesDe(res, l.id) : "") : "—", escanos != null && escBase != null && escBase !== escanos && /* @__PURE__ */ React.createElement(Delta, { n: escanos - escBase }))), /* @__PURE__ */ React.createElement("div", { className: "desliz__ctl" }, /* @__PURE__ */ React.createElement(
       "input",
       {
         id: "desliz-" + l.id,
@@ -4381,7 +4498,7 @@ textarea.control { height: auto; padding: 10px; line-height: 1.4; resize: vertic
         },
         /* @__PURE__ */ React.createElement("span", { className: "zonas__n" }, t.escanos)
       );
-    })), /* @__PURE__ */ React.createElement("div", { className: "desliz__ext", "aria-hidden": "true" }, /* @__PURE__ */ React.createElement("span", null, fmtEntero(r.min)), /* @__PURE__ */ React.createElement("span", null, "escaños en cada tramo"), /* @__PURE__ */ React.createElement("span", null, fmtEntero(r.max)))), /* @__PURE__ */ React.createElement("div", { className: "desliz__val" }, /* @__PURE__ */ React.createElement(EntradaVotos, { id: "sim-votos-" + l.id, valor: l.votos, etiqueta: "Votos simulados de " + l.nombre, alCambiar: (v) => d({ tipo: "sim/votos", id: l.id, votos: v }) }), /* @__PURE__ */ React.createElement("span", { className: cls("desliz__delta", delta > 0 && "es-mas", delta < 0 && "es-menos") }, delta === 0 ? "sin cambio" : fmtSigno(delta) + (b.votos > 0 ? " · " + fmtSignoDec(delta / b.votos * 100, 1) + "%" : "")), /* @__PURE__ */ React.createElement(Boton, { icono: "restablecer", variante: "fantasma", chico: true, titulo: "Devolver " + l.nombre + " a sus votos originales", disabled: delta === 0, onClick: () => d({ tipo: "sim/restablecerLista", id: l.id }) })));
+    })), /* @__PURE__ */ React.createElement("div", { className: "desliz__ext", "aria-hidden": "true" }, /* @__PURE__ */ React.createElement("span", null, fmtEntero(r.min)), /* @__PURE__ */ React.createElement("span", null, "escaños en cada tramo"), /* @__PURE__ */ React.createElement("span", null, fmtEntero(r.max)))), /* @__PURE__ */ React.createElement("div", { className: "desliz__val" }, /* @__PURE__ */ React.createElement(EntradaVotos, { id: "sim-votos-" + l.id, valor: l.votos, etiqueta: "Votos simulados de " + l.nombre, alCambiar: (v) => d({ tipo: "sim/votos", id: l.id, votos: v }) }), /* @__PURE__ */ React.createElement("span", { className: cls("desliz__delta", delta > 0 && "es-mas", delta < 0 && "es-menos") }, delta === 0 ? "sin cambio" : fmtSigno(delta) + (b.votos > 0 ? " · " + fmtSignoDec(delta / b.votos * 100, 1) + "%" : "")), /* @__PURE__ */ React.createElement(Boton, { icono: "restablecer", variante: "fantasma", chico: true, titulo: "Devolver " + l.nombre + " a sus votos originales", disabled: delta === 0, onClick: () => d({ tipo: "sim/restablecerLista", id: l.id }) })), React.createElement(RangoEscanos, { rango: rangoEsc, nombre: l.nombre }));
   }
   function Trasvase({ m }) {
     const { esc, d } = m;
@@ -4401,25 +4518,20 @@ textarea.control { height: auto; padding: 10px; line-height: 1.4; resize: vertic
   }
   function Simulador({ m }) {
     const { esc, base, d, T } = m;
+    /* v5.9 · «Nuevo» abre otro escenario: el reparto de escaños. */
+    if (m.ui.reparto) return React.createElement(SimuladorReparto, { m });
     return /* @__PURE__ */ React.createElement(
       Tarjeta,
       {
         className: "tarjeta--sim",
         titulo: "Simulador de votos",
         nota: "Mueve los votos de cada " + T.sing + " y todo se recalcula al instante. Los porcentajes que escribiste en la tabla de cocientes se conservan: vuelves a ellos con «Restablecer».",
-        acciones: /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(
-          Segmentos,
-          {
-            etiqueta: "Amplitud de los deslizadores",
-            valor: m.ui.rangoSliders,
-            alCambiar: (v) => d({ tipo: "ui", cambios: { rangoSliders: v } }),
-            opciones: [{ v: 0.1, t: "±10%" }, { v: 0.25, t: "±25%" }, { v: 0.5, t: "±50%" }, { v: 1, t: "±100%" }]
-          }
-        ))
+        acciones: React.createElement(React.Fragment, null, React.createElement(Boton, { variante: "suave", chico: true, titulo: "Escenario nuevo: reparte los escaños del distrito entre las listas", onClick: () => d({ tipo: "sim/nuevo" }) }, "Nuevo"))
       },
       /* @__PURE__ */ React.createElement("ul", { className: "deslizadores" }, esc.listas.map((l, i) => /* @__PURE__ */ React.createElement(Deslizador, { key: l.id, m, l, i }))),
       /* @__PURE__ */ React.createElement(Trasvase, { m }),
-      /* @__PURE__ */ React.createElement("div", { className: "sim__pie" }, /* @__PURE__ */ React.createElement(Boton, { icono: "restablecer", variante: "suave", disabled: !m.haySim, onClick: () => d({ tipo: "restablecer" }) }, "Restablecer"), /* @__PURE__ */ React.createElement(Boton, { icono: "fijar", variante: "suave", disabled: !m.haySim, onClick: () => d({ tipo: "fijarBase" }), titulo: "Convierte lo simulado en el nuevo escenario base" }, "Fijar como base"))
+      /* @__PURE__ */ React.createElement("div", { className: "sim__pie" }, /* @__PURE__ */ React.createElement(Boton, { icono: "restablecer", variante: "suave", disabled: !m.haySim, onClick: () => d({ tipo: "restablecer" }) }, "Restablecer"), /* @__PURE__ */ React.createElement(Boton, { icono: "fijar", variante: "suave", disabled: !m.haySim, onClick: () => d({ tipo: "fijarBase" }), titulo: "Convierte lo simulado en el nuevo escenario base" }, "Fijar como base")),
+      m.ok && React.createElement(EscanoAdicional, { m })
     );
   }
   function textoDif(x, T) {
@@ -4560,7 +4672,7 @@ textarea.control { height: auto; padding: 10px; line-height: 1.4; resize: vertic
     return ce(
       "div",
       { className: "kpis kpis--res" },
-      ce("div", { className: "kpi" }, ce("p", { className: "kpi__et" }, "Escaños asignados"), ce("p", { className: "kpi__val" }, fmtEntero(res.verificacion.asignados), ce("span", { className: "kpi__uni" }, " de ", fmtEntero(S))), ce("p", { className: "kpi__sub" }, res.verificacion.ok ? ce("span", { className: "ok-t" }, ce(Icono, { n: "check", t: 14 }), "Suman los escaños del distrito") : "Revisa la verificación")),
+      ce("div", { className: "kpi" }, ce("p", { className: "kpi__et" }, "Escaños asignados"), ce("p", { className: "kpi__val" }, fmtEntero(res.verificacion.asignados), ce("span", { className: "kpi__uni" }, " de ", fmtEntero(S))), ce("p", { className: "kpi__sub" }, res.verificacion.ok ? ce("span", { className: "ok-t" }, ce(Icono, { n: "check", t: 14 }), m.base && Number.isInteger(m.base.escanos) && S !== m.base.escanos ? "Prueba; el distrito elige " + fmtEntero(m.base.escanos) : "Suman los escaños del distrito") : "Revisa la verificación")),
       ce("div", { className: "kpi" }, ce("p", { className: "kpi__et" }, "Organizaciones con representación"), ce("p", { className: "kpi__val" }, fmtEntero(con), ce("span", { className: "kpi__uni" }, " de ", fmtEntero(total))), ce("p", { className: "kpi__sub" }, total - con > 0 ? fmtEntero(total - con) + " " + plural(total - con, "se queda", "se quedan") + " sin escaño" : "Todas obtienen escaño")),
       ce("div", { className: "kpi" }, ce("p", { className: "kpi__et" }, "Votos válidos de las listas"), ce("p", { className: "kpi__val" }, fmtEntero(V)), ce("p", { className: "kpi__sub" }, disp > 0 ? fmtPct(V * 100 / disp) + " de los " + fmtEntero(disp) + " disponibles" : fmtEntero(conVotos) + " " + plural(conVotos, "organización con votos", "organizaciones con votos"))),
       ce("div", { className: "kpi" }, ce("p", { className: "kpi__et" }, "Último cociente ganador"), ce("p", { className: "kpi__val" }, fmtCociente(u.cociente, dec)), ce("p", { className: "kpi__sub" }, ce(NombreLista, { lista: porId[u.listaId] }), " ", ce("span", { className: "tenue" }, "÷", fmtDivisor(u.divisor), " · ", ordinal(u.numero), " escaño"))),
@@ -4599,7 +4711,7 @@ textarea.control { height: auto; padding: 10px; line-height: 1.4; resize: vertic
         className: "tarjeta--histo",
         id: "histograma",
         titulo,
-        nota: "Escaños de cada organización, de mayor a menor. Sobre cada barra, el número exacto y su parte del total.",
+        nota: "Escaños de cada organización, de mayor a menor. Sobre cada barra, su porcentaje de votos; debajo, su total de votos.",
         acciones: ce(
           React.Fragment,
           null,
@@ -4625,8 +4737,8 @@ textarea.control { height: auto; padding: 10px; line-height: 1.4; resize: vertic
               return ce(
                 "div",
                 { key: x.r.id, className: "histo__col", role: "listitem", style: estiloColor(x.l), "aria-label": p.completo + ": " + nEscanos(x.r.escanos) + ", " + fmtPct(x.r.pctEscanos, 1) + " de los escaños" },
-                ce("div", { className: "histo__zona" }, ce("div", { className: cls("histo__barra", c.hueco && "histo__barra--hueca"), style: { height: x.r.escanos / eje.tope * 100 + "%" }, title: p.completo + ": " + nEscanos(x.r.escanos) + " · " + fmtPct(x.pct) + " de los votos" }, ce("span", { className: "histo__val" }, ce("b", { className: "histo__n" }, fmtEntero(x.r.escanos)), ce("span", { className: "histo__pct" }, fmtPct(x.r.pctEscanos, 1))))),
-                ce("div", { className: "histo__et" }, p.lista && ce("span", { className: "histo__lista" }, ce(Punto, { lista: x.l }), p.lista), ce("span", { className: "histo__org" }, !p.lista && ce(Punto, { lista: x.l }), p.org), ce("span", { className: "histo__votos" }, fmtPct(x.pct), " de los votos"))
+                ce("div", { className: "histo__zona" }, ce("div", { className: cls("histo__barra", c.hueco && "histo__barra--hueca"), style: { height: x.r.escanos / eje.tope * 100 + "%" }, title: p.completo + ": " + nEscanos(x.r.escanos) + " · " + fmtPct(x.pct) + " de los votos" }, ce("span", { className: "histo__val" }, ce("b", { className: "histo__n" }, fmtPct(x.pct))))),
+                ce("div", { className: "histo__et" }, p.lista && ce("span", { className: "histo__lista" }, ce(Punto, { lista: x.l }), p.lista), ce("span", { className: "histo__org" }, !p.lista && ce(Punto, { lista: x.l }), p.org), ce("span", { className: "histo__votos" }, fmtEntero(x.r.votos), " ", plural(x.r.votos, "voto", "votos")))
               );
             })
           )
@@ -4921,6 +5033,233 @@ textarea.control { height: auto; padding: 10px; line-height: 1.4; resize: vertic
     );
   }
 
+  // src/ui/modulos7.jsx — v5.7: franja de totales, posiciones y escaño adicional
+  /* Posiciones en que se adjudican los escaños de una lista: «1.º y 4.º». */
+  function posicionesDe(res, listaId) {
+    const p = res && Array.isArray(res.adjudicacion) ? res.adjudicacion.filter((a) => a.listaId === listaId).map((a) => ordinal(a.numero)) : [];
+    return p.length > 1 ? p.slice(0, -1).join(", ") + " y " + p[p.length - 1] : p[0] || "";
+  }
+  /* La franja gris de totales que estaba al final de la tabla de cocientes:
+     los mismos datos y el mismo diseño, ahora encima del simulador de votos. */
+  function FranjaTotales({ m }) {
+    const { esc, T } = m;
+    const sumaListas = esc.listas.reduce((a, x) => a + (Number(x.votos) || 0), 0);
+    const baseCalc = (Number(esc.validosDisponibles) || 0) || (m.base && m.base.listas ? m.base.listas.reduce((a, x) => a + (Number(x.votos) || 0), 0) : 0) || sumaListas;
+    return ce("div", { className: "franja-sim" }, ce("dl", { className: "totales" }, ce("div", null, ce("dt", null, "Total de votos"), ce("dd", null, fmtEntero(sumaListas + (Number(esc.blancos) || 0) + (Number(esc.nulos) || 0)))), ce("div", null, ce("dt", null, "Total de ", T.plur), ce("dd", null, fmtEntero(esc.listas.length))), ce("div", null, ce("dt", null, "Escaños disponibles"), ce("dd", null, Number.isInteger(esc.escanos) && esc.escanos > 0 ? fmtEntero(esc.escanos) : "—")), ce("div", null, ce("dt", null, "Votos válidos considerados"), ce("dd", null, fmtEntero(baseCalc)))));
+  }
+  /* Votos que necesita una lista para un escaño más, con D'Hondt, el número de
+     escaños que se prueba y los votos de todas las listas. Todo sale del motor
+     (búsquedas exactas sobre el reparto real); lo que no se puede determinar
+     no se muestra. */
+  function EscanoAdicional({ m }) {
+    const { esc, res, ok, porId, margenes, d, T } = m;
+    const ids = esc.listas.map((l) => l.id);
+    const id = ids.includes(m.ui.necSel) ? m.ui.necSel : margenes && margenes.masCercana ? margenes.masCercana.listaId : ids[0];
+    const info = useMemo7(() => ok && id ? Motor.votosAdicionalesNecesarios(esc, id, { resultado: res }) : null, [esc, res, ok, id]);
+    const rival = info && info.posible && info.siguiente ? info.siguiente.rival : null;
+    const tras = useMemo7(() => ok && rival ? Motor.trasvaseMinimo(esc, rival.listaId, id, res) : null, [esc, res, ok, id, rival && rival.listaId]);
+    const posicion = useMemo7(() => {
+      if (!ok || !info || !info.posible) return null;
+      const r2 = Motor.asignarEscanos(Object.assign({}, esc, { listas: esc.listas.map((l) => l.id === id ? Object.assign({}, l, { votos: info.nuevosVotos }) : l) }));
+      if (!r2.ok) return null;
+      const a = r2.adjudicacion.find((x) => x.listaId === id && x.k === info.objetivo);
+      return a ? a.numero : null;
+    }, [esc, ok, id, info]);
+    if (!ok || !id || !info || !porId[id]) return null;
+    const lista = porId[id];
+    const S = res.escanos;
+    const s = info.escanosActuales;
+    const fila = margenes ? margenes.filas.find((f) => f.listaId === id) : null;
+    const fq = (x) => fmtCociente(x, m.ui.decimales || decCociente(x));
+    const brecha = info.siguiente && info.siguiente.brecha != null ? info.siguiente.brecha : null;
+    let rango = null;
+    if (info.posible) {
+      const max = info.nuevosVotos - 1;
+      const min = fila && fila.perdida ? fila.perdida.votosMinimos : 0;
+      rango = s > 0 ? ["Mantiene ", nEscanos(s), " con ", fmtEntero(min), " a ", fmtEntero(max), " votos; con ", fmtEntero(max + 1), " gana el ", ordinal(s + 1), "."] : ["Sin escaño hasta ", fmtEntero(max), " votos; con ", fmtEntero(max + 1), " gana el ", ordinal(1), "."];
+    } else if (info.motivo === "sin_mas_escanos" && fila && fila.perdida) {
+      rango = ["Conserva los ", fmtEntero(S), " escaños desde ", fmtEntero(fila.perdida.votosMinimos), " votos."];
+    }
+    return ce(
+      "div",
+      { className: "adicional", style: estiloColor(lista) },
+      ce("div", { className: "adicional__cab" }, ce("div", null, ce("p", { className: "mini-titulo" }, "Escaño adicional"), ce("p", { className: "adicional__nota" }, "Con D'Hondt, ", nEscanos(S), " y los votos de todas las ", T.plur, "; las demás conservan sus votos.")), ce(SelectorLista, { id: "sel-lista-adicional", listas: esc.listas, valor: id, alCambiar: (v) => d({ tipo: "ui", cambios: { necSel: v } }), etiqueta: T.Sing })),
+      !info.posible && info.motivo === "sin_mas_escanos" ? ce("p", { className: "tenue" }, lista.nombre, " ya tiene los ", fmtEntero(S), " escaños en juego.") : !info.posible ? ce("p", { className: "tenue" }, "No se puede calcular con estos datos.") : ce(
+        "dl",
+        { className: "ficha adicional__ficha" },
+        ce("div", null, ce("dt", null, "Votos adicionales necesarios"), ce("dd", { className: "num" }, ce("b", null, "+", fmtEntero(info.adicionales)), ce("small", null, "con ", fmtEntero(info.nuevosVotos), " votos gana su ", ordinalEscano(s + 1)))),
+        ce("div", null, ce("dt", null, "Cociente que debe superar"), ce("dd", { className: "num" }, rival ? fq(rival.cociente) : "—", rival && ce("small", null, rival.nombre, " ÷ ", fmtDivisor(rival.divisor)))),
+        ce("div", null, ce("dt", null, "Posición de adjudicación que debe alcanzar"), ce("dd", { className: "num" }, posicion ? ordinal(posicion) + " escaño" : "—", rival && ce("small", null, "hoy el ", ordinal(rival.numeroEscano), " escaño es de ", rival.nombre))),
+        rival && ce("div", null, ce("dt", null, "Margen frente a ", rival.nombre), ce("dd", { className: "num" }, tras ? fmtEntero(tras.votos) + " " + plural(tras.votos, "voto", "votos") : "—", ce("small", null, tras ? "si pasan de " + rival.nombre + " a " + lista.nombre : "", brecha != null ? (tras ? " · " : "") + "diferencia de cocientes: " + fq(brecha) : ""))),
+        rango && ce("div", null, ce("dt", null, "Rango de votos"), ce("dd", null, rango))
+      ),
+      info.posible && info.empate && info.empate.tipo === "gana_por_desempate" && ce("p", { className: "nota-empate" }, ce(Icono, { n: "igual", t: 14 }), ce("span", null, ce("b", null, "Empate exacto."), " Con esos votos su cociente iguala al de ", info.empate.con.miembros.filter((x) => x.listaId !== id).map((x) => x.nombre).join(" y "), " y gana por la regla «", Motor.REGLAS_DESEMPATE[info.empate.con.regla].nombre, "».")),
+      info.posible && info.empate && info.empate.tipo === "empate_previo_perdido" && ce("p", { className: "nota-empate" }, ce(Icono, { n: "igual", t: 14 }), ce("span", null, ce("b", null, "Empate exacto con un voto menos."), info.empate.adicionales > 0 ? [" Con +", fmtEntero(info.empate.adicionales), " igualaría"] : " Hoy ya iguala", " el cociente de ", info.empate.con.miembros.filter((x) => x.listaId !== id).map((x) => x.nombre).join(" y "), ", pero ", info.empate.adicionales > 0 ? "perdería" : "pierde", " por la regla «", Motor.REGLAS_DESEMPATE[info.empate.con.regla].nombre, "»."))
+    );
+  }
+
+  /* v5.8 · Columna derecha del simulador de votos: el mínimo y el máximo de
+     votos con los que la lista tiene sus escaños actuales. */
+  function RangoEscanos({ rango, nombre }) {
+    if (!rango || rango.min == null) return ce("div", { className: "desliz__rango" }, ce("span", { className: "desliz__rango-t" }, "Votos"), ce("span", { className: "desliz__rango-f" }, "—"));
+    const exacto = rango.max == null || rango.max >= rango.min;
+    const titulo = rango.s === 0 ? "Sin escaño" : "Para " + nEscanos(rango.s);
+    return ce(
+      "div",
+      { className: "desliz__rango", title: nombre + ": " + titulo.toLowerCase() + " con " + (exacto ? "entre " + fmtEntero(rango.min) + " y " + (rango.max == null ? "cualquier número mayor de" : fmtEntero(rango.max)) + " votos" : "ningún número exacto de votos") + ", si las demás listas conservan los suyos" },
+      ce("span", { className: "desliz__rango-t" }, titulo),
+      exacto ? ce(React.Fragment, null, ce("span", { className: "desliz__rango-f" }, ce("small", null, "mín."), ce("b", null, fmtEntero(rango.min))), ce("span", { className: "desliz__rango-f" }, ce("small", null, "máx."), ce("b", null, rango.max == null ? "sin tope" : fmtEntero(rango.max)))) : ce("span", { className: "desliz__rango-f" }, "—")
+    );
+  }
+
+  /* v5.9 · «Nuevo»: el reparto de escaños. Cada lista tiene de 0 a los
+     escaños del distrito, sin pasarse entre todas: lo que no cabe se
+     recorta en el orden de las listas. */
+  function repartoEfectivo(reparto, listas, S) {
+    const valores = {};
+    let usados = 0;
+    listas.forEach((l) => {
+      const v = reparto ? Number(reparto[l.id]) : 0;
+      const k = Number.isInteger(v) && v > 0 ? Math.min(v, S - usados) : 0;
+      valores[l.id] = k;
+      usados += k;
+    });
+    return { valores, usados, restante: Math.max(0, S - usados) };
+  }
+  function textoRestante(restante, S) {
+    if (restante > 0) return "Te " + (restante === 1 ? "queda " : "quedan ") + nEscanos(restante) + " para completar";
+    return S === 1 ? "Completaste el escaño en juego" : "Completaste los " + nEscanos(S);
+  }
+  /* El aviso del reparto: cuántos escaños faltan y cómo van repartidos. */
+  function AvisoReparto({ listas, ef, S }) {
+    const completo = ef.restante === 0;
+    const celdas = [];
+    if (S <= 80) {
+      listas.forEach((l) => {
+        for (let j = 0; j < ef.valores[l.id]; j++) celdas.push(ce("span", { key: l.id + ":" + j, className: "reparto-aviso__c es-lleno", style: estiloColor(l), title: l.nombre }));
+      });
+      for (let j = 0; j < ef.restante; j++) celdas.push(ce("span", { key: "libre:" + j, className: "reparto-aviso__c" }));
+    }
+    return ce(
+      "div",
+      { className: cls("reparto-aviso", completo && "es-completo") },
+      ce("div", { className: "reparto-aviso__cab" }, ce("p", { className: "reparto-aviso__t" }, ce(Icono, { n: completo ? "check" : "info", t: 16 }), ce("span", null, textoRestante(ef.restante, S))), ce("p", { className: "reparto-aviso__n" }, "Repartidos: ", ce("b", null, fmtEntero(ef.usados)), " de ", fmtEntero(S))),
+      celdas.length > 0 && ce("div", { className: "reparto-aviso__barra", "aria-hidden": "true" }, celdas)
+    );
+  }
+  /* Una lista en el reparto: su barra de escaños (de 0 a los del distrito, con
+     los que no caben rayados), el número y, a la derecha, los votos mínimo y
+     máximo con los que obtiene esos escaños si las demás conservan los votos
+     de la tabla de cocientes (búsqueda exacta del motor). */
+  function FilaReparto({ m, l, k, tope, S }) {
+    const { esc, d } = m;
+    const rango = useMemo7(() => {
+      if (!m.ok) return null;
+      const min = k > 0 ? Motor.votosMinimosPara(esc, l.id, k) : 0;
+      const sig = k < S ? Motor.votosMinimosPara(esc, l.id, k + 1) : null;
+      return { s: k, min, max: sig != null ? sig - 1 : null };
+    }, [esc, l.id, k, S, m.ok]);
+    const fijar = (v) => d({ tipo: "reparto/escanos", id: l.id, valor: v });
+    const libre = tope > k;
+    const segmentos = [];
+    for (let j = 1; j <= S; j++) segmentos.push(ce("span", { key: j, className: cls("reparto__seg", j <= k && "es-lleno", j > tope && "es-bloq") }));
+    const cada = S <= 20 ? 1 : S <= 60 ? 5 : 10;
+    const marcas = [];
+    for (let j = 0; j <= S; j++) {
+      if (j % cada !== 0 && j !== S) continue;
+      marcas.push(ce("span", { key: j, className: cls("reparto__m", j === k && "es-aqui", j > tope && "es-bloq"), style: { left: j / S * 100 + "%" }, onClick: () => fijar(j) }, j));
+    }
+    return ce(
+      "li",
+      { className: "desliz desliz--reparto", style: estiloColor(l) },
+      ce("div", { className: "desliz__cab" }, ce("label", { className: "desliz__nombre", htmlFor: "reparto-" + l.id }, ce(NombreLista, { lista: l, fuerte: true })), ce("span", { className: cls("desliz__esc", !libre && "reparto__lleno") }, libre ? "Puede llegar a " + nEscanos(tope) : "No quedan escaños libres")),
+      ce(
+        "div",
+        { className: "desliz__ctl" },
+        ce("div", { className: cls("reparto__ctl", S > 30 && "es-denso") }, ce("div", { className: "reparto__pista", "aria-hidden": "true" }, segmentos), ce("input", { id: "reparto-" + l.id, className: "rango rango--reparto", type: "range", min: 0, max: S, step: 1, value: k, "aria-valuetext": nEscanos(k) + " de " + fmtEntero(S) + (libre ? "; puede llegar a " + fmtEntero(tope) : "; no quedan escaños libres"), onChange: (e) => fijar(Number(e.target.value)) })),
+        ce("div", { className: "reparto__marcas", "aria-hidden": "true" }, marcas)
+      ),
+      ce("div", { className: "desliz__val desliz__val--reparto" }, ce(Contador, { id: "reparto-n-" + l.id, valor: k, min: 0, max: tope, etiqueta: "escaño", alCambiar: fijar }), ce("span", { className: "reparto__de" }, "de ", fmtEntero(S), " ", plural(S, "escaño", "escaños"))),
+      ce(RangoEscanos, { rango, nombre: l.nombre })
+    );
+  }
+  /* El escenario «Nuevo» dentro del simulador de votos. «Nuevo» empieza otro
+     reparto (todas en 0) y «Volver a los votos» regresa a las barras de votos. */
+  function SimuladorReparto({ m }) {
+    const { esc, d, T } = m;
+    const S = esc.escanos;
+    const valido = Number.isInteger(S) && S > 0;
+    const ef = valido ? repartoEfectivo(m.ui.reparto, esc.listas, S) : null;
+    return ce(
+      Tarjeta,
+      {
+        className: "tarjeta--sim tarjeta--reparto",
+        titulo: "Simulador de votos",
+        nota: "Escenario nuevo: mueve la barra de cada " + T.sing + " hasta los escaños que quieres que obtenga; cada una puede llegar a los escaños del distrito que sigan libres. A la derecha, el mínimo y el máximo de votos con los que los obtendría si las demás conservan los votos de la tabla de cocientes.",
+        acciones: ce(React.Fragment, null, ce(Boton, { variante: "suave", chico: true, titulo: "Empieza otro reparto: todas las listas vuelven a 0 escaños", onClick: () => d({ tipo: "sim/nuevo" }) }, "Nuevo"), ce(Boton, { variante: "suave", chico: true, titulo: "Sal del escenario nuevo y vuelve a mover los votos de cada lista", onClick: () => d({ tipo: "reparto/salir" }) }, "Volver a los votos"))
+      },
+      !valido ? ce("p", { className: "tenue" }, "No hay escaños que repartir con estos datos.") : ce(React.Fragment, null, ce(AvisoReparto, { listas: esc.listas, ef, S }), ce("ul", { className: "deslizadores" }, esc.listas.map((l) => ce(FilaReparto, { key: l.id, m, l, k: ef.valores[l.id], tope: ef.valores[l.id] + ef.restante, S })))),
+      m.ok && ce(EscanoAdicional, { m })
+    );
+  }
+
+  /* v5.9.1 · Puestos de los escaños por organización política: cada columna
+     es un escaño en el orden en que se adjudica (1.º = el cociente más alto) y
+     cada fila marca los puestos que gana esa organización, por ejemplo el 1.º
+     y el 3.º. Sale de la adjudicación real del motor. */
+  function PuestosEscanos({ m }) {
+    const { res, ok, esc, porId } = m;
+    const titulo = "Puestos de los escaños por organización política";
+    if (!ok) return ce(Tarjeta, { className: "tarjeta--puestos", id: "puestos", titulo }, ce("p", { className: "vacio vacio--guia" }, "Escribe los porcentajes en la tabla de cocientes: aquí verás qué puestos obtiene cada organización."));
+    const S = res.escanos;
+    const filas = res.listas.map((r) => ({ r, l: porId[r.id] || esc.listas[r.idx] || {} })).filter((x) => x.r.escanos > 0).sort((a, b) => b.r.escanos - a.r.escanos || b.r.votos - a.r.votos || a.r.idx - b.r.idx);
+    const fq = (x) => fmtCociente(x, m.ui.decimales || decCociente(x));
+    const numeros = [];
+    for (let n = 1; n <= S; n++) numeros.push(n);
+    const resumen = filas.map((x) => partesOrg(x.l).completo + ", " + posicionesDe(res, x.r.id)).join("; ");
+    return ce(
+      Tarjeta,
+      {
+        className: "tarjeta--puestos",
+        id: "puestos",
+        titulo,
+        nota: "Cada columna es un escaño, en el orden en que se adjudica con D'Hondt: el 1.º es el cociente más alto. En cada fila, los puestos que obtiene esa organización."
+      },
+      ce(
+        "div",
+        { className: "puestos__scroll" },
+        ce(
+          "table",
+          { className: "puestos", style: { "--n": S } },
+          ce("caption", { className: "oculto" }, "Puestos de los escaños por organización política: " + resumen + "."),
+          ce("colgroup", null, ce("col", { className: "puestos__k-org" }), ce("col", { span: S })),
+          ce("thead", null, ce("tr", null, ce("th", { scope: "col", className: "puestos__org" }, "Organización"), numeros.map((n) => ce("th", { key: n, scope: "col" }, ordinal(n))))),
+          ce(
+            "tbody",
+            null,
+            filas.map((x) => {
+              const c = colorDe(x.l);
+              const p = partesOrg(x.l);
+              const suyos = {};
+              res.adjudicacion.forEach((a) => {
+                if (a.listaId === x.r.id) suyos[a.numero] = a;
+              });
+              return ce(
+                "tr",
+                { key: x.r.id, style: estiloColor(x.l) },
+                ce("th", { scope: "row", className: "puestos__org" }, ce("span", { className: "puestos__nom", title: p.completo }, ce(Punto, { lista: x.l }), ce("span", { className: "puestos__nom-t" }, p.completo)), ce("span", { className: "puestos__res" }, nEscanos(x.r.escanos), ": ", ce("b", null, posicionesDe(res, x.r.id)))),
+                numeros.map((n) => {
+                  const a = suyos[n];
+                  return ce("td", { key: n }, a ? ce("span", { className: cls("puestos__c", c.hueco && "puestos__c--hueca"), title: ordinal(n) + " escaño: " + p.completo + (x.r.escanos > 1 ? " (su " + ordinalEscano(a.k) + ")" : "") + " · cociente " + fq(a.cociente) + (a.empatado ? " · empate de cocientes" : "") }, n) : ce("span", { className: "puestos__v", "aria-hidden": "true" }));
+                })
+              );
+            })
+          )
+        )
+      )
+    );
+  }
+
   // src/ui/modulos5.jsx
   var { useMemo: useMemo5, useState: useState5, useEffect: useEffect3, useRef: useRef4 } = React;
   function resumenEsc(e) {
@@ -5159,6 +5498,15 @@ textarea.control { height: auto; padding: 10px; line-height: 1.4; resize: vertic
       }
       return () => window.removeEventListener("message", alMensaje);
     }, []);
+    useEffect4(() => {
+      const padre = window.parent && window.parent !== window ? window.parent : null;
+      if (!padre) return;
+      const propio = window.location.origin;
+      try {
+        padre.postMessage({ tipo: "simulador/escanos", escanos: esc.escanos, base: base.escanos }, propio && propio !== "null" ? propio : "*");
+      } catch (e) {
+      }
+    }, [esc.escanos, base.escanos]);
     const ultimaSinc = useRef5(null);
     async function conectarNube() {
       const remotos = await Nube.leer();
@@ -5300,7 +5648,7 @@ textarea.control { height: auto; padding: 10px; line-height: 1.4; resize: vertic
         comparacion: r.ok ? Motor.compararEscenarios([{ id: "actual", nombre: "Actual", escenario: e }].concat(guardados.map((g) => ({ id: g.id, nombre: g.nombre, escenario: g.escenario })))) : null
       }, elegidos(e, ui));
     }, [escLento, base, guardados, ui, nube]);
-    return /* @__PURE__ */ React.createElement("div", { className: "app" }, /* @__PURE__ */ React.createElement(Cabecera, { m }), /* @__PURE__ */ React.createElement("div", { className: "pagina pagina--config" }, /* @__PURE__ */ React.createElement(Configuracion, { m })), /* @__PURE__ */ React.createElement(Navegacion, { m }), /* @__PURE__ */ React.createElement("main", { className: "pagina" }, /* @__PURE__ */ React.createElement(Avisos, { m }), /* @__PURE__ */ React.createElement("div", { className: cls("diferido", pendiente && "es-pendiente") }, /* @__PURE__ */ React.createElement(DetalleArriba, { m: mLento })), React.createElement(Seccion, { id: "resultado", titulo: "Resultado de la simulación", sub: React.createElement(LineaDistrito, { esc }), acciones: React.createElement("span", { className: "res-modo" }, m.haySim ? "Con los cambios del «¿qué pasa si…?»" : esc.origen ? "Listas inscritas y tus porcentajes" : "Con los votos de la tabla") }, React.createElement(ResumenResultados, { m }), React.createElement(HistogramaEscanos, { m }), m.ok && React.createElement(CandidatosAdjudicados, { m })), /* @__PURE__ */ React.createElement(Seccion, { id: "simulador", titulo: "Simulador: ¿qué pasa si…?", sub: "Prueba cambios de votos y compáralos con tu escenario base: los porcentajes de la tabla de cocientes." }, /* @__PURE__ */ React.createElement(Simulador, { m })), /* @__PURE__ */ React.createElement("div", { className: cls("diferido", pendiente && "es-pendiente") }, /* @__PURE__ */ React.createElement(DetalleAbajo, { m: mLento })), /* @__PURE__ */ React.createElement("footer", { className: "pie" }, /* @__PURE__ */ React.createElement("p", null, /* @__PURE__ */ React.createElement("b", null, "Cómo se calcula."), " Los cocientes se ordenan con aritmética exacta: ni el orden ni los empates dependen de redondeos. Los «votos necesarios» son el mínimo entero hallado sobre el reparto real, suponiendo que las demás ", T.plur, " conservan sus votos. El umbral se cumple al alcanzarlo o igualarlo. La cercanía al siguiente escaño mide distancia en votos; no es una probabilidad."))), modal && modal.tipo === "importar" && /* @__PURE__ */ React.createElement(ImportarModal, { m, inicial: modal, alCerrar: () => setModal(null) }), modal && modal.tipo === "texto" && /* @__PURE__ */ React.createElement(TextoModal, { titulo: modal.titulo, texto: modal.texto, nota: modal.nota, alCerrar: () => setModal(null) }), /* @__PURE__ */ React.createElement(Tostada, { m }));
+    return /* @__PURE__ */ React.createElement("div", { className: "app" }, /* @__PURE__ */ React.createElement(Cabecera, { m }), /* @__PURE__ */ React.createElement("div", { className: "pagina pagina--config" }, /* @__PURE__ */ React.createElement(Configuracion, { m })), /* @__PURE__ */ React.createElement(Navegacion, { m }), /* @__PURE__ */ React.createElement("main", { className: "pagina" }, /* @__PURE__ */ React.createElement(Avisos, { m }), /* @__PURE__ */ React.createElement("div", { className: cls("diferido", pendiente && "es-pendiente") }, /* @__PURE__ */ React.createElement(DetalleArriba, { m: mLento })), React.createElement(Seccion, { id: "resultado", titulo: "Resultado de la simulación", sub: React.createElement(LineaDistrito, { esc }), acciones: React.createElement("span", { className: "res-modo" }, m.haySim ? "Con los cambios del «¿qué pasa si…?»" : esc.origen ? "Listas inscritas y tus porcentajes" : "Con los votos de la tabla") }, React.createElement(ResumenResultados, { m }), React.createElement(HistogramaEscanos, { m }), React.createElement(PuestosEscanos, { m }), m.ok && React.createElement(CandidatosAdjudicados, { m })), /* @__PURE__ */ React.createElement(Seccion, { id: "simulador", titulo: "Simulador: ¿qué pasa si…?", sub: "Prueba cambios de votos y compáralos con tu escenario base: los porcentajes de la tabla de cocientes." }, React.createElement(FranjaTotales, { m }), /* @__PURE__ */ React.createElement(Simulador, { m })), /* @__PURE__ */ React.createElement("div", { className: cls("diferido", pendiente && "es-pendiente") }, /* @__PURE__ */ React.createElement(DetalleAbajo, { m: mLento }))), modal && modal.tipo === "importar" && /* @__PURE__ */ React.createElement(ImportarModal, { m, inicial: modal, alCerrar: () => setModal(null) }), modal && modal.tipo === "texto" && /* @__PURE__ */ React.createElement(TextoModal, { titulo: modal.titulo, texto: modal.texto, nota: modal.nota, alCerrar: () => setModal(null) }), /* @__PURE__ */ React.createElement(Tostada, { m }));
   }
   var Barrera = class extends React.Component {
     constructor(p) {

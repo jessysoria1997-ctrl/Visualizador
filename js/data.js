@@ -11,7 +11,7 @@ const CONFIG = {
   /* Versión del tablero. Aparece al pie del panel lateral y en la consola
      del navegador: sirve para comprobar de un vistazo que no se está
      ejecutando una copia antigua guardada en la caché.                    */
-  version: '5.6.1',
+  version: '5.9.1',
 
   /* ── ✏️ EDITAR · MARCA ───────────────────────────────────────────────────
      Nombre de tu consultora, títulos del encabezado y logo.               */

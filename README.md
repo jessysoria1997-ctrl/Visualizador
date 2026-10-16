@@ -943,8 +943,10 @@ Lo que la cartografía no permite trazar se dice en vez de inventarse:
 Dentro del simulador, en este orden:
 
 1. **Cocientes electorales**: la tabla donde se escriben los porcentajes. Sigue
-   igual, con su menú «⋯» (ordenar, poner los porcentajes en cero), la carga de
-   archivos y los blancos y nulos.
+   igual, con su menú «⋯» (ordenar, poner los porcentajes en cero) y la carga de
+   archivos. Al final ya no están los campos de votos en blanco y nulos ni su
+   texto: esas cifras llegan del bloque de participación y el cálculo de los
+   votos válidos no cambió. La franja gris de totales pasó al simulador de votos.
 2. **Resultado de la simulación**, encabezado con el distrito (concejalía,
    circunscripción con su nombre literal y cantón):
    - **Resumen**: escaños asignados frente a los del distrito, organizaciones con
@@ -953,14 +955,56 @@ Dentro del simulador, en este orden:
    - **Distribución de escaños por organización política**: histograma grande con
      las organizaciones en el eje horizontal (número de lista y nombre completo,
      sin cortes) y los escaños en el vertical, de mayor a menor. Encima de cada
-     barra, los escaños exactos y su parte del total; debajo, el % de votos. Solo
+     barra, el % de votos de la lista sobre los votos válidos considerados;
+     debajo, su total de votos. Solo
      aparecen las que obtienen escaño; las demás van aparte, en *Sin escaño en
      esta simulación*. Un sello comprueba que la suma de las barras es la del
      distrito.
+   - **Puestos de los escaños por organización política** (v5.9.1): una fila
+     por cada organización con escaño y una columna por escaño, en el orden en
+     que se adjudica (1.º = el cociente más alto). Cada casilla de color es un
+     puesto que gana esa organización, con su número, y bajo el nombre van sus
+     puestos («2 escaños: 1.º y 3.º»). Al pasar el ratón por una casilla se ve
+     qué escaño de la lista es y su cociente. Sale de la adjudicación real del
+     motor.
    - **Candidatos que obtienen escaño**, como antes.
 3. **Simulador ¿qué pasa si…?**: deslizadores y trasvase de votos a partir de
    los porcentajes escritos; *Restablecer* vuelve a ellos. El resultado y los
    análisis se recalculan al instante.
+   - Encima, la **franja gris de totales** (total de votos, de listas, escaños
+     disponibles y votos válidos considerados), la misma que estaba al final de
+     la tabla de cocientes.
+   - Los escaños son siempre los del distrito: no se eligen. Los botones
+     ±10 / 25 / 50 / 100 % ya no están (los deslizadores quedan en ±50 %).
+   - Junto a cada barra, los **escaños de la lista y sus posiciones de
+     adjudicación** («2 escaños: 1.º y 4.º»).
+   - En la columna de la derecha, los votos **mínimo y máximo** con los que la
+     lista tiene los escaños que tiene en ese momento (por ejemplo, «Para 3
+     escaños · mín. … · máx. …»), con las demás listas como están. Al mover su barra
+     a otro número de escaños, la columna pasa a ese número. Son búsquedas
+     exactas del motor; con todos los escaños en juego el máximo es «sin tope».
+   - **Nuevo** abre otro escenario: el **reparto de escaños** (v5.9). Los votos
+     vuelven a los de la tabla de cocientes y cada lista pasa a tener una barra
+     de escaños, de 0 a los del distrito, que empieza en 0: todas pueden llegar
+     a todos. Lo que se le da a una lista deja de estar libre para las demás: si
+     una tiene 4 de 5, las otras llegan como mucho a 1 (los escaños que ya no
+     caben se ven rayados y su «+» se apaga). Arriba, un **aviso** dice cuántos
+     faltan —«Te queda 1 escaño para completar»— hasta «Completaste los 5
+     escaños», con una franja de los escaños repartidos en el color de cada
+     lista; cada cambio lo repite también en el aviso flotante de abajo. La
+     columna de la derecha da los votos **mínimo y máximo** con los que esa
+     lista obtendría los escaños elegidos si las demás conservan los votos de
+     la tabla (misma búsqueda exacta del motor). **Nuevo** otra vez empieza
+     otro reparto, todas en 0, y **Volver a los votos** regresa a los
+     deslizadores de votos. Durante el reparto no se muestran el trasvase ni
+     *Restablecer* / *Fijar como base*, que son de los votos; el reparto no se
+     guarda al recargar la página.
+   - **Escaño adicional**, para la lista que se elija: votos adicionales que
+     necesita, cociente que debe superar, posición de adjudicación que debe
+     alcanzar, margen frente a la lista que la ocupa (votos que tendrían que
+     pasar de esa lista y diferencia de cocientes) y rango de votos con el que
+     conserva sus escaños. Todo sale de búsquedas exactas del motor sobre el
+     reparto real con todas las listas; las demás conservan sus votos.
 4. **Análisis de sensibilidad**: sin cambios.
 5. **Estabilidad y cambios en la representación** (nuevo, ver abajo).
 6. **Cómo se asignan los escaños** (nuevo, ver abajo).
@@ -1023,7 +1067,8 @@ No cambia la fórmula: explica la que usa el sistema.
 
 Webster / Sainte-Laguë y Sainte-Laguë modificado se quitaron de su tabla
 `METODOS`, y con ellos la sección que los comparaba. Para devolverlos basta con
-añadir su entrada en esa tabla, al inicio del archivo.
+añadir su entrada en esa tabla, al inicio del archivo. En la interfaz no hay
+selector de método: la configuración muestra «D'Hondt» fijo.
 
 ### El bloque de participación
 
@@ -1034,6 +1079,11 @@ oficiales:
 electores − ausentes                 = votos emitidos
 votos emitidos − nulos − blancos     = votos válidos
 ```
+
+Los votos emitidos son la tarjeta **Sufragantes**. Las tarjetas muestran solo
+su título y su cifra; la cuenta en dos pasos va debajo de ellas, sin el párrafo
+que la explicaba (se quitó en la v5.9.1). El simulador tampoco lleva ya la nota
+«Cómo se calcula» al pie.
 
 El **ausentismo va sobre el padrón**; los **nulos y los blancos, sobre los
 votos emitidos**. Los tres campos y el padrón se escriben; lo escrito no se
@@ -1108,7 +1158,7 @@ del cliente: sin cambiar mayúsculas, tildes, palabras ni orden. Las reglas:
 2. Si el Excel usa nombres de **orientación** (NORTE, CENTRO, SUR…), se empareja
    por **ubicación**: el centro de las parroquias de cada circunscripción del
    registro. Así sale Quito: 1 = CIRCUNSCRIPCION URBANA NORTE, 2 = CENTRO,
-   3 = SUR. La ficha recuerda la numeración del registro.
+   3 = SUR.
 3. Si el Excel no trae esa circunscripción, se usa el nombre **del registro de
    inscripción 2027**, también literal. Nada se inventa.
 
