@@ -27,16 +27,18 @@
    cuatro datos se puede escribir y el simulador se actualiza sin perder los
    porcentajes de las listas.
 
-   El simulador es el mismo archivo (asignacion/simulador.html) abierto con
-   ?ambito=vocales: guarda su borrador y sus escenarios en claves propias, así
-   que nunca lee lo que dejó el de concejales ni al revés.
+   El simulador es una copia propia del de concejales
+   (asignacion/simulador_vocales.html), con su borrador y sus escenarios en
+   claves propias: nunca lee ni escribe lo de concejales. La sección tampoco
+   cambia el territorio de las demás: Asignación-Escaños (concejales) queda
+   exactamente como se dejó.
    ========================================================================== */
 
 const VOC_DIG = 'VOCALES';           // dignidad en el registro y en el histórico
 const VOC_ANIO = 2023;               // de aquí sale SOLO la participación de partida
 const VOC_ANIO_SIM = 2027;
 const VOC_CLAVE_BORRADOR = 'simuladorEscanos.v1.borrador.vocales';
-const VOC_PAGINA = 'asignacion/simulador.html';
+const VOC_PAGINA = 'asignacion/simulador_vocales.html';   // copia propia: el de concejales no se toca
 const VOC_ETIQUETA = 'Vocales de juntas parroquiales';
 
 /* Colores del mapa: los de la paleta de vocales del tablero. */
@@ -247,10 +249,11 @@ async function abrirVocales() {
     const a = (typeof alcanceClaves === 'function') ? alcanceClaves() : null;
     if (a) { o.provK = a.provK; o.cantK = a.cantK || ''; }
   }
-  /* El territorio se comparte con las demás secciones: se entra con el que
-     venía de allá, salvo que aquí ya se hubiera elegido otro. Si en el
-     histórico se miraba una parroquia rural, se abre esa. */
-  const f = (typeof SEC !== 'undefined' && SEC.filtros) ? SEC.filtros.historico : null;
+  /* Solo la PRIMERA vez se parte del territorio que se miraba en las otras
+     secciones (y, si en el histórico había una parroquia rural, de esa).
+     Después Vocales-Escaños conserva el suyo: las demás secciones no lo
+     cambian y esta nunca cambia el de ellas (concejales queda como esté). */
+  const f = (!VOC.montado && typeof SEC !== 'undefined' && SEC.filtros) ? SEC.filtros.historico : null;
   let otroTerritorio = false;
   if (f && f.provK && (f.provK !== o.provK || f.cantK !== o.cantK)) {
     VOC.tocado = {};
@@ -404,7 +407,7 @@ function construirPanelVocales() {
         <label for="v-parr">Parroquia</label>
         <div class="select-wrap"><select id="v-parr">
           <option value="">Elige una parroquia</option>
-          ${ps.map(p => `<option value="${escaparHTML(p.clave)}" ${p.clave === o.clave ? 'selected' : ''}>${escaparHTML(p.nombre)} · ${nEscVoc(p.escanos)}</option>`).join('')}
+          ${ps.map(p => `<option value="${escaparHTML(p.clave)}" ${p.clave === o.clave ? 'selected' : ''}>${escaparHTML(p.nombre)}</option>`).join('')}
         </select></div>
         ${act ? `<small class="campo-nota">${nEscVoc(act.escanos)}${act.electores ? ` · ${fmtNum(act.electores)} electores` : ''}
           · ${fmtNum(act.listas)} ${act.listas === 1 ? 'lista inscrita' : 'listas inscritas'}</small>` : ''}
@@ -517,7 +520,7 @@ function ponerEnSimuladorVoc(escenario) {
   }
   const marco = document.getElementById('v-marco');
   if (marco) {
-    marco.src = VOC_PAGINA + '?ambito=vocales&v=' + CONFIG.version + '&t=' + Date.now();
+    marco.src = VOC_PAGINA + '?v=' + CONFIG.version + '&t=' + Date.now();
     mostrarMarcoVoc(true);
   }
   return true;
@@ -1239,25 +1242,4 @@ function actualizarCabeceraVocales() {
         ? ` (prueba; la junta elige ${fmtNum(t.escanos)})` : ''} sobre
        ${c.validos > 0 ? fmtNum(c.validos) : '—'} votos válidos. Escribe el porcentaje de cada lista
        en el simulador.`;
-}
-
-
-/* ── Al salir de la sección: el territorio viaja a las demás ────────────── */
-
-/** Vocales → Histórico y Preinscritos (la misma regla que Asignación). */
-function sincronizarDesdeVocales() {
-  if (typeof SEC === 'undefined' || !SEC.filtros || !VOC.origen.provK) return;
-  const o = VOC.origen;
-  const f = SEC.filtros.historico;
-  if (f.provK !== o.provK || f.cantK !== o.cantK) f.parrK = '';
-  f.provK = o.provK;
-  f.cantK = o.cantK || '';
-  if (typeof ESTADO !== 'undefined') {
-    if (ESTADO.provK !== o.provK || ESTADO.cantK !== o.cantK) {
-      ESTADO.parrK = '';
-      ESTADO.pagina = 1;
-    }
-    ESTADO.provK = o.provK;
-    ESTADO.cantK = o.cantK || '';
-  }
 }

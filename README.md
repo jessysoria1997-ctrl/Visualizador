@@ -198,8 +198,9 @@ La barra bajo el encabezado alterna entre cuatro secciones:
 | 🪑 **Asignación-Escaños** | Con las listas inscritas y esta participación, ¿cuántos concejales le toca a cada lista y a qué candidatos? | 2027 |
 | 🏘️ **Vocales-Escaños** (v6.0) | Lo mismo para los vocales de cada junta parroquial rural | 2027 |
 
-Las dos últimas comparten el simulador y su botón **Descargar reporte PDF**
-(§6b-2 y §6b-3).
+Las dos últimas usan el mismo simulador —vocales, en una copia propia— con el
+botón **Descargar reporte PDF** (§6b-2 y §6b-3). Vocales-Escaños es
+independiente: no cambia nada de las otras tres.
 
 **Preinscritos conserva todo lo que ya tenía** y suma al final un
 **histograma de distribución por grupo etario** (2027), que muestra solo el
@@ -588,7 +589,8 @@ CARPETA_ELECTORAL/
 ├── index.html              Estructura de la página
 ├── servidor.py             Servidor local (ver §1)
 ├── css/
-│   └── styles.css          Sistema visual completo
+│   ├── styles.css          Sistema visual completo
+│   └── vocales.css         Solo la sección Vocales-Escaños (v6.0)
 ├── js/
 │   ├── secciones.js        Histórico, Resultados y Análisis territorial
 │   ├── asignacion.js       Sección Asignación: panel, participación, puente y marco
@@ -612,7 +614,8 @@ CARPETA_ELECTORAL/
 │   ├── distributivo.json     Juntas y recintos de todo el país  (534 KB)
 │   └── etario2027.json       Padrón 2027 por grupo etario       (10 KB)
 ├── asignacion/
-│   └── simulador.html      Simulador de escaños (solo D'Hondt) y reporte PDF; lo usan concejales y vocales
+│   ├── simulador.html      Simulador de escaños de concejales (solo D'Hondt), con el reporte PDF
+│   └── simulador_vocales.html  Copia del simulador para Vocales-Escaños (v6.0)
 └── assets/
     └── logo.svg            Logo (reemplazable)
 ```
@@ -1127,8 +1130,14 @@ puede calcular, el botón queda gris y no se genera un PDF con cifras a medias.
 
 Lo escribe un generador propio que va dentro de `asignacion/simulador.html`
 (`<script id="pdf-mini">`, fuentes estándar Helvetica): no necesita conexión
-ni librerías externas. La opción *PDF* del menú de exportaciones de siempre
-sigue como estaba.
+ni librerías externas. La marca, la provincia y el año de la participación de
+partida los lee del tablero, sin cambiar nada de él. La opción *PDF* del menú
+de exportaciones de siempre sigue como estaba.
+
+**El botón es lo único nuevo en concejales.** `js/asignacion.js`, `js/app.js`
+y `css/styles.css` son idénticos a los de la v5.9.1, y `asignacion/simulador.html`
+es el de la v5.9.1 con el botón y el código del reporte añadidos, sin otra
+línea cambiada.
 
 ### Solo D'Hondt
 
@@ -1300,10 +1309,11 @@ elige solo una; si elige urbanos y rurales (Pedernales), se escoge con su botón
 
 La cuarta sección hace para los **vocales de las juntas parroquiales rurales**
 lo mismo que Asignación-Escaños hace para los concejales: la misma
-estructura, el mismo simulador (el mismo `asignacion/simulador.html`) y el
-mismo método, **D'Hondt**. Solo cambia el distrito: cada parroquia rural elige
-su propia junta, con sus listas, sus votos y sus vocales. Asignación-Escaños
-no cambió.
+estructura, el mismo simulador (en una copia propia,
+`asignacion/simulador_vocales.html`) y el mismo método, **D'Hondt**. Solo
+cambia el distrito: cada parroquia rural elige su propia junta, con sus
+listas, sus votos y sus vocales. Asignación-Escaños no cambió y esta sección
+no lo toca: ni sus archivos, ni lo que tenga escrito, ni su territorio.
 
 > D'Hondt es el método de concejales y el que se pidió para vocales. Como
 > referencia: en 2023 los vocales se adjudicaron con Webster (divisores 1, 3,
@@ -1313,8 +1323,9 @@ no cambió.
 ### Cómo se usa
 
 1. **Provincia y cantón**, en el panel de la izquierda o con un clic en el
-   mapa. Al abrir la sección se respeta el territorio que venía de las otras,
-   y al salir se lo lleva.
+   mapa. La primera vez la sección se abre con el territorio que se miraba en
+   las otras; después conserva el suyo, y elegir aquí otro cantón no cambia el
+   de ninguna otra sección (concejales sigue en su distrito, con lo escrito).
 2. **Parroquia rural.** Aparecen solo las parroquias del cantón con listas
    inscritas para vocales en 2027, cada una con su nombre exacto y sus vocales
    (`CALDERON · 7 vocales`). Se elige en el panel, en la lista junto al mapa o
@@ -1385,18 +1396,22 @@ total dé 821 parroquias y 4.109 vocales.
 
 ### Separado de concejales
 
-El simulador de vocales se abre con `?ambito=vocales` y guarda su borrador y
-sus escenarios en claves propias
-(`simuladorEscanos.v1.borrador.vocales`,
-`simuladorEscanos.v1.escenarios.vocales`): nunca lee lo que dejó el de
-concejales, ni al revés. Las claves de concejales son las de siempre.
+El simulador de vocales es una copia del de concejales
+(`asignacion/simulador_vocales.html`) que guarda su borrador y sus escenarios
+en claves propias (`simuladorEscanos.v1.borrador.vocales`,
+`simuladorEscanos.v1.escenarios.vocales`): nunca lee, escribe ni borra lo de
+concejales, que conserva sus claves de siempre. La sección tampoco cambia el
+territorio de las demás: al volver a Asignación-Escaños, concejales está en el
+mismo distrito, con los mismos porcentajes y el simulador sin recargar.
 
 ### Dónde vive
 
 ```
-js/vocales.js          selección, mapa, participación, listas y puente con el simulador
-data/vocales.json      vocales 2023 por parroquia (nombres, códigos, votos, vocales)
-preparar_vocales.py    genera vocales.json desde la base .sav del cliente
+js/vocales.js                       selección, mapa, participación, listas y puente con el simulador
+asignacion/simulador_vocales.html   copia del simulador, con claves de almacenamiento propias
+css/vocales.css                     estilos de la sección (solo #vista-vocales)
+data/vocales.json                   vocales 2023 por parroquia (nombres, códigos, votos, vocales)
+preparar_vocales.py                 genera vocales.json desde la base .sav del cliente
 ```
 
 `compilar_usuario.py` también recorta `vocales.json` al territorio de cada
@@ -1716,7 +1731,10 @@ el mapa).
 La v6.0 se verificó además con dos baterías nuevas: el reporte PDF en siete
 escenarios más el de *Nuevo* (67 comprobaciones, con las cifras del PDF
 contra las del motor y la pantalla) y Vocales-Escaños recorriendo las 824
-parroquias (46 comprobaciones).
+parroquias (46 comprobaciones). Otra prueba deja una simulación de concejales a
+medias, cambia de cantón dentro de Vocales-Escaños y vuelve: concejales tiene
+que seguir exactamente igual (distrito, porcentajes, simulador sin recargar y
+colores).
 
 Las capas de `data/` se derivaron de las tres que entregaste: se reproyectó la
 parroquial de UTM 17S a WGS84, se corrigió un problema de codificación en

@@ -2824,19 +2824,8 @@ textarea.control { height: auto; padding: 10px; line-height: 1.4; resize: vertic
   }
 
   // src/ui/almacen.js
-  /* v6.0 · ?ambito=vocales (u otro) separa el borrador y los escenarios de
-     cada módulo del tablero: el simulador de vocales nunca lee lo que dejó el
-     de concejales, ni al revés. Sin el parámetro, las claves de siempre. */
-  var AMBITO_SIM = function() {
-    try {
-      const a = new URLSearchParams(window.location.search).get("ambito");
-      return a && /^[a-z]{1,20}$/.test(a) ? a : "";
-    } catch (e) {
-      return "";
-    }
-  }();
-  var CLAVE_BORRADOR = "simuladorEscanos.v1.borrador" + (AMBITO_SIM ? "." + AMBITO_SIM : "");
-  var CLAVE_ESCENARIOS = "simuladorEscanos.v1.escenarios" + (AMBITO_SIM ? "." + AMBITO_SIM : "");
+  var CLAVE_BORRADOR = "simuladorEscanos.v1.borrador";
+  var CLAVE_ESCENARIOS = "simuladorEscanos.v1.escenarios";
   var MAX_GUARDADOS = 40;
   function escenarioEjemplo() {
     return {
@@ -2901,11 +2890,6 @@ textarea.control { height: auto; padding: 10px; line-height: 1.4; resize: vertic
       /* De dónde salen estas listas: territorio, dignidad y circunscripción. */
       origen: o.origen && typeof o.origen === "object" ? {
         ambito: String(o.origen.ambito || "").slice(0, 160),
-        provincia: String(o.origen.provincia || "").slice(0, 120),
-        canton: String(o.origen.canton || "").slice(0, 120),
-        parroquia: String(o.origen.parroquia || "").slice(0, 160),
-        anioParticipacion: Number.isInteger(o.origen.anioParticipacion) ? o.origen.anioParticipacion : null,
-        notaFuente: String(o.origen.notaFuente || "").slice(0, 400),
         dignidad: String(o.origen.dignidad || "").slice(0, 80),
         circunscripcion: String(o.origen.circunscripcion || "").slice(0, 80),
         fuente: String(o.origen.fuente || "").slice(0, 120),
@@ -3914,6 +3898,19 @@ textarea.control { height: auto; padding: 10px; line-height: 1.4; resize: vertic
   function fechaLargaRP(d) {
     return d.getDate() + " de " + MESES_RP[d.getMonth()] + " de " + d.getFullYear() + ", " + dos(d.getHours()) + ":" + dos(d.getMinutes());
   }
+  /* Lo que sabe el tablero que contiene este marco y el escenario no guarda: la
+     marca (CONFIG.marca) y, en concejales, la provincia y el año de la
+     participación de partida. Solo se LEE, en la misma ventana del tablero; no
+     se cambia nada de él. Abierto suelto (sin tablero), devuelve null. */
+  function delTablero(expr) {
+    try {
+      const p = window.parent;
+      if (!p || p === window || typeof p.eval !== "function") return null;
+      return (0, p.eval)(expr);
+    } catch (e) {
+      return null;
+    }
+  }
   function slugRP(s) {
     return String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
   }
@@ -4008,9 +4005,11 @@ textarea.control { height: auto; padding: 10px; line-height: 1.4; resize: vertic
     const cerca = margenes && margenes.masCercana ? { nombre: (esc.listas.find((l) => l.id === margenes.masCercana.listaId) || {}).nombre || margenes.masCercana.nombre, adicionales: margenes.masCercana.proximo.adicionales, numero: margenes.masCercana.proximo.numero } : null;
     const empate = (res.empates || []).find((e) => e.decisivo) || null;
 
-    // Territorio, tal como lo manda el tablero (nombres sin tocar).
+    // Territorio, tal como lo manda el tablero (nombres sin tocar). Concejales
+    // no manda la provincia ni el año de la participación: se leen del tablero.
+    const delAsig = o && !o.provincia && !o.parroquia ? delTablero('typeof ASIG !== "undefined" && ASIG.origen && ASIG.origen.provK && typeof ambitoTexto === "function" ? { provincia: ambitoTexto({ provK: ASIG.origen.provK }), anio: ASIG.sinReferencia ? null : ASIG.origen.anio || null } : null') : null;
     const terr = {
-      provincia: o && o.provincia || "", canton: o && (o.canton || o.ambito) || "", parroquia: o && o.parroquia || "",
+      provincia: o && o.provincia || delAsig && delAsig.provincia || "", canton: o && (o.canton || o.ambito) || "", parroquia: o && o.parroquia || "",
       circunscripcion: o && o.circunscripcion || "", dignidad: o && o.dignidad || "", anio: o && o.anio || null
     };
     const partesLugar = [terr.parroquia ? "Parroquia " + terr.parroquia : "", terr.canton, terr.circunscripcion].filter(Boolean);
@@ -4023,6 +4022,7 @@ textarea.control { height: auto; padding: 10px; line-height: 1.4; resize: vertic
       generado: ahora, fechaLarga: fechaLargaRP(ahora),
       fechaCorta: dos(ahora.getDate()) + "/" + dos(ahora.getMonth() + 1) + "/" + ahora.getFullYear() + " " + dos(ahora.getHours()) + ":" + dos(ahora.getMinutes()),
       tipo, etiquetaEsc, terr, lugar, T: terminosRP(T), origen: o,
+      anioPart: o && Number.isInteger(o.anioParticipacion) ? o.anioParticipacion : delAsig && Number.isInteger(delAsig.anio) ? delAsig.anio : null,
       metodo: { nombre: metodo.nombreLargo || metodo.nombre || res.metodo.nombre, serie: metodo.serie || res.metodo.serie, descripcion: metodo.descripcion || "" },
       regla: { nombre: regla.nombre || res.desempate, descripcion: regla.descripcion || "" },
       S, Sbase: base.escanos, umbral: Number(esc.umbral) || 0, baseModo: (Motor.BASES_CALCULO[esc.baseModo] || {}).nombre || "",
@@ -4130,14 +4130,10 @@ textarea.control { height: auto; padding: 10px; line-height: 1.4; resize: vertic
   /** Marca del tablero que envuelve al simulador (textos y logo de
       CONFIG.marca). Sin tablero, los textos de siempre y el logo del proyecto. */
   async function marcaReporte() {
-    let marca = null, desde = null;
+    const marca = delTablero('typeof CONFIG !== "undefined" && CONFIG.marca ? CONFIG.marca : null');
+    let desde = null;
     try {
-      const p = window.parent;
-      const m = p && p !== window ? p.MARCA_TABLERO || p.CONFIG && p.CONFIG.marca : null;
-      if (m) {
-        marca = m;
-        desde = p.location.href;
-      }
+      if (marca) desde = window.parent.location.href;
     } catch (e) {
     }
     let url = null;
@@ -4599,7 +4595,7 @@ textarea.control { height: auto; padding: 10px; line-height: 1.4; resize: vertic
         ["Fórmula electoral", R.metodo.nombre + ": " + (R.metodo.descripcion ? R.metodo.descripcion.charAt(0).toLowerCase() + R.metodo.descripcion.slice(1) : "los votos de cada " + T.sing + " se dividen para la serie " + R.metodo.serie + " y los escaños se asignan a los cocientes más altos.")],
         ["Escaños a distribuir", fmtEntero(R.S) + ". Fuente: " + R.fuenteEsc],
         ["Votos utilizados", "Los votos válidos de cada " + T.sing + ": " + fmtEntero(tot.votosListas) + " en total en el escenario " + (R.tipo === "simulado" ? "simulado" : "de referencia") + ". Los votos blancos (" + fmtEntero(tot.blancos) + ") y nulos (" + fmtEntero(tot.nulos) + ") no entran en el reparto; con ellos, el total de votos es " + fmtEntero(tot.emitidos) + "."],
-        ["Base de los porcentajes", fmtEntero(R.B) + " votos válidos" + (R.disponibles > 0 ? " del distrito, que calcula el tablero (sección Participación) a partir del padrón y de los porcentajes de ausentismo, nulos y blancos" + (o && o.anioParticipacion ? "; los de partida son los de la elección de " + o.anioParticipacion : "") + "." : " de la referencia.")],
+        ["Base de los porcentajes", fmtEntero(R.B) + " votos válidos" + (R.disponibles > 0 ? " del distrito, que calcula el tablero (sección Participación) a partir del padrón y de los porcentajes de ausentismo, nulos y blancos" + (R.anioPart ? "; los de partida son los de la elección de " + R.anioPart : "") + "." : " de la referencia.")],
         ["Umbral", R.umbral > 0 ? fmtUmbral(R.umbral) + " de " + R.baseModo.toLowerCase() + "." : "Sin umbral: participan todas las " + T.plur + " con votos."],
         ["Criterio de desempate", R.regla.nombre + ". " + R.regla.descripcion + (R.empate ? " En este escenario hay un empate exacto en el último escaño." : " En este escenario no hay empates que decidan un escaño.")],
         ["Fuente de los datos", o ? (o.fuente ? "Listas: " + o.fuente + (o.anio ? " (" + o.anio + ")" : "") + ". " : "") + (o.notaFuente ? o.notaFuente + " " : "") + "Votos de referencia: los de la tabla de cocientes del simulador." : "Datos escritos o importados en el simulador."],
@@ -5267,7 +5263,7 @@ textarea.control { height: auto; padding: 10px; line-height: 1.4; resize: vertic
     const { esc, d } = m;
     const metodo = Motor.METODOS[esc.metodo];
     const set = (campo, valor) => d({ tipo: "config/set", campo, valor });
-    return /* @__PURE__ */ React.createElement("section", { className: "config config--fija", "aria-label": "Configuración de la elección" }, /* @__PURE__ */ React.createElement("div", { className: "campo campo--ancho" }, /* @__PURE__ */ React.createElement("p", { className: "campo__et" }, "Método de asignación"), React.createElement("p", { id: "cfg-metodo", className: "cfg-fijo" }, metodo ? metodo.nombreLargo : "D'Hondt"), /* @__PURE__ */ React.createElement("p", { className: "campo__ayuda" }, "Divisores ", metodo ? metodo.serie : "")), /* @__PURE__ */ React.createElement("div", { className: "campo" }, /* @__PURE__ */ React.createElement("p", { className: "campo__et" }, "Escaños"), /* @__PURE__ */ React.createElement("p", { id: "cfg-escanos", className: "cfg-fijo" }, Number.isInteger(esc.escanos) ? fmtEntero(esc.escanos) : "—"), /* @__PURE__ */ React.createElement("p", { className: "campo__ayuda" }, m.base && Number.isInteger(m.base.escanos) && esc.escanos !== m.base.escanos ? "En prueba; los originales son " + fmtEntero(m.base.escanos) : m.estado && m.estado.esEjemplo ? "A repartir" : "Fijos: los que elige " + (esc.origen && esc.origen.circunscripcion ? "la circunscripción" : esc.origen && esc.origen.parroquia ? "la junta parroquial" : "el cantón") + (esc.origen && esc.origen.escanosDe === "inscritos" ? ", según las listas inscritas" : ""))));
+    return /* @__PURE__ */ React.createElement("section", { className: "config config--fija", "aria-label": "Configuración de la elección" }, /* @__PURE__ */ React.createElement("div", { className: "campo campo--ancho" }, /* @__PURE__ */ React.createElement("p", { className: "campo__et" }, "Método de asignación"), React.createElement("p", { id: "cfg-metodo", className: "cfg-fijo" }, metodo ? metodo.nombreLargo : "D'Hondt"), /* @__PURE__ */ React.createElement("p", { className: "campo__ayuda" }, "Divisores ", metodo ? metodo.serie : "")), /* @__PURE__ */ React.createElement("div", { className: "campo" }, /* @__PURE__ */ React.createElement("p", { className: "campo__et" }, "Escaños"), /* @__PURE__ */ React.createElement("p", { id: "cfg-escanos", className: "cfg-fijo" }, Number.isInteger(esc.escanos) ? fmtEntero(esc.escanos) : "—"), /* @__PURE__ */ React.createElement("p", { className: "campo__ayuda" }, m.base && Number.isInteger(m.base.escanos) && esc.escanos !== m.base.escanos ? "En prueba; los originales son " + fmtEntero(m.base.escanos) : m.estado && m.estado.esEjemplo ? "A repartir" : "Fijos: los que elige " + (esc.origen && esc.origen.circunscripcion ? "la circunscripción" : "el cantón") + (esc.origen && esc.origen.escanosDe === "inscritos" ? ", según las listas inscritas" : ""))));
   }
   /* v5.6: primero se escriben los porcentajes; después, el resultado, el
      «¿qué pasa si…?» y los análisis. */
@@ -5862,7 +5858,6 @@ textarea.control { height: auto; padding: 10px; line-height: 1.4; resize: vertic
     const partes = [];
     if (o.dignidad) partes.push(ce("span", { key: "d" }, o.dignidad));
     if (o.circunscripcion) partes.push(ce("b", { key: "c", className: "res-circ" }, o.circunscripcion));
-    else if (o.parroquia) partes.push(ce("b", { key: "p", className: "res-circ" }, o.parroquia));
     if (o.ambito) partes.push(ce("span", { key: "a" }, o.ambito));
     return ce("span", { className: "res-distrito" }, partes.reduce((acc, el, i) => i === 0 ? [el] : acc.concat([ce("span", { key: "s" + i, className: "res-distrito__sep", "aria-hidden": "true" }, "·"), el]), []));
   }
@@ -6888,7 +6883,7 @@ textarea.control { height: auto; padding: 10px; line-height: 1.4; resize: vertic
       if (!this.state.error) return this.props.children;
       return /* @__PURE__ */ React.createElement("div", { className: "pagina" }, /* @__PURE__ */ React.createElement("div", { className: "aviso aviso--error fallo" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("p", null, /* @__PURE__ */ React.createElement("b", null, "Algo falló al mostrar el simulador."), " Tus escenarios guardados no se han borrado."), /* @__PURE__ */ React.createElement("p", { className: "tenue" }, String(this.state.error && this.state.error.message ? this.state.error.message : this.state.error)), /* @__PURE__ */ React.createElement("p", null, /* @__PURE__ */ React.createElement("button", { type: "button", className: "boton boton--primario", onClick: () => {
         try {
-          window.localStorage.removeItem(CLAVE_BORRADOR);
+          window.localStorage.removeItem("simuladorEscanos.v1.borrador");
         } catch (e) {
         }
         window.location.reload();

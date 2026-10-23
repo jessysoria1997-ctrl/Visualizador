@@ -103,9 +103,6 @@ function aplicarMarca() {
   const poner = (sel, texto) => { const e = q(sel); if (e) e.textContent = texto; };
 
   document.title = `${m.titulo} · ${m.empresa}`;
-  /* v6.0 · El simulador (en su marco) lee de aquí la marca para el reporte
-     PDF: CONFIG es una constante y no se ve como propiedad de window. */
-  window.MARCA_TABLERO = Object.assign({}, m);
   poner('#marca-titulo', m.titulo);
   poner('#marca-subtitulo', m.subtitulo);
   poner('#marca-empresa', m.empresa);

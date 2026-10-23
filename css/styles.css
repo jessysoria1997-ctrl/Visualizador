@@ -1449,26 +1449,3 @@ body.sin-sesion .cuerpo{filter:blur(6px);pointer-events:none;user-select:none}
   .asig-mapa-fila{grid-template-columns:minmax(0,1fr)}
   .asig-ficha{grid-template-columns:minmax(0,1fr)}
 }
-
-/* — v6.0 · Vocales-Escaños: la misma vista clara que Asignación ───────────
-   Mismas variables y colores; el acento es el rosa de vocales, bajado para
-   que lea sobre blanco. */
-#vista-vocales{
-  --ink-900:#F2F0EA;  --ink-850:#FFFFFF;  --ink-800:#FFFFFF;
-  --ink-700:#F4F2EC;  --ink-600:#E9E6DD;
-  --line:#D8D4C9;     --line-soft:#E4E1D7;
-  --text:#141413;     --text-2:#45433D;   --muted:#6E6A60;
-  --acento:#A63E7C;
-  --sombra:0 1px 2px rgba(20,20,19,.05), 0 10px 26px -18px rgba(20,20,19,.35);
-  background:#FAF9F5;
-  border:1px solid #E4E1D7;
-  border-radius:var(--radio);
-  padding:14px;
-  color:var(--text);
-}
-#vista-vocales .sec-nota,
-#vista-vocales .part-ayuda{color:#5E5B53}
-#vista-vocales .asig-marco{background:#FAF9F5}
-/* Un cantón puede tener muchas parroquias rurales (Quito, 33): la lista se
-   desplaza junto al mapa en vez de estirar la tarjeta. */
-#vista-vocales .voc-lista{display:flex;flex-direction:column;gap:6px;max-height:440px;overflow-y:auto;padding-right:4px}

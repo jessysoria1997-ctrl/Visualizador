@@ -77,18 +77,22 @@ async function activarSeccion(id) {
      manda. Preinscritos e Histórico ya se copiaban entre sí; esto trae lo que
      se haya elegido en Asignación antes de salir de ella. */
   if (SEC.activa === 'asignacion') sincronizarDesdeAsignacion();
-  /* v6.0 · Vocales-Escaños (js/vocales.js), con la misma regla. */
-  if (SEC.activa === 'vocales' && typeof sincronizarDesdeVocales === 'function') sincronizarDesdeVocales();
   SEC.activa = id;
 
   document.querySelectorAll('[data-seccion]').forEach(b =>
     b.classList.toggle('activa', b.dataset.seccion === id));
-  ['preinscritos', 'historico', 'asignacion', 'vocales'].forEach(v => {
+  ['preinscritos', 'historico', 'asignacion'].forEach(v => {
     const vista = document.getElementById('vista-' + v);
     const panel = document.getElementById('filtros-' + v);
     if (vista) vista.hidden = v !== id;
     if (panel) panel.hidden = v !== id;
   });
+  /* v6.0 · Vocales-Escaños (js/vocales.js): su vista y su panel. La sección es
+     independiente: no cambia el territorio ni nada de las otras tres. */
+  const vistaVoc = document.getElementById('vista-vocales');
+  const panelVoc = document.getElementById('filtros-vocales');
+  if (vistaVoc) vistaVoc.hidden = id !== 'vocales';
+  if (panelVoc) panelVoc.hidden = id !== 'vocales';
 
   if (id === 'preinscritos') {
     sincronizarHaciaPreinscritos();
@@ -111,12 +115,14 @@ async function activarSeccion(id) {
                         new Error('falta js/asignacion.js'));
       return;
     }
-    /* v6.0 · Vocales de juntas parroquiales: js/vocales.js, con la misma
-       estructura que la asignación de concejales. */
+    /* v6.0 · Vocales de juntas parroquiales (js/vocales.js). */
     if (id === 'vocales') {
-      if (typeof abrirVocales === 'function') await abrirVocales();
-      else mostrarError('No se pudo abrir la sección de vocales.',
-                        new Error('falta js/vocales.js'));
+      try {
+        if (typeof abrirVocales !== 'function') throw new Error('falta js/vocales.js');
+        await abrirVocales();
+      } catch (e) {
+        mostrarError('No se pudo abrir la sección de vocales.', e);
+      }
       return;
     }
 
@@ -126,7 +132,7 @@ async function activarSeccion(id) {
     construirPanelHistorico();
     renderHistorico();
   } catch (e) {
-    mostrarError(id === 'asignacion' || id === 'vocales'
+    mostrarError(id === 'asignacion'
       ? 'No se pudo abrir la sección de asignación de escaños.'
       : 'No se pudo abrir la sección de histórico electoral.', e);
   } finally {
