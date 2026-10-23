@@ -48,6 +48,8 @@ USUARIOS = {
     ('MANABI', 'PEDERNALES'): {'usuario': 'pedernales', 'nombre': 'Pedernales'},
     ('COTOPAXI', 'LA MANA'): {'usuario': 'lamana', 'nombre': 'La Maná'},
     ('PICHINCHA', ''): {'usuario': 'pichincha', 'nombre': 'Pichincha'},
+    ('MANABI', 'JARAMIJO'): {'usuario': 'jaramijo', 'nombre': 'Jaramijó'},
+    ('CARCHI', ''): {'usuario': 'carchi', 'nombre': 'Carchi'},
 }
 
 # Las candidaturas a prefecto son provinciales y no llevan cantón. Se
@@ -402,6 +404,27 @@ if di:
     print(f"     {len(di['recintos'])} recintos, "
           f"{sum(r[5] + r[6] for r in di['recintos'])} juntas")
 
+# ── Vocales 2023 por parroquia (sección Vocales-Escaños, v6.0) ───────────
+# Solo las parroquias del territorio. La composición nacional (4.109 vocales,
+# las juntas de 7) se conserva como texto de referencia; el bloque de control
+# se rehace con lo que queda para que no publique cifras del resto del país.
+print('\n8c · Vocales 2023 (vocales.json)')
+vo = leer('vocales.json')
+if vo:
+    c = vo['campos']
+    iP, iC = c.index('provK'), c.index('cantK')
+    vo['parroquias'] = [f for f in vo['parroquias']
+                        if f[iP] == PROVK and (not CANTK or f[iC] == CANTK)]
+    vo['composicion']['siete'] = [k for k in vo['composicion']['siete']
+                                  if k.split('|')[0] == PROVK and (not CANTK or k.split('|')[1] == CANTK)]
+    suma = lambda campo: sum(f[c.index(campo)] for f in vo['parroquias'])
+    vo['control'] = {'parroquias': len(vo['parroquias']), 'vocales': suma('vocales'),
+                     'validos': suma('validos'), 'nulos': suma('nulos'), 'blancos': suma('blancos'),
+                     'sufragantes': suma('sufragantes'),
+                     'nota': 'Recorte de ' + (CANTK or PROVK) + ': cifras solo de este territorio.'}
+    escribir('vocales.json', vo)
+    print(f"     {len(vo['parroquias'])} parroquias · {vo['control']['vocales']} vocales en 2023")
+
 # ── Un solo usuario en la pantalla de acceso ─────────────────────────────
 print('\n9 · Acceso')
 ac = (DESTINO / 'js' / 'acceso.js').read_text(encoding='utf-8')
@@ -432,6 +455,13 @@ ix = re.sub(r'\n *<button type="button" id="btn-salir".*?</button>\n',
             '\n', ix, count=1, flags=re.S)
 assert 'capa-acceso' not in ix and 'btn-salir' not in ix, \
     'quedó algo de la pantalla de acceso en index.html'
+# Sin parroquias rurales que elijan vocales (Jaramijó, por ejemplo), la pestaña
+# Vocales-Escaños no tendría nada que simular en esta carpeta: se quita su botón.
+if not sub['DIGNIDAD'].map(norm).str.startswith('VOCALES').any():
+    ix = re.sub(r'\n *<button type="button" class="sec-btn" data-seccion="vocales">.*?</button>\n',
+                '\n', ix, count=1, flags=re.S)
+    assert 'data-seccion="vocales"' not in ix, 'no se quitó la pestaña Vocales-Escaños'
+    print('   el territorio no elige vocales: se quitó la pestaña Vocales-Escaños')
 (DESTINO / 'index.html').write_text(ix, encoding='utf-8')
 assert 'clave' not in re.search(r'  usuarios: \[.*?\n  \],', ac, re.S).group(0), \
     'quedó una contraseña en acceso.js'

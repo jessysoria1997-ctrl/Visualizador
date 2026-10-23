@@ -172,6 +172,9 @@ textarea.control { height: auto; padding: 10px; line-height: 1.4; resize: vertic
 .boton--s.boton--solo { width: 30px; }
 .boton--primario { background: var(--acento); color: #ffffff; }
 .boton--primario:hover:not(:disabled) { background: #1b49a8; }
+/* v6.0 · botón del reporte PDF en la cabecera del simulador */
+.seccion__acc .boton--reporte { height: 38px; padding: 0 16px; box-shadow: 0 1px 2px rgba(12,33,69,.18); }
+.seccion__acc .boton--reporte:disabled { opacity: .55; cursor: not-allowed; }
 .boton--suave { background: #ffffff; border-color: var(--linea); color: var(--marino); }
 .boton--suave:hover:not(:disabled) { background: var(--acento-suave); border-color: #c7d5f3; }
 .boton--fantasma { background: transparent; color: var(--tinta-2); }
@@ -2232,6 +2235,401 @@ textarea.control { height: auto; padding: 10px; line-height: 1.4; resize: vertic
   };
 });
 </script>
+<script id="pdf-mini">
+/* ============================================================================
+ * PDF MÍNIMO (v6.0)
+ * Escribe archivos PDF 1.4 sin bibliotecas externas ni conexión: páginas,
+ * texto con las fuentes estándar Helvetica (codificación WinAnsi: tildes,
+ * eñes, «», º, ·, –, …), rectángulos (también redondeados), líneas, círculos,
+ * trazos y marcadores del documento. Las medidas van en puntos (1/72 de
+ * pulgada) y el origen está ARRIBA a la izquierda: «y» crece hacia abajo.
+ * El texto se coloca por su línea base.
+ *
+ *   var doc = PDFMini.crear({ titulo, autor, asunto });
+ *   doc.nuevaPagina();
+ *   doc.texto('Hola', 40, 60, { tam: 12, fuente: 'negrita', color: '#0c2145' });
+ *   var bytes = doc.salida();   // Uint8Array con el PDF
+ * ========================================================================== */
+(function (raiz, fabrica) {
+  if (typeof module === 'object' && module.exports) module.exports = fabrica();
+  else raiz.PDFMini = fabrica();
+})(typeof globalThis !== 'undefined' ? globalThis : this, function () {
+  'use strict';
+
+  /* Anchos de Helvetica y Helvetica-Bold (milésimas de em) para los códigos
+     WinAnsi 32–255, tomados de las métricas AFM de Adobe. La cursiva tiene
+     los mismos anchos que su versión recta. */
+  var ANCHOS = {
+    normal: [278,278,355,556,556,889,667,191,333,333,389,584,278,333,278,278,556,556,556,556,556,556,556,556,556,556,278,278,584,584,584,556,1015,667,667,722,722,667,611,778,722,278,500,667,556,833,722,778,667,778,722,667,611,722,667,944,667,667,611,278,278,278,469,556,333,556,556,500,556,556,278,556,556,222,222,500,222,833,556,556,556,556,333,500,278,556,500,722,500,500,500,334,260,334,584,350,556,0,222,556,333,1000,556,556,333,1000,667,333,1000,0,611,0,0,222,222,333,333,350,556,1000,333,1000,500,333,944,0,500,667,278,333,556,556,556,556,260,556,333,737,370,556,584,333,737,333,400,584,333,333,333,556,537,278,333,333,365,556,834,834,834,611,667,667,667,667,667,667,1000,722,667,667,667,667,278,278,278,278,722,722,778,778,778,778,778,584,778,722,722,722,722,667,667,611,556,556,556,556,556,556,889,500,556,556,556,556,278,278,278,278,556,556,556,556,556,556,556,584,611,556,556,556,556,500,556,500],
+    negrita: [278,333,474,556,556,889,722,238,333,333,389,584,278,333,278,278,556,556,556,556,556,556,556,556,556,556,333,333,584,584,584,611,975,722,722,722,722,667,611,778,722,278,556,722,611,833,722,778,667,778,722,667,611,722,667,944,667,667,611,333,278,333,584,556,333,556,611,556,611,556,333,611,611,278,278,556,278,889,611,611,611,611,389,556,333,611,556,778,556,556,500,389,280,389,584,350,556,0,278,556,500,1000,556,556,333,1000,667,333,1000,0,611,0,0,278,278,500,500,350,556,1000,333,1000,556,333,944,0,500,667,278,333,556,556,556,556,280,556,333,737,370,556,584,333,737,333,400,584,333,333,333,611,556,278,333,333,365,556,834,834,834,611,722,722,722,722,722,722,1000,722,667,667,667,667,278,278,278,278,722,722,778,778,778,778,778,584,778,722,722,722,722,667,667,611,556,556,556,556,556,556,889,556,556,556,556,556,278,278,278,278,611,611,611,611,611,611,611,584,611,611,611,611,611,556,611,556]
+  };
+
+  var FUENTES = {
+    normal: { id: 'F1', base: 'Helvetica', anchos: 'normal' },
+    negrita: { id: 'F2', base: 'Helvetica-Bold', anchos: 'negrita' },
+    cursiva: { id: 'F3', base: 'Helvetica-Oblique', anchos: 'normal' },
+    negritaCursiva: { id: 'F4', base: 'Helvetica-BoldOblique', anchos: 'negrita' }
+  };
+
+  /* Unicode → WinAnsi (cp1252) para los signos que no están en Latin-1. */
+  var CP1252 = {
+    0x20AC: 0x80, 0x201A: 0x82, 0x0192: 0x83, 0x201E: 0x84, 0x2026: 0x85, 0x2020: 0x86,
+    0x2021: 0x87, 0x02C6: 0x88, 0x2030: 0x89, 0x0160: 0x8A, 0x2039: 0x8B, 0x0152: 0x8C,
+    0x017D: 0x8E, 0x2018: 0x91, 0x2019: 0x92, 0x201C: 0x93, 0x201D: 0x94, 0x2022: 0x95,
+    0x2013: 0x96, 0x2014: 0x97, 0x02DC: 0x98, 0x2122: 0x99, 0x0161: 0x9A, 0x203A: 0x9B,
+    0x0153: 0x9C, 0x017E: 0x9E, 0x0178: 0x9F
+  };
+  /* Signos sin equivalente en WinAnsi: se escriben con otro que se lea igual. */
+  var REEMPLAZOS = {
+    '−': '–',            // menos matemático → raya corta (mismo ancho que una cifra)
+    '‐': '-', '‑': '-',
+    ' ': ' ', ' ': ' ', ' ': ' ', ' ': ' ', ' ': ' ', ' ': ' ',
+    '​': '', '﻿': '',
+    '→': '->', '←': '<-', '≤': '<=', '≥': '>=', '≠': '!=',
+    '✓': '', '✔': '', '▲': '', '▼': '',
+    '′': "'", '″': '"'
+  };
+
+  function codigoDe(ch) {
+    var c = ch.charCodeAt(0);
+    if (c === 9) return [32];
+    if (c < 32) return [];
+    if (c < 127 || (c >= 160 && c <= 255)) return [c];
+    if (CP1252[c]) return [CP1252[c]];
+    // Letras con diacríticos fuera de Latin-1 (ő, ł…): la letra base.
+    if (typeof ch.normalize === 'function') {
+      var base = ch.normalize('NFD').replace(/[̀-ͯ]/g, '');
+      if (base && base !== ch && base.length === 1 && base.charCodeAt(0) < 256) return [base.charCodeAt(0)];
+    }
+    return [63]; // ?
+  }
+
+  /** Texto → códigos WinAnsi (0–255). */
+  function codificar(texto) {
+    var s = String(texto == null ? '' : texto);
+    var out = [];
+    for (var i = 0; i < s.length; i++) {
+      var ch = s.charAt(i);
+      var c = s.charCodeAt(i);
+      if (c >= 0xD800 && c <= 0xDBFF) { i++; out.push(63); continue; } // fuera del plano básico
+      if (Object.prototype.hasOwnProperty.call(REEMPLAZOS, ch)) {
+        var r = REEMPLAZOS[ch];
+        for (var j = 0; j < r.length; j++) out.push.apply(out, codigoDe(r.charAt(j)));
+        continue;
+      }
+      out.push.apply(out, codigoDe(ch));
+    }
+    return out;
+  }
+
+  function fuenteDe(nombre) { return FUENTES[nombre] || FUENTES.normal; }
+
+  /** Ancho en puntos de un texto con la fuente y el tamaño dados. */
+  function ancho(texto, fuente, tam, espaciado) {
+    var t = ANCHOS[fuenteDe(fuente).anchos];
+    var cs = codificar(texto), s = 0;
+    for (var i = 0; i < cs.length; i++) s += cs[i] >= 32 ? t[cs[i] - 32] : 0;
+    return s * (tam || 10) / 1000 + (espaciado || 0) * Math.max(0, cs.length - 1);
+  }
+
+  /** Corta un texto en líneas que caben en `max` puntos. Respeta los saltos
+      de línea y parte por espacios; una palabra más larga que la línea se
+      corta por letras. */
+  function partir(texto, max, fuente, tam) {
+    var lineas = [];
+    String(texto == null ? '' : texto).split(/\r?\n/).forEach(function (parrafo) {
+      var palabras = parrafo.split(/ +/).filter(function (p) { return p !== ''; });
+      if (!palabras.length) { lineas.push(''); return; }
+      var actual = '';
+      palabras.forEach(function (p) {
+        var prueba = actual ? actual + ' ' + p : p;
+        if (ancho(prueba, fuente, tam) <= max) { actual = prueba; return; }
+        if (actual) lineas.push(actual);
+        if (ancho(p, fuente, tam) <= max) { actual = p; return; }
+        // Palabra sola más ancha que la línea: por letras.
+        var trozo = '';
+        for (var i = 0; i < p.length; i++) {
+          if (ancho(trozo + p.charAt(i), fuente, tam) > max && trozo) { lineas.push(trozo); trozo = ''; }
+          trozo += p.charAt(i);
+        }
+        actual = trozo;
+      });
+      lineas.push(actual);
+    });
+    return lineas;
+  }
+
+  /* ---------------------------------------------------------------- números */
+  function n(x) {
+    if (!isFinite(x)) x = 0;
+    var s = (Math.round(x * 1000) / 1000).toFixed(3);
+    s = s.replace(/\.?0+$/, '');
+    return s === '-0' ? '0' : s;
+  }
+  function colorRGB(hex) {
+    var h = String(hex || '#000000').replace('#', '');
+    if (h.length === 3) h = h.charAt(0) + h.charAt(0) + h.charAt(1) + h.charAt(1) + h.charAt(2) + h.charAt(2);
+    var v = [0, 2, 4].map(function (i) { var x = parseInt(h.slice(i, i + 2), 16); return isFinite(x) ? x / 255 : 0; });
+    return n(v[0]) + ' ' + n(v[1]) + ' ' + n(v[2]);
+  }
+  /** Cadena literal PDF con los códigos WinAnsi; lo que no es ASCII imprimible
+      va en octal para que el archivo sea texto puro. */
+  function literal(codigos) {
+    var s = '(';
+    for (var i = 0; i < codigos.length; i++) {
+      var c = codigos[i];
+      if (c === 40 || c === 41 || c === 92) s += '\\' + String.fromCharCode(c);
+      else if (c < 32 || c > 126) s += '\\' + ('00' + c.toString(8)).slice(-3);
+      else s += String.fromCharCode(c);
+    }
+    return s + ')';
+  }
+  /** Cadena de texto del documento (título, autor…) en UTF-16BE, en hex. */
+  function textoUnicode(s) {
+    var h = 'FEFF';
+    s = String(s == null ? '' : s);
+    for (var i = 0; i < s.length; i++) h += ('000' + s.charCodeAt(i).toString(16).toUpperCase()).slice(-4);
+    return '<' + h + '>';
+  }
+  function fechaPDF(d) {
+    var p = function (x) { return String(x).padStart(2, '0'); };
+    var tz = -d.getTimezoneOffset();
+    var signo = tz >= 0 ? '+' : '-';
+    tz = Math.abs(tz);
+    return 'D:' + d.getFullYear() + p(d.getMonth() + 1) + p(d.getDate()) + p(d.getHours()) + p(d.getMinutes()) + p(d.getSeconds()) +
+      signo + p(Math.floor(tz / 60)) + "'" + p(tz % 60) + "'";
+  }
+
+  var K = 0.5522847498; // círculos con curvas de Bézier
+
+  /* ------------------------------------------------------------- documento */
+  function crear(opciones) {
+    var o = opciones || {};
+    var W = o.ancho || 595.28, H = o.alto || 841.89; // A4
+    var paginas = [];
+    var actual = -1;
+    var marcadores = [];
+    var imagenes = [];
+
+    function ops() {
+      if (actual < 0) throw new Error('Primero hay que crear una página.');
+      return paginas[actual];
+    }
+    function Y(y) { return H - y; }
+
+    function trazoRect(x, y, w, h, r) {
+      var p = ops();
+      if (!(r > 0)) { p.push(n(x) + ' ' + n(Y(y + h)) + ' ' + n(w) + ' ' + n(h) + ' re'); return; }
+      r = Math.min(r, w / 2, h / 2);
+      var x0 = x, x1 = x + w, y0 = Y(y), y1 = Y(y + h), k = r * K;
+      p.push(n(x0 + r) + ' ' + n(y0) + ' m');
+      p.push(n(x1 - r) + ' ' + n(y0) + ' l');
+      p.push(n(x1 - r + k) + ' ' + n(y0) + ' ' + n(x1) + ' ' + n(y0 - r + k) + ' ' + n(x1) + ' ' + n(y0 - r) + ' c');
+      p.push(n(x1) + ' ' + n(y1 + r) + ' l');
+      p.push(n(x1) + ' ' + n(y1 + r - k) + ' ' + n(x1 - r + k) + ' ' + n(y1) + ' ' + n(x1 - r) + ' ' + n(y1) + ' c');
+      p.push(n(x0 + r) + ' ' + n(y1) + ' l');
+      p.push(n(x0 + r - k) + ' ' + n(y1) + ' ' + n(x0) + ' ' + n(y1 + r - k) + ' ' + n(x0) + ' ' + n(y1 + r) + ' c');
+      p.push(n(x0) + ' ' + n(y0 - r) + ' l');
+      p.push(n(x0) + ' ' + n(y0 - r + k) + ' ' + n(x0 + r - k) + ' ' + n(y0) + ' ' + n(x0 + r) + ' ' + n(y0) + ' c');
+      p.push('h');
+    }
+    function pintar(est) {
+      var p = ops();
+      var e = est || {};
+      p.push('q');
+      if (e.relleno) p.push(colorRGB(e.relleno) + ' rg');
+      if (e.borde) {
+        p.push(colorRGB(e.borde) + ' RG');
+        p.push(n(e.grosor != null ? e.grosor : 0.75) + ' w');
+        if (e.discontinua) p.push('[' + e.discontinua.map(n).join(' ') + '] 0 d');
+        if (e.redondo) p.push('1 J 1 j');
+      }
+      return function () {
+        p.push(e.relleno && e.borde ? 'B' : e.relleno ? 'f' : e.borde ? 'S' : 'n');
+        p.push('Q');
+      };
+    }
+
+    var doc = {
+      anchoPagina: W,
+      altoPagina: H,
+      /** Agrega una página al final y la deja activa. Devuelve su índice. */
+      nuevaPagina: function () {
+        paginas.push([]);
+        actual = paginas.length - 1;
+        return actual;
+      },
+      /** Activa una página ya creada (para dibujar después, p. ej., los pies). */
+      irA: function (i) {
+        if (i < 0 || i >= paginas.length) throw new Error('No existe la página ' + (i + 1) + '.');
+        actual = i;
+      },
+      paginaActual: function () { return actual; },
+      totalPaginas: function () { return paginas.length; },
+
+      rect: function (x, y, w, h, est) {
+        var fin = pintar(est);
+        trazoRect(x, y, w, h, est && est.radio);
+        fin();
+      },
+      linea: function (x1, y1, x2, y2, est) {
+        var e = Object.assign({ borde: '#000000' }, est || {}, { relleno: null });
+        var fin = pintar(e);
+        ops().push(n(x1) + ' ' + n(Y(y1)) + ' m ' + n(x2) + ' ' + n(Y(y2)) + ' l');
+        fin();
+      },
+      /** Polilínea o polígono: puntos [[x, y], …]. `cerrar` lo cierra. */
+      ruta: function (puntos, est) {
+        if (!puntos || puntos.length < 2) return;
+        var fin = pintar(est);
+        var p = ops();
+        p.push(n(puntos[0][0]) + ' ' + n(Y(puntos[0][1])) + ' m');
+        for (var i = 1; i < puntos.length; i++) p.push(n(puntos[i][0]) + ' ' + n(Y(puntos[i][1])) + ' l');
+        if (est && est.cerrar) p.push('h');
+        fin();
+      },
+      circulo: function (cx, cy, r, est) {
+        var fin = pintar(est);
+        var p = ops(), k = r * K, y = Y(cy);
+        p.push(n(cx + r) + ' ' + n(y) + ' m');
+        p.push(n(cx + r) + ' ' + n(y + k) + ' ' + n(cx + k) + ' ' + n(y + r) + ' ' + n(cx) + ' ' + n(y + r) + ' c');
+        p.push(n(cx - k) + ' ' + n(y + r) + ' ' + n(cx - r) + ' ' + n(y + k) + ' ' + n(cx - r) + ' ' + n(y) + ' c');
+        p.push(n(cx - r) + ' ' + n(y - k) + ' ' + n(cx - k) + ' ' + n(y - r) + ' ' + n(cx) + ' ' + n(y - r) + ' c');
+        p.push(n(cx + k) + ' ' + n(y - r) + ' ' + n(cx + r) + ' ' + n(y - k) + ' ' + n(cx + r) + ' ' + n(y) + ' c');
+        p.push('h');
+        fin();
+      },
+
+      ancho: ancho,
+      partir: partir,
+
+      /** Una línea de texto. `alinear`: 'izq' (por defecto), 'der' o 'centro'
+          respecto de x. `espaciado`: puntos extra entre letras. */
+      texto: function (texto, x, y, est) {
+        var e = est || {};
+        var f = fuenteDe(e.fuente), tam = e.tam || 10;
+        var cs = codificar(texto);
+        if (!cs.length) return 0;
+        var w = ancho(texto, e.fuente, tam, e.espaciado);
+        var x0 = e.alinear === 'der' ? x - w : e.alinear === 'centro' ? x - w / 2 : x;
+        var p = ops();
+        p.push('BT');
+        p.push('/' + f.id + ' ' + n(tam) + ' Tf');
+        p.push(colorRGB(e.color || '#000000') + ' rg');
+        if (e.espaciado) p.push(n(e.espaciado) + ' Tc');
+        p.push(n(x0) + ' ' + n(Y(y)) + ' Td');
+        p.push(literal(cs) + ' Tj');
+        if (e.espaciado) p.push('0 Tc');
+        p.push('ET');
+        return w;
+      },
+      /** Párrafo partido en líneas que caben en `max`. Devuelve la altura que
+          ocupa (líneas × interlineado). `y` es la línea base de la primera. */
+      parrafo: function (texto, x, y, max, est) {
+        var e = est || {};
+        var tam = e.tam || 10, il = e.interlineado || tam * 1.35;
+        var lineas = Array.isArray(texto) ? texto : partir(texto, max, e.fuente, tam);
+        var self = this;
+        lineas.forEach(function (l, i) {
+          var xa = e.alinear === 'der' ? x + max : e.alinear === 'centro' ? x + max / 2 : x;
+          self.texto(l, xa, y + i * il, e);
+        });
+        return lineas.length * il;
+      },
+
+      /** Registra una imagen JPEG ({ datos: cadena binaria, ancho, alto } en
+          píxeles) y devuelve su nombre para dibujarla con imagen(). */
+      jpeg: function (img) {
+        if (!img || typeof img.datos !== 'string' || !(img.ancho > 0) || !(img.alto > 0)) return null;
+        imagenes.push(img);
+        return 'Im' + imagenes.length;
+      },
+      imagen: function (nombre, x, y, w, h) {
+        if (!nombre) return;
+        ops().push('q ' + n(w) + ' 0 0 ' + n(h) + ' ' + n(x) + ' ' + n(Y(y + h)) + ' cm /' + nombre + ' Do Q');
+      },
+
+      /** Marcador del panel lateral del lector, en la página activa. */
+      marcador: function (titulo, y) {
+        marcadores.push({ titulo: String(titulo), pagina: actual, y: Y(Math.max(0, (y || 0) - 12)) });
+      },
+
+      /** El PDF terminado. */
+      salida: function () {
+        if (!paginas.length) this.nuevaPagina();
+        var objetos = []; // texto de cada objeto, por número (desde 1)
+        function agregar(cuerpo) { objetos.push(cuerpo); return objetos.length; }
+        var idCatalogo = agregar(null);
+        var idPaginas = agregar(null);
+        var idsFuentes = {};
+        Object.keys(FUENTES).forEach(function (k) {
+          idsFuentes[FUENTES[k].id] = agregar('<< /Type /Font /Subtype /Type1 /BaseFont /' + FUENTES[k].base + ' /Encoding /WinAnsiEncoding >>');
+        });
+        var idsImg = imagenes.map(function (im) {
+          return agregar('<< /Type /XObject /Subtype /Image /Width ' + im.ancho + ' /Height ' + im.alto +
+            ' /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ' + im.datos.length + ' >>\nstream\n' + im.datos + '\nendstream');
+        });
+        var recursos = '<< /Font << ' + Object.keys(idsFuentes).map(function (k) { return '/' + k + ' ' + idsFuentes[k] + ' 0 R'; }).join(' ') + ' >>' +
+          (idsImg.length ? ' /XObject << ' + idsImg.map(function (id, i) { return '/Im' + (i + 1) + ' ' + id + ' 0 R'; }).join(' ') + ' >>' : '') + ' >>';
+        var idsPagina = [];
+        paginas.forEach(function (contenido) {
+          var flujo = contenido.join('\n');
+          var idFlujo = agregar('<< /Length ' + flujo.length + ' >>\nstream\n' + flujo + '\nendstream');
+          idsPagina.push(agregar('<< /Type /Page /Parent ' + idPaginas + ' 0 R /MediaBox [0 0 ' + n(W) + ' ' + n(H) + '] /Resources ' + recursos + ' /Contents ' + idFlujo + ' 0 R >>'));
+        });
+        objetos[idPaginas - 1] = '<< /Type /Pages /Kids [' + idsPagina.map(function (i) { return i + ' 0 R'; }).join(' ') + '] /Count ' + idsPagina.length + ' >>';
+
+        var idContorno = null;
+        if (marcadores.length) {
+          idContorno = agregar(null);
+          var primero = objetos.length + 1;
+          var ids = marcadores.map(function (_, i) { return primero + i; });
+          marcadores.forEach(function (m, i) {
+            agregar('<< /Title ' + textoUnicode(m.titulo) + ' /Parent ' + idContorno + ' 0 R' +
+              (i > 0 ? ' /Prev ' + ids[i - 1] + ' 0 R' : '') + (i < ids.length - 1 ? ' /Next ' + ids[i + 1] + ' 0 R' : '') +
+              ' /Dest [' + idsPagina[m.pagina] + ' 0 R /XYZ 0 ' + n(m.y) + ' 0] >>');
+          });
+          objetos[idContorno - 1] = '<< /Type /Outlines /First ' + ids[0] + ' 0 R /Last ' + ids[ids.length - 1] + ' 0 R /Count ' + ids.length + ' >>';
+        }
+        objetos[idCatalogo - 1] = '<< /Type /Catalog /Pages ' + idPaginas + ' 0 R /Lang (' + (o.idioma || 'es-EC') + ')' +
+          ' /ViewerPreferences << /DisplayDocTitle true >>' +
+          (idContorno ? ' /Outlines ' + idContorno + ' 0 R /PageMode /UseOutlines' : '') + ' >>';
+
+        var ahora = o.fecha instanceof Date ? o.fecha : new Date();
+        var idInfo = agregar('<< /Title ' + textoUnicode(o.titulo || 'Documento') +
+          (o.autor ? ' /Author ' + textoUnicode(o.autor) : '') +
+          (o.asunto ? ' /Subject ' + textoUnicode(o.asunto) : '') +
+          (o.palabras ? ' /Keywords ' + textoUnicode(o.palabras) : '') +
+          ' /Creator ' + textoUnicode(o.creador || 'Simulador de escaños') +
+          ' /Producer (PDFMini) /CreationDate (' + fechaPDF(ahora) + ') /ModDate (' + fechaPDF(ahora) + ') >>');
+
+        var partes = ['%PDF-1.4\n%âãÏÓ\n'];
+        var largo = partes[0].length;
+        var desplaz = [];
+        objetos.forEach(function (cuerpo, i) {
+          desplaz.push(largo);
+          var t = (i + 1) + ' 0 obj\n' + cuerpo + '\nendobj\n';
+          partes.push(t);
+          largo += t.length;
+        });
+        var id = '';
+        for (var i = 0; i < 16; i++) id += ('0' + Math.floor(Math.random() * 256).toString(16)).slice(-2);
+        var xref = 'xref\n0 ' + (objetos.length + 1) + '\n0000000000 65535 f \n' +
+          desplaz.map(function (d) { return ('000000000' + d).slice(-10) + ' 00000 n \n'; }).join('');
+        partes.push(xref);
+        partes.push('trailer\n<< /Size ' + (objetos.length + 1) + ' /Root ' + idCatalogo + ' 0 R /Info ' + idInfo + ' 0 R /ID [<' + id + '> <' + id + '>] >>\nstartxref\n' + largo + '\n%%EOF\n');
+        var todo = partes.join('');
+        var bytes = new Uint8Array(todo.length);
+        for (var j = 0; j < todo.length; j++) bytes[j] = todo.charCodeAt(j) & 255;
+        return bytes;
+      }
+    };
+    return doc;
+  }
+
+  return { crear: crear, ancho: ancho, partir: partir, codificar: codificar, VERSION: '1.0.0' };
+});
+</script>
 <script id="interfaz">
 (() => {
   // src/ui/util.js
@@ -2426,8 +2824,19 @@ textarea.control { height: auto; padding: 10px; line-height: 1.4; resize: vertic
   }
 
   // src/ui/almacen.js
-  var CLAVE_BORRADOR = "simuladorEscanos.v1.borrador";
-  var CLAVE_ESCENARIOS = "simuladorEscanos.v1.escenarios";
+  /* v6.0 · ?ambito=vocales (u otro) separa el borrador y los escenarios de
+     cada módulo del tablero: el simulador de vocales nunca lee lo que dejó el
+     de concejales, ni al revés. Sin el parámetro, las claves de siempre. */
+  var AMBITO_SIM = function() {
+    try {
+      const a = new URLSearchParams(window.location.search).get("ambito");
+      return a && /^[a-z]{1,20}$/.test(a) ? a : "";
+    } catch (e) {
+      return "";
+    }
+  }();
+  var CLAVE_BORRADOR = "simuladorEscanos.v1.borrador" + (AMBITO_SIM ? "." + AMBITO_SIM : "");
+  var CLAVE_ESCENARIOS = "simuladorEscanos.v1.escenarios" + (AMBITO_SIM ? "." + AMBITO_SIM : "");
   var MAX_GUARDADOS = 40;
   function escenarioEjemplo() {
     return {
@@ -2492,6 +2901,11 @@ textarea.control { height: auto; padding: 10px; line-height: 1.4; resize: vertic
       /* De dónde salen estas listas: territorio, dignidad y circunscripción. */
       origen: o.origen && typeof o.origen === "object" ? {
         ambito: String(o.origen.ambito || "").slice(0, 160),
+        provincia: String(o.origen.provincia || "").slice(0, 120),
+        canton: String(o.origen.canton || "").slice(0, 120),
+        parroquia: String(o.origen.parroquia || "").slice(0, 160),
+        anioParticipacion: Number.isInteger(o.origen.anioParticipacion) ? o.origen.anioParticipacion : null,
+        notaFuente: String(o.origen.notaFuente || "").slice(0, 400),
         dignidad: String(o.origen.dignidad || "").slice(0, 80),
         circunscripcion: String(o.origen.circunscripcion || "").slice(0, 80),
         fuente: String(o.origen.fuente || "").slice(0, 120),
@@ -3480,6 +3894,781 @@ textarea.control { height: auto; padding: 10px; line-height: 1.4; resize: vertic
     if (doc.internal.getNumberOfPages() === 1 && y < 200) pie();
     return doc.output("arraybuffer");
   }
+  // src/ui/reporte.js — v6.0 · «Descargar reporte PDF» del «Simulador: ¿qué pasa si…?»
+  /* El reporte sale del escenario que está en pantalla en el momento de la
+     descarga —el de trabajo (simulado) frente al base (referencia)— y de los
+     mismos cálculos del motor que usa la interfaz. No guarda ni cambia nada:
+     solo lee. El PDF se escribe aquí mismo (PDFMini), sin bibliotecas
+     externas, así que funciona también sin conexión. */
+  var RP = { W: 595.28, H: 841.89, M: 42, SUP: 58, INF: 46 };
+  var TONOS = {
+    marino: "#0c2145", tinta: "#0e1a33", tinta2: "#44506a", gris: "#667089",
+    linea: "#d5dce8", lineaSuave: "#e6ebf2", fondo: "#f5f7fb", fondo2: "#eaf0f8",
+    acento: "#2257c5", ambar: "#f5b44a", ambarTinta: "#7a4a00", sube: "#0a7d55",
+    baja: "#b42318", blanco: "#ffffff", banda: "#c9d3e6", bandaSuave: "#93a5c6"
+  };
+  var MESES_RP = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
+  function dos(n) {
+    return String(n).padStart(2, "0");
+  }
+  function fechaLargaRP(d) {
+    return d.getDate() + " de " + MESES_RP[d.getMonth()] + " de " + d.getFullYear() + ", " + dos(d.getHours()) + ":" + dos(d.getMinutes());
+  }
+  function slugRP(s) {
+    return String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+  }
+  function listaDe(xs) {
+    if (xs.length <= 1) return xs[0] || "";
+    return xs.slice(0, -1).join("; ") + " y " + xs[xs.length - 1];
+  }
+  function escRP(n) {
+    return fmtEntero(n) + " " + plural(n, "escaño", "escaños");
+  }
+  /** En el reporte, las listas del tablero se nombran como organizaciones
+      políticas; con candidatos sueltos, como candidatos. */
+  function terminosRP(T) {
+    if (T && T.id === "candidato") return T;
+    return { id: T ? T.id : "lista", sing: "organización política", plur: "organizaciones políticas", Sing: "Organización política", Plur: "Organizaciones" };
+  }
+
+  /* ---------------------------------------------------------------- datos */
+  /** Todo lo que lleva el reporte, ya calculado. `c` trae el estado vivo del
+      simulador: esc (trabajo), base, res, resBase, difs, ui, margenes, T. */
+  function datosReporte(c) {
+    const { esc, base, res, resBase, difs, ui, margenes, T } = c;
+    const ahora = new Date();
+    const o = esc.origen || base.origen || null;
+    const modoReparto = !!(ui && ui.reparto);
+    const cambiosVotos = modoReparto ? [] : difs.filter((x) => x.tipo === "votos");
+    const otrosCambios = modoReparto ? [] : difs.filter((x) => x.tipo !== "votos");
+    const tipo = modoReparto ? "reparto" : difs.length > 0 ? "simulado" : "referencia";
+    const B = baseDeValidos(esc, base);
+    const porIdBase = {};
+    base.listas.forEach((l, i) => {
+      porIdBase[l.id] = { l, i };
+    });
+    const filas = [];
+    esc.listas.forEach((l, i) => {
+      const b = porIdBase[l.id];
+      const rb = b && resBase.ok ? resBase.listas[b.i] : null;
+      filas.push({
+        id: l.id, nombre: l.nombre || "Sin nombre", color: colorDe(l),
+        votosRef: b ? b.l.votos : null, votosSim: l.votos,
+        escRef: rb ? rb.escanos : null, escSim: res.listas[i].escanos,
+        puestosRef: rb && rb.escanos > 0 ? posicionesDe(resBase, l.id) : "",
+        puestosSim: res.listas[i].escanos > 0 ? posicionesDe(res, l.id) : ""
+      });
+    });
+    base.listas.forEach((l, i) => {
+      if (esc.listas.some((x) => x.id === l.id)) return;
+      const rb = resBase.ok ? resBase.listas[i] : null;
+      filas.push({ id: l.id, nombre: l.nombre || "Sin nombre", color: colorDe(l), votosRef: l.votos, votosSim: null, escRef: rb ? rb.escanos : null, escSim: null, puestosRef: rb && rb.escanos > 0 ? posicionesDe(resBase, l.id) : "", puestosSim: "" });
+    });
+    filas.forEach((f) => {
+      f.pctRef = f.votosRef != null && B > 0 ? f.votosRef * 100 / B : null;
+      f.pctSim = f.votosSim != null && B > 0 ? f.votosSim * 100 / B : null;
+      f.difVotos = f.votosRef != null && f.votosSim != null ? f.votosSim - f.votosRef : null;
+      f.dif = f.escRef != null && f.escSim != null ? f.escSim - f.escRef : null;
+    });
+    const orden = (a, b) => (b.votosSim == null ? -1 : b.votosSim) - (a.votosSim == null ? -1 : a.votosSim) || (b.votosRef == null ? -1 : b.votosRef) - (a.votosRef == null ? -1 : a.votosRef) || a.nombre.localeCompare(b.nombre, "es");
+    filas.sort(orden);
+    const color = {};
+    filas.forEach((f) => {
+      color[f.id] = f.color;
+    });
+    const S = res.escanos;
+    const adjudicacion = res.adjudicacion.map((a) => ({ numero: a.numero, listaId: a.listaId, nombre: a.nombre, color: color[a.listaId], votos: a.votos, divisor: fmtDivisor(a.divisor), cociente: a.cociente, empatado: a.empatado }));
+    const corte = res.corte;
+    // Matriz de cocientes: tantos divisores como el mayor número de escaños de una lista + 1 (sin pasar de S).
+    const maxEsc = res.listas.reduce((m2, l) => Math.max(m2, l.escanos), 0);
+    const nDiv = Math.max(1, Math.min(S, maxEsc + 1));
+    const mat = Motor.generarCocientes(esc, nDiv);
+    const numDe = {};
+    res.adjudicacion.forEach((a) => {
+      numDe[a.listaId + ":" + a.k] = a.numero;
+    });
+    const filasMatriz = mat.filas.map((f) => ({
+      id: f.listaId, nombre: f.nombre || "Sin nombre", color: color[f.listaId], votos: f.votos,
+      escanos: res.listas[f.idx].escanos, elegible: f.elegible,
+      cocientes: f.cocientes.map((q) => ({ valor: q.cociente, numero: numDe[f.listaId + ":" + q.k] || null }))
+    })).sort((a, b) => b.votos - a.votos || a.nombre.localeCompare(b.nombre, "es"));
+    let reparto = null;
+    if (modoReparto && Number.isInteger(S) && S > 0) {
+      const ef = repartoEfectivo(ui.reparto, esc.listas, S);
+      reparto = {
+        usados: ef.usados, restante: ef.restante, S,
+        filas: esc.listas.map((l) => {
+          const k = ef.valores[l.id];
+          const min = k > 0 ? Motor.votosMinimosPara(esc, l.id, k) : 0;
+          const sig = k < S ? Motor.votosMinimosPara(esc, l.id, k + 1) : null;
+          return { id: l.id, nombre: l.nombre || "Sin nombre", color: color[l.id], escanos: k, min, max: sig != null ? sig - 1 : null, votos: l.votos };
+        }).sort((a, b) => b.escanos - a.escanos || b.votos - a.votos || a.nombre.localeCompare(b.nombre, "es"))
+      };
+    }
+    const cerca = margenes && margenes.masCercana ? { nombre: (esc.listas.find((l) => l.id === margenes.masCercana.listaId) || {}).nombre || margenes.masCercana.nombre, adicionales: margenes.masCercana.proximo.adicionales, numero: margenes.masCercana.proximo.numero } : null;
+    const empate = (res.empates || []).find((e) => e.decisivo) || null;
+
+    // Territorio, tal como lo manda el tablero (nombres sin tocar).
+    const terr = {
+      provincia: o && o.provincia || "", canton: o && (o.canton || o.ambito) || "", parroquia: o && o.parroquia || "",
+      circunscripcion: o && o.circunscripcion || "", dignidad: o && o.dignidad || "", anio: o && o.anio || null
+    };
+    const partesLugar = [terr.parroquia ? "Parroquia " + terr.parroquia : "", terr.canton, terr.circunscripcion].filter(Boolean);
+    const lugar = partesLugar.length ? partesLugar.join(" · ") : "Escenario propio del simulador";
+    const etiquetaEsc = tipo === "referencia" ? "Distribución de referencia (sin cambios)" : tipo === "simulado" ? "Escenario hipotético · " + fmtEntero(difs.length) + " " + plural(difs.length, "cambio", "cambios") : "Escenario «Nuevo»: reparto propuesto";
+    const metodo = Motor.METODOS[esc.metodo] || {};
+    const regla = Motor.REGLAS_DESEMPATE[res.desempate] || {};
+    const fuenteEsc = o ? o.escanosDe === "inscritos" ? "Registro de inscripción de candidaturas: cada lista inscribe tantos candidatos principales como escaños se eligen" + (o.escanosParejo === false ? " (algunas listas inscribieron menos; se tomó el número mayor)." : ".") : "Tabla oficial de escaños de la elección de 2023 (el registro de inscripción no trae candidatos para este distrito)." : "Número de escaños escrito en el simulador.";
+    const R = {
+      generado: ahora, fechaLarga: fechaLargaRP(ahora),
+      fechaCorta: dos(ahora.getDate()) + "/" + dos(ahora.getMonth() + 1) + "/" + ahora.getFullYear() + " " + dos(ahora.getHours()) + ":" + dos(ahora.getMinutes()),
+      tipo, etiquetaEsc, terr, lugar, T: terminosRP(T), origen: o,
+      metodo: { nombre: metodo.nombreLargo || metodo.nombre || res.metodo.nombre, serie: metodo.serie || res.metodo.serie, descripcion: metodo.descripcion || "" },
+      regla: { nombre: regla.nombre || res.desempate, descripcion: regla.descripcion || "" },
+      S, Sbase: base.escanos, umbral: Number(esc.umbral) || 0, baseModo: (Motor.BASES_CALCULO[esc.baseModo] || {}).nombre || "",
+      B, disponibles: Number(esc.validosDisponibles) || 0,
+      totRef: resBase.ok ? resBase.totales : null, totSim: res.totales,
+      filas, adjudicacion, corte, matriz: { divisores: mat.divisores.map((d) => fmtDivisor(d)), filas: filasMatriz },
+      cambiosVotos, otrosCambios, reparto, cerca, empate, fuenteEsc,
+      hayRef: resBase.ok,
+      oficial: o && o.oficial ? o.oficial : null
+    };
+    R.cambianDeManos = tipo === "simulado" ? filas.reduce((s, f) => s + (f.dif > 0 ? f.dif : 0), 0) : 0;
+    R.conEscano = filas.filter((f) => (f.escSim || 0) > 0).length;
+    R.hallazgos = hallazgosRP(R);
+    R.tituloDoc = "Reporte de Simulación Electoral – " + lugar;
+    R.asunto = [terr.dignidad, etiquetaEsc].filter(Boolean).join(" · ");
+    R.palabras = ["simulación electoral", "escaños", R.metodo.nombre, terr.canton, terr.circunscripcion, terr.parroquia].filter(Boolean).join(", ");
+    R.archivo = "reporte_simulacion_" + [slugRP(terr.canton), slugRP(terr.parroquia), slugRP(terr.circunscripcion)].filter(Boolean).join("_").replace(/^$/, "escenario") + "_" + ahora.getFullYear() + "-" + dos(ahora.getMonth() + 1) + "-" + dos(ahora.getDate()) + "_" + dos(ahora.getHours()) + dos(ahora.getMinutes()) + ".pdf";
+    return R;
+  }
+
+  /** Frases del resumen ejecutivo: solo hechos que salen de los datos. */
+  function hallazgosRP(R) {
+    const out = [];
+    const T = R.T;
+    if (R.tipo === "referencia") {
+      out.push("No se modificó ningún voto: el reporte muestra la distribución de referencia, calculada con los votos de la tabla de cocientes.");
+    } else if (R.tipo === "reparto") {
+      out.push("Escenario «Nuevo»: se propone un reparto de " + fmtEntero(R.reparto ? R.reparto.usados : 0) + " de " + escRP(R.S) + (R.reparto && R.reparto.restante > 0 ? " (falta" + (R.reparto.restante === 1 ? " 1 escaño" : "n " + escRP(R.reparto.restante)) + " por asignar)" : "") + ". La tabla «Reparto propuesto» indica los votos mínimos y máximos con los que cada " + T.sing + " lo obtendría si el resto conserva sus votos de referencia.");
+      out.push("Los resultados por organización, la composición y el detalle del cálculo corresponden a la distribución de referencia, calculada con los votos de la tabla de cocientes.");
+    }
+    if (R.tipo === "simulado") {
+      if (R.cambiosVotos.length) {
+        const partes = R.cambiosVotos.slice(0, 6).map((x) => x.nombre + " " + fmtSigno(x.delta) + " (de " + fmtEntero(x.de) + " a " + fmtEntero(x.a) + ")");
+        out.push("Cambios de votos simulados en " + fmtEntero(R.cambiosVotos.length) + " " + plural(R.cambiosVotos.length, T.sing, T.plur) + ": " + listaDe(partes) + (R.cambiosVotos.length > 6 ? " y " + fmtEntero(R.cambiosVotos.length - 6) + " más" : "") + ".");
+      }
+      R.otrosCambios.forEach((x) => {
+        if (x.tipo === "escanos") out.push("El número de escaños pasa de " + fmtEntero(x.de) + " a " + fmtEntero(x.a) + " en la simulación.");
+        else if (x.tipo === "umbral") out.push("El umbral pasa de " + fmtUmbral(x.de) + " a " + fmtUmbral(x.a) + ".");
+        else if (x.tipo === "metodo") out.push("El método cambia en la simulación.");
+      });
+      const ganan = R.filas.filter((f) => f.dif > 0).map((f) => f.nombre + " (de " + fmtEntero(f.escRef) + " a " + fmtEntero(f.escSim) + ")");
+      const pierden = R.filas.filter((f) => f.dif < 0).map((f) => f.nombre + " (de " + fmtEntero(f.escRef) + " a " + fmtEntero(f.escSim) + ")");
+      const conservan = R.filas.filter((f) => f.dif === 0 && f.escSim > 0).map((f) => f.nombre + " (" + fmtEntero(f.escSim) + ")");
+      if (!ganan.length && !pierden.length) out.push("La distribución de escaños no cambia frente a la referencia: cada " + T.sing + " conserva sus escaños.");
+      else {
+        if (ganan.length) out.push(plural(ganan.length, "Gana", "Ganan") + " escaños: " + listaDe(ganan) + ".");
+        if (pierden.length) out.push(plural(pierden.length, "Pierde", "Pierden") + " escaños: " + listaDe(pierden) + ".");
+      }
+      if (conservan.length && (ganan.length || pierden.length)) out.push(plural(conservan.length, "Conserva", "Conservan") + " sus escaños: " + listaDe(conservan) + ".");
+    }
+    const u = R.corte && R.corte.ultimoGanador, x = R.corte && R.corte.primerExcluido;
+    if (u) {
+      let t = "El último escaño (" + ordinal(u.numero) + ") es para " + u.nombre + ", con un cociente de " + fmtDecimal(u.cociente, 2) + " (" + fmtEntero(u.votos) + " ÷ " + fmtDivisor(u.divisor) + ").";
+      if (x) t += " El primer cociente que queda sin escaño es el de " + x.nombre + " (" + fmtEntero(x.votos) + " ÷ " + fmtDivisor(x.divisor) + " = " + fmtDecimal(x.cociente, 2) + ").";
+      out.push(t);
+    }
+    if (R.cerca) out.push("Más cerca de un escaño adicional está " + R.cerca.nombre + ": le faltan " + fmtEntero(R.cerca.adicionales) + " " + plural(R.cerca.adicionales, "voto", "votos") + " para el " + ordinal(R.cerca.numero) + " escaño, si el resto conserva sus votos.");
+    if (R.empate) out.push("Hay un empate exacto de cocientes en el último escaño: se resolvió con la regla «" + R.regla.nombre + "». Conviene verificar la regla de desempate aplicable.");
+    return out;
+  }
+
+  /* ---------------------------------------------------------------- marca */
+  function rasterizarLogo(img, fondo) {
+    const lado = 192;
+    const w0 = img.naturalWidth || img.width || lado, h0 = img.naturalHeight || img.height || lado;
+    const k = Math.min(lado / w0, lado / h0);
+    const w = Math.max(1, Math.round(w0 * k)), h = Math.max(1, Math.round(h0 * k));
+    const cv = document.createElement("canvas");
+    cv.width = w;
+    cv.height = h;
+    const cx = cv.getContext("2d");
+    cx.fillStyle = fondo;
+    cx.fillRect(0, 0, w, h);
+    cx.drawImage(img, 0, 0, w, h);
+    const url = cv.toDataURL("image/jpeg", 0.92);
+    if (url.indexOf("data:image/jpeg") !== 0) throw new Error("sin JPEG");
+    return { datos: atob(url.split(",")[1]), ancho: w, alto: h };
+  }
+  function cargarLogo(url) {
+    return new Promise((resolver) => {
+      let hecho = false;
+      const fin = (x) => {
+        if (!hecho) {
+          hecho = true;
+          resolver(x);
+        }
+      };
+      const t = setTimeout(() => fin(null), 2500);
+      const img = new Image();
+      img.onload = () => {
+        clearTimeout(t);
+        try {
+          fin({ banda: rasterizarLogo(img, TONOS.marino), blanco: rasterizarLogo(img, "#ffffff") });
+        } catch (e) {
+          fin(null);
+        }
+      };
+      img.onerror = () => {
+        clearTimeout(t);
+        fin(null);
+      };
+      img.src = url;
+    });
+  }
+  /** Marca del tablero que envuelve al simulador (textos y logo de
+      CONFIG.marca). Sin tablero, los textos de siempre y el logo del proyecto. */
+  async function marcaReporte() {
+    let marca = null, desde = null;
+    try {
+      const p = window.parent;
+      const m = p && p !== window ? p.MARCA_TABLERO || p.CONFIG && p.CONFIG.marca : null;
+      if (m) {
+        marca = m;
+        desde = p.location.href;
+      }
+    } catch (e) {
+    }
+    let url = null;
+    try {
+      url = marca && marca.logo ? new URL(marca.logo, desde).href : new URL("../assets/logo.svg", window.location.href).href;
+    } catch (e) {
+    }
+    return {
+      titulo: marca && marca.titulo || "ANÁLISIS ELECTORAL TERRITORIAL",
+      empresa: marca && marca.empresa || "INTELIGENCIA TERRITORIAL",
+      ciclo: marca && marca.ciclo || "",
+      logo: url ? await cargarLogo(url) : null
+    };
+  }
+
+  /* -------------------------------------------------------------- dibujo */
+  function dibujarReporte(R, marca) {
+    const { W, H, M } = RP;
+    const CW = W - 2 * M;
+    const LIM = H - RP.INF - 18;
+    const doc = PDFMini.crear({ titulo: R.tituloDoc, autor: marca.empresa, asunto: R.asunto, palabras: R.palabras, creador: marca.titulo + " · Simulador de escaños", fecha: R.generado });
+    const imBanda = marca.logo ? doc.jpeg(marca.logo.banda) : null;
+    const imBlanco = marca.logo ? doc.jpeg(marca.logo.blanco) : null;
+    const T = R.T;
+    let y = 0;
+
+    function logoVector(x, yy, lado) {
+      const s = lado / 44;
+      doc.rect(x + s, yy + s, 42 * s, 42 * s, { relleno: "#131f33", borde: "#2b3f5e", grosor: s, radio: 10 * s });
+      doc.ruta([[9, 29.5], [15.5, 17], [22, 24], [28.5, 11.5], [35, 29.5]].map((p) => [x + p[0] * s, yy + p[1] * s]), { borde: "#f5b44a", grosor: 2.4 * s, redondo: true });
+      doc.circulo(x + 28.5 * s, yy + 11.5 * s, 3 * s, { relleno: "#4ed8cb" });
+      doc.linea(x + 9 * s, yy + 33.5 * s, x + 35 * s, yy + 33.5 * s, { borde: "#2b3f5e", grosor: 1.6 * s, redondo: true });
+      return lado;
+    }
+    function logo(x, yy, lado, enBanda) {
+      const im = enBanda ? imBanda : imBlanco;
+      if (!im) return logoVector(x, yy, lado);
+      const d = enBanda ? marca.logo.banda : marca.logo.blanco;
+      const r = d.ancho / d.alto;
+      const w = r >= 1 ? lado : lado * r, h = r >= 1 ? lado / r : lado;
+      doc.imagen(im, x, yy + (lado - h) / 2, w, h);
+      return w;
+    }
+    /** Texto que debe caber en `max`: se achica hasta `minTam` y, si aun así
+        no cabe, se parte en líneas (nunca se recorta). Devuelve las líneas. */
+    function ajustar(texto, max, fuente, tam, minTam) {
+      let t = tam;
+      while (t > minTam && doc.ancho(texto, fuente, t) > max) t -= 0.25;
+      return { tam: t, lineas: doc.partir(texto, max, fuente, t) };
+    }
+    function encabezado() {
+      const top = 24;
+      const wl = logo(M, top, 16, false);
+      doc.texto("Reporte de Simulación Electoral", M + wl + 7, top + 11.5, { tam: 8.5, fuente: "negrita", color: TONOS.marino });
+      const der = [R.lugar, R.terr.dignidad].filter(Boolean).join(" · ");
+      const a = ajustar(der, CW - wl - 190, "normal", 7.5, 6.5);
+      a.lineas.slice(0, 2).forEach((l, i) => doc.texto(l, W - M, top + 11.5 + i * 8.5 - (a.lineas.length > 1 ? 4 : 0), { tam: a.tam, color: TONOS.gris, alinear: "der" }));
+      doc.linea(M, top + 22, W - M, top + 22, { borde: TONOS.linea, grosor: 0.6 });
+    }
+    function nuevaPagina() {
+      doc.nuevaPagina();
+      encabezado();
+      y = RP.SUP + 10;
+    }
+    function asegurar(h) {
+      if (y + h > LIM) {
+        nuevaPagina();
+        return true;
+      }
+      return false;
+    }
+    function seccion(titulo, sub, siguiente) {
+      const lineasSub = sub ? doc.partir(sub, CW, "normal", 8.5) : [];
+      const alto = 24 + lineasSub.length * 11.5 + 6;
+      asegurar(alto + (siguiente || 80));
+      doc.marcador(titulo, y);
+      doc.rect(M, y + 1.5, 3.2, 14, { relleno: TONOS.ambar, radio: 1.2 });
+      doc.texto(titulo, M + 10, y + 13, { tam: 13.5, fuente: "negrita", color: TONOS.marino });
+      y += 22;
+      if (lineasSub.length) {
+        doc.parrafo(lineasSub, M, y + 7, CW, { tam: 8.5, color: TONOS.gris, interlineado: 11.5 });
+        y += lineasSub.length * 11.5;
+      }
+      y += 8;
+    }
+    function subtitulo(t, siguiente) {
+      asegurar(22 + (siguiente || 60));
+      doc.texto(t, M, y + 10, { tam: 10, fuente: "negrita", color: TONOS.tinta });
+      y += 18;
+    }
+    function nota(t, est) {
+      const e = est || {};
+      const tam = e.tam || 7.8, il = tam * 1.38;
+      const ls = doc.partir(t, CW, e.fuente || "cursiva", tam);
+      asegurar(ls.length * il + 4);
+      doc.parrafo(ls, M, y + tam, CW, { tam, fuente: e.fuente || "cursiva", color: e.color || TONOS.gris, interlineado: il });
+      y += ls.length * il + (e.despues != null ? e.despues : 8);
+    }
+    function punto(x, cy, r, c) {
+      if (c && c.hueco) doc.circulo(x, cy, r - 0.6, { relleno: TONOS.blanco, borde: c.hex, grosor: 1.3 });
+      else doc.circulo(x, cy, r, { relleno: c ? c.hex : TONOS.gris });
+    }
+
+    /* Tabla con encabezado que se repite en cada página y filas que nunca se
+       parten. cols: [{t, w, al}] (al: 'izq' | 'der' | 'centro'); filas:
+       [{c: [celda…], total}] con celda = texto o {t, color, fuente, punto}. */
+    function tabla(cols, filas, opc) {
+      const o = opc || {};
+      const tam = o.tam || 8.4, il = tam * 1.3, pad = o.pad != null ? o.pad : 5.2;
+      const xs = [];
+      let acc = M;
+      cols.forEach((c) => {
+        xs.push(acc);
+        acc += c.w;
+      });
+      const anchoT = acc - M;
+      const textoDe = (cel) => cel == null ? "" : typeof cel === "object" ? String(cel.t == null ? "" : cel.t) : String(cel);
+      const lineas = (cel, c, cab, total) => {
+        const f = cab || total ? "negrita" : cel && typeof cel === "object" && cel.fuente || "normal";
+        const extra = cel && typeof cel === "object" && cel.punto ? 10 : 0;
+        return doc.partir(textoDe(cel), Math.max(8, c.w - 2 * pad - extra), f, cab ? tam - 0.6 : tam);
+      };
+      const alto = (celdas, cab, total) => celdas.reduce((mx, cel, i) => Math.max(mx, lineas(cel, cols[i], cab, total).length), 1) * il + 2 * pad;
+      const xTexto = (i, c) => c.al === "der" ? xs[i] + c.w - pad : c.al === "centro" ? xs[i] + c.w / 2 : xs[i] + pad;
+      const alinear = (c) => c.al === "der" ? "der" : c.al === "centro" ? "centro" : "izq";
+      const hCab = alto(cols.map((c) => c.t), true);
+      function cabecera() {
+        doc.rect(M, y, anchoT, hCab, { relleno: TONOS.marino });
+        cols.forEach((c, i) => {
+          const ls = lineas(c.t, c, true);
+          const y0 = y + hCab - pad - (ls.length - 1) * il - (il - tam) / 2 - tam * 0.2;
+          ls.forEach((l, k) => doc.texto(l, xTexto(i, c), y0 + k * il, { tam: tam - 0.6, fuente: "negrita", color: TONOS.blanco, alinear: alinear(c) }));
+        });
+        y += hCab;
+      }
+      if (!filas.length) return;
+      if (y + hCab + alto(filas[0].c, false, filas[0].total) > LIM) nuevaPagina();
+      cabecera();
+      filas.forEach((f, r) => {
+        const h = alto(f.c, false, f.total);
+        if (y + h > LIM) {
+          nuevaPagina();
+          if (o.continua) {
+            doc.texto(o.continua + " (continuación)", M, y + 9, { tam: 8, fuente: "cursiva", color: TONOS.gris });
+            y += 15;
+          }
+          cabecera();
+        }
+        if (f.total) doc.rect(M, y, anchoT, h, { relleno: TONOS.fondo2 });
+        else if (r % 2 === 1) doc.rect(M, y, anchoT, h, { relleno: TONOS.fondo });
+        f.c.forEach((cel, i) => {
+          const c = cols[i];
+          const ls = lineas(cel, c, false, f.total);
+          const obj = cel && typeof cel === "object" ? cel : {};
+          const fuente = f.total ? "negrita" : obj.fuente || "normal";
+          let x = xTexto(i, c);
+          const yb = y + pad + (il - tam) / 2 + tam * 0.8;
+          if (obj.punto) {
+            punto(xs[i] + pad + 3.5, yb - tam * 0.32, 3.4, obj.punto);
+            if (alinear(c) === "izq") x += 10;
+          }
+          ls.forEach((l, k) => doc.texto(l, x, yb + k * il, { tam, fuente, color: obj.color || TONOS.tinta, alinear: alinear(c) }));
+        });
+        doc.linea(M, y + h, M + anchoT, y + h, { borde: f.total ? TONOS.linea : TONOS.lineaSuave, grosor: f.total ? 0.8 : 0.5 });
+        y += h;
+      });
+      y += o.despues != null ? o.despues : 12;
+    }
+
+    /* Barras horizontales: una o dos por organización (referencia y
+       simulado), con su cifra al final. Se mide antes (para que el título no
+       quede solo al pie de una página) y se dibuja como un bloque entero. */
+    const G = { etW: 170, tamE: 7.8, ilE: 9.6 };
+    function medirGrafico(cfg) {
+      const barH = cfg.doble ? 7.5 : 10.5, gapB = 2.2;
+      const filas = cfg.filas.map((f) => {
+        const ls = doc.partir(f.nombre, G.etW - 11, "normal", G.tamE);
+        const hb = cfg.doble ? 2 * barH + gapB : barH;
+        return Object.assign({ ls, h: Math.max(ls.length * G.ilE, hb) + 8 }, f);
+      });
+      const altoLey = cfg.doble ? 18 : 4;
+      return { filas, barH, gapB, altoLey, total: altoLey + filas.reduce((s, f) => s + f.h, 0) + 30 };
+    }
+    function grafico(cfg, medida) {
+      const etW = G.etW, x0 = M + etW + 12, x1 = M + CW - 40, plotW = x1 - x0;
+      const tamE = G.tamE, ilE = G.ilE;
+      const doble = cfg.doble;
+      const mg = medida || medirGrafico(cfg);
+      const { filas, barH, gapB, altoLey } = mg;
+      asegurar(mg.total);
+      const yTop = y + altoLey;
+      if (doble) {
+        let xl = x1 + 40;
+        [[cfg.leyenda[1], false], [cfg.leyenda[0], true]].forEach(([t, claro]) => {
+          const w = doc.ancho(t, "normal", 7.5);
+          xl -= w;
+          doc.texto(t, xl, y + 9, { tam: 7.5, color: TONOS.tinta2 });
+          xl -= 13;
+          doc.rect(xl, y + 3, 9, 7, claro ? { relleno: "#d9dee8", borde: "#8d97ab", grosor: 0.6, radio: 1.5 } : { relleno: TONOS.tinta2, radio: 1.5 });
+          xl -= 12;
+        });
+      }
+      const yFin = yTop + filas.reduce((s, f) => s + f.h, 0);
+      const max = cfg.max > 0 ? cfg.max : 1;
+      cfg.marcas.forEach((v) => {
+        const x = x0 + v / max * plotW;
+        doc.linea(x, yTop, x, yFin, { borde: v === 0 ? "#b8c1d1" : TONOS.lineaSuave, grosor: v === 0 ? 0.8 : 0.5 });
+        doc.texto(cfg.marca(v), x, yFin + 10, { tam: 6.8, color: TONOS.gris, alinear: "centro" });
+      });
+      if (cfg.eje) doc.texto(cfg.eje, x1, yFin + 20, { tam: 6.8, fuente: "cursiva", color: TONOS.gris, alinear: "der" });
+      let yy = yTop;
+      filas.forEach((f) => {
+        const centro = yy + f.h / 2;
+        const yl = centro - f.ls.length * ilE / 2 + tamE * 0.82;
+        punto(M + 3.5, yl - tamE * 0.32, 3.2, f.color);
+        doc.parrafo(f.ls, M + 11, yl, etW - 11, { tam: tamE, color: TONOS.tinta, interlineado: ilE });
+        const barras = doble ? [[f.a, true], [f.b, false]] : [[f.b, false]];
+        let yb = centro - (doble ? (2 * barH + gapB) / 2 : barH / 2);
+        barras.forEach(([v, claro]) => {
+          const w = v == null ? 0 : Math.max(0, v / max * plotW);
+          const c = f.color || { hex: TONOS.gris };
+          if (v != null && w > 0) {
+            if (claro) doc.rect(x0, yb, w, barH, { relleno: mezclar(c.hex, 0.66), borde: mezclar(c.hex, 0.25), grosor: 0.5, radio: 1.2 });
+            else if (c.hueco) doc.rect(x0, yb, w, barH, { relleno: TONOS.blanco, borde: c.hex, grosor: 1.2, radio: 1.2 });
+            else doc.rect(x0, yb, w, barH, { relleno: c.hex, radio: 1.2 });
+          }
+          doc.texto(v == null ? "—" : cfg.valor(v), x0 + w + 4, yb + barH / 2 + 2.6, { tam: 7.2, fuente: claro ? "normal" : "negrita", color: claro ? TONOS.gris : TONOS.tinta });
+          yb += barH + gapB;
+        });
+        yy += f.h;
+      });
+      y = yFin + 30;
+    }
+    function marcasEnteras(max) {
+      const paso = max <= 10 ? 1 : max <= 20 ? 2 : max <= 50 ? 5 : 10;
+      const out = [];
+      for (let v = 0; v <= max + 1e-9; v += paso) out.push(v);
+      return out;
+    }
+    function marcasPct(max) {
+      const paso = max <= 10 ? 2 : max <= 25 ? 5 : max <= 60 ? 10 : 20;
+      const tope = Math.max(paso, Math.ceil(max / paso) * paso);
+      const out = [];
+      for (let v = 0; v <= tope + 1e-9; v += paso) out.push(v);
+      return { tope, out };
+    }
+
+    /* =========================== PÁGINA 1 =========================== */
+    doc.nuevaPagina();
+    const hB = 176;
+    doc.rect(0, 0, W, hB, { relleno: TONOS.marino });
+    doc.rect(0, hB, W, 2.5, { relleno: TONOS.ambar });
+    const wl = logo(M, 28, 30, true);
+    const marcaT = ajustar(marca.titulo, 260, "negrita", 8, 6.5);
+    doc.texto(marcaT.lineas[0], M + wl + 10, 40, { tam: marcaT.tam, fuente: "negrita", color: TONOS.blanco, espaciado: 0.6 });
+    doc.texto([marca.empresa, marca.ciclo].filter(Boolean).join(" · "), M + wl + 10, 52.5, { tam: 7.4, color: TONOS.bandaSuave });
+    doc.texto("Generado el " + R.fechaLarga, W - M, 40, { tam: 7.4, color: TONOS.banda, alinear: "der" });
+    // Pastilla del escenario
+    const pas = R.tipo === "referencia" ? "DISTRIBUCIÓN DE REFERENCIA" : R.tipo === "simulado" ? "ESCENARIO HIPOTÉTICO" : "REPARTO PROPUESTO";
+    const wp = doc.ancho(pas, "negrita", 7, 0.8) + 18;
+    doc.rect(W - M - wp, 48, wp, 15, { relleno: R.tipo === "referencia" ? "#1d3766" : TONOS.ambar, radio: 7.5 });
+    doc.texto(pas, W - M - wp / 2, 58.2, { tam: 7, fuente: "negrita", color: R.tipo === "referencia" ? TONOS.blanco : TONOS.marino, alinear: "centro", espaciado: 0.8 });
+    doc.texto("Reporte de Simulación Electoral", M, 104, { tam: 25, fuente: "negrita", color: TONOS.blanco });
+    const lugarA = ajustar(R.lugar, CW, "normal", 13.5, 11);
+    let yl = 126;
+    lugarA.lineas.slice(0, 3).forEach((l) => {
+      doc.texto(l, M, yl, { tam: lugarA.tam, color: "#dbe4f5" });
+      yl += lugarA.tam + 3.5;
+    });
+    const lineaDig = [R.terr.dignidad, R.terr.provincia ? "Provincia de " + R.terr.provincia : ""].filter(Boolean).join(" · ");
+    if (lineaDig) doc.texto(lineaDig, M, Math.min(hB - 12, yl + 6), { tam: 9.5, fuente: "negrita", color: TONOS.ambar });
+    y = hB + 24;
+
+    // Ficha del escenario
+    const pares = [];
+    if (R.terr.provincia) pares.push(["Provincia", R.terr.provincia]);
+    if (R.terr.canton) pares.push(["Cantón", R.terr.canton]);
+    if (R.terr.parroquia) pares.push(["Parroquia", R.terr.parroquia]);
+    if (R.terr.circunscripcion) pares.push(["Circunscripción", R.terr.circunscripcion]);
+    if (R.terr.dignidad) pares.push(["Dignidad", R.terr.dignidad]);
+    pares.push(["Escenario", R.etiquetaEsc]);
+    pares.push(["Fórmula electoral", R.metodo.nombre + " (divisores " + R.metodo.serie + ")"]);
+    pares.push(["Escaños a distribuir", fmtEntero(R.S) + (R.Sbase !== R.S ? " (el distrito elige " + fmtEntero(R.Sbase) + ")" : "")]);
+    pares.push(["Fecha y hora del reporte", R.fechaLarga]);
+    (function ficha() {
+      const colW = (CW - 28 - 16) / 2;
+      const celdas = pares.map(([e, v]) => ({ e, ls: doc.partir(v, colW, "negrita", 9.2) }));
+      const filasF = [];
+      for (let i = 0; i < celdas.length; i += 2) filasF.push([celdas[i], celdas[i + 1]]);
+      const altoCelda = (c) => c ? 11 + c.ls.length * 11.5 + 7 : 0;
+      const altos = filasF.map((f) => Math.max(altoCelda(f[0]), altoCelda(f[1])));
+      const hF = altos.reduce((s, h) => s + h, 0) + 16;
+      doc.rect(M, y, CW, hF, { relleno: TONOS.fondo, borde: TONOS.linea, grosor: 0.6, radio: 7 });
+      let yy = y + 10;
+      filasF.forEach((f, i) => {
+        f.forEach((c, j) => {
+          if (!c) return;
+          const x = M + 14 + j * (colW + 16);
+          doc.texto(c.e.toUpperCase(), x, yy + 8, { tam: 6.4, fuente: "negrita", color: TONOS.gris, espaciado: 0.6 });
+          doc.parrafo(c.ls, x, yy + 20, colW, { tam: 9.2, fuente: "negrita", color: TONOS.tinta, interlineado: 11.5 });
+        });
+        yy += altos[i];
+      });
+      y += hF + 20;
+    })();
+
+    // Resumen ejecutivo
+    seccion("Resumen ejecutivo", null, 150);
+    (function tarjetas() {
+      const tot = R.tipo === "simulado" ? R.totSim : R.totRef || R.totSim;
+      const n = R.filas.length;
+      const items = [
+        { e: "Votos válidos considerados", v: fmtEntero(tot.votosListas), s: "Blancos " + fmtEntero(tot.blancos) + " · nulos " + fmtEntero(tot.nulos) },
+        { e: T.Plur + " participantes", v: fmtEntero(n), s: fmtEntero(R.conEscano) + " con escaño" },
+        { e: "Escaños a distribuir", v: fmtEntero(R.S), s: "Método " + R.metodo.nombre },
+        R.tipo === "simulado" ? { e: "Escaños que cambian de manos", v: fmtEntero(R.cambianDeManos), s: R.cambianDeManos ? "frente a la referencia" : "el reparto se mantiene", foco: true } : R.tipo === "reparto" ? { e: "Escaños propuestos", v: fmtEntero(R.reparto ? R.reparto.usados : 0) + " de " + fmtEntero(R.S), s: R.reparto && R.reparto.restante ? "faltan " + fmtEntero(R.reparto.restante) : "reparto completo", foco: true } : { e: "Escenario", v: "Referencia", s: "sin cambios simulados", foco: true }
+      ];
+      const gap = 9, w = (CW - gap * 3) / 4, h = 66;
+      asegurar(h + 12);
+      items.forEach((it, i) => {
+        const x = M + i * (w + gap);
+        doc.rect(x, y, w, h, { relleno: it.foco ? TONOS.marino : TONOS.blanco, borde: it.foco ? TONOS.marino : TONOS.linea, grosor: 0.7, radio: 6 });
+        const cE = it.foco ? TONOS.banda : TONOS.gris;
+        doc.partir(it.e.toUpperCase(), w - 20, "negrita", 6.3).slice(0, 2).forEach((l, k) => doc.texto(l, x + 10, y + 14 + k * 8, { tam: 6.3, fuente: "negrita", color: cE, espaciado: 0.35 }));
+        const vA = ajustar(it.v, w - 20, "negrita", 17, 11);
+        doc.texto(vA.lineas[0], x + 10, y + 43, { tam: vA.tam, fuente: "negrita", color: it.foco ? TONOS.blanco : TONOS.marino });
+        const sA = ajustar(it.s, w - 20, "normal", 7, 5.8);
+        doc.texto(sA.lineas[0], x + 10, y + 56, { tam: sA.tam, color: cE });
+      });
+      y += h + 16;
+    })();
+    R.hallazgos.forEach((t) => {
+      const ls = doc.partir(t, CW - 14, "normal", 9.2);
+      const h = ls.length * 12.6;
+      asegurar(h + 5);
+      doc.circulo(M + 3, y + 6, 1.9, { relleno: TONOS.ambar });
+      doc.parrafo(ls, M + 12, y + 9, CW - 14, { tam: 9.2, color: TONOS.tinta, interlineado: 12.6 });
+      y += h + 5;
+    });
+    y += 8;
+    // Composición resultante: un punto por escaño, en el orden de adjudicación.
+    (function composicion() {
+      const adj = R.adjudicacion;
+      if (!adj.length) return;
+      const S = adj.length, gap = S > 30 ? 2 : 4;
+      const d = Math.max(5, Math.min(17, (CW - gap * (S - 1)) / S));
+      const conEsc = R.filas.filter((f) => f.escSim > 0);
+      const colW = (CW - 16) / 2;
+      const leyenda = conEsc.map((f) => ({ f, ls: doc.partir(f.nombre + " — " + escRP(f.escSim) + ": " + f.puestosSim, colW - 12, "normal", 7.8) }));
+      const altLey = [];
+      for (let i = 0; i < leyenda.length; i += 2) altLey.push(Math.max(leyenda[i].ls.length, leyenda[i + 1] ? leyenda[i + 1].ls.length : 0) * 10 + 4);
+      const total = 20 + d + 16 + altLey.reduce((s, h) => s + h, 0);
+      asegurar(total);
+      doc.texto((R.tipo === "simulado" ? "Composición simulada" : "Composición") + " · un punto por escaño, en el orden en que se adjudica", M, y + 9, { tam: 8, fuente: "negrita", color: TONOS.tinta2 });
+      y += 18;
+      adj.forEach((a, i) => {
+        const cx = M + d / 2 + i * (d + gap);
+        punto(cx, y + d / 2, d / 2, a.color);
+        if (S <= 30) doc.texto(ordinal(a.numero), cx, y + d + 9, { tam: 6.2, color: TONOS.gris, alinear: "centro" });
+      });
+      y += d + 18;
+      let k = 0;
+      for (let i = 0; i < leyenda.length; i += 2) {
+        [leyenda[i], leyenda[i + 1]].forEach((it, j) => {
+          if (!it) return;
+          const x = M + j * (colW + 16);
+          punto(x + 3.2, y + 4.6, 3.2, it.f.color);
+          doc.parrafo(it.ls, x + 11, y + 7.6, colW - 12, { tam: 7.8, color: TONOS.tinta, interlineado: 10 });
+        });
+        y += altLey[k++];
+      }
+      y += 6;
+    })();
+
+    /* =========================== RESULTADOS =========================== */
+    nuevaPagina();
+    const hayComp = R.tipo === "simulado";
+    const pctTxt = (v) => v == null ? "—" : fmtPct(v, 2);
+    const baseTxt = R.disponibles > 0 ? fmtEntero(R.B) + " votos válidos del distrito (el mismo total sobre el que se escriben los porcentajes en la tabla de cocientes)" : fmtEntero(R.B) + " votos válidos de la referencia";
+    seccion("Resultados por " + T.sing, (hayComp ? "Referencia: el escenario base del simulador. Simulado: el escenario con los cambios del «¿qué pasa si…?». " : "") + "Porcentajes sobre " + baseTxt + ".", 120);
+    if (hayComp) {
+      const cols = [
+        { t: T.Sing, w: 136 }, { t: "Votos de referencia", w: 54, al: "der" }, { t: "Votos simulados", w: 54, al: "der" },
+        { t: "Cambio de votos", w: 50, al: "der" }, { t: "% simulado", w: 48, al: "der" }, { t: "Escaños de referencia", w: 56, al: "der" },
+        { t: "Escaños simulados", w: 56, al: "der" }, { t: "Diferencia", w: CW - 136 - 54 - 54 - 50 - 48 - 56 - 56, al: "der" }
+      ];
+      const filas = R.filas.map((f) => ({
+        c: [
+          { t: f.nombre, punto: f.color, fuente: "negrita" },
+          f.votosRef == null ? "—" : fmtEntero(f.votosRef), f.votosSim == null ? "—" : fmtEntero(f.votosSim),
+          { t: f.difVotos == null ? "—" : f.difVotos === 0 ? "0" : fmtSigno(f.difVotos), color: f.difVotos > 0 ? TONOS.sube : f.difVotos < 0 ? TONOS.baja : TONOS.gris },
+          pctTxt(f.pctSim), f.escRef == null ? "—" : fmtEntero(f.escRef), { t: f.escSim == null ? "—" : fmtEntero(f.escSim), fuente: "negrita" },
+          { t: f.dif == null ? "—" : f.dif === 0 ? "0" : fmtSigno(f.dif), fuente: "negrita", color: f.dif > 0 ? TONOS.sube : f.dif < 0 ? TONOS.baja : TONOS.gris }
+        ]
+      }));
+      const sum = (k) => R.filas.reduce((s, f) => s + (f[k] || 0), 0);
+      filas.push({ total: true, c: ["Total", fmtEntero(sum("votosRef")), fmtEntero(sum("votosSim")), fmtSigno(sum("votosSim") - sum("votosRef")), pctTxt(R.B > 0 ? sum("votosSim") * 100 / R.B : null), fmtEntero(sum("escRef")), fmtEntero(sum("escSim")), "0"] });
+      filas[filas.length - 1].c[3] = sum("votosSim") - sum("votosRef") === 0 ? "0" : fmtSigno(sum("votosSim") - sum("votosRef"));
+      filas[filas.length - 1].c[7] = sum("escSim") - sum("escRef") === 0 ? "0" : fmtSigno(sum("escSim") - sum("escRef"));
+      tabla(cols, filas, { continua: "Resultados por " + T.sing });
+      const sumSim = sum("votosSim");
+      if (R.B > 0 && Math.abs(sumSim * 100 / R.B - 100) > 0.005) nota("En el escenario simulado las " + T.plur + " suman " + fmtEntero(sumSim) + " votos (" + fmtPct(sumSim * 100 / R.B, 2) + " de la base), porque la simulación " + (sumSim > R.B ? "agrega" : "quita") + " votos. Los porcentajes se miden siempre sobre la misma base para que sean comparables.");
+    } else {
+      const cols = [{ t: T.Sing, w: 214 }, { t: "Votos", w: 70, al: "der" }, { t: "% de votos", w: 62, al: "der" }, { t: "Escaños", w: 50, al: "der" }, { t: "Puestos adjudicados", w: CW - 214 - 70 - 62 - 50, al: "izq" }];
+      const filas = R.filas.map((f) => ({ c: [{ t: f.nombre, punto: f.color, fuente: "negrita" }, fmtEntero(f.votosSim), pctTxt(f.pctSim), { t: fmtEntero(f.escSim), fuente: "negrita" }, f.puestosSim || "—"] }));
+      const sumV = R.filas.reduce((s, f) => s + (f.votosSim || 0), 0);
+      filas.push({ total: true, c: ["Total", fmtEntero(sumV), pctTxt(R.B > 0 ? sumV * 100 / R.B : null), fmtEntero(R.filas.reduce((s, f) => s + (f.escSim || 0), 0)), ""] });
+      tabla(cols, filas, { continua: "Resultados por " + T.sing });
+      if (R.B > 0 && Math.abs(sumV * 100 / R.B - 100) > 0.005) nota("Las " + T.plur + " suman " + fmtEntero(sumV) + " votos, el " + fmtPct(sumV * 100 / R.B, 2) + " de los " + fmtEntero(R.B) + " votos válidos del distrito: los porcentajes de la tabla de cocientes no suman 100 %.");
+    }
+
+    // Reparto propuesto («Nuevo»)
+    if (R.tipo === "reparto" && R.reparto) {
+      seccion("Reparto propuesto (escenario «Nuevo»)", "Escaños elegidos para cada " + T.sing + " y los votos mínimos y máximos con los que los obtendría, si el resto conserva sus votos de referencia. " + (R.reparto.restante > 0 ? "Repartidos " + fmtEntero(R.reparto.usados) + " de " + fmtEntero(R.S) + ": falta" + (R.reparto.restante === 1 ? " 1 escaño." : "n " + escRP(R.reparto.restante) + ".") : "El reparto está completo: " + fmtEntero(R.S) + " de " + fmtEntero(R.S) + "."), 100);
+      const cols = [{ t: T.Sing, w: 200 }, { t: "Escaños propuestos", w: 62, al: "der" }, { t: "Votos mínimos", w: 72, al: "der" }, { t: "Votos máximos", w: 72, al: "der" }, { t: "Votos de referencia", w: CW - 200 - 62 - 72 - 72, al: "der" }];
+      const filas = R.reparto.filas.map((f) => ({ c: [{ t: f.nombre, punto: f.color, fuente: "negrita" }, { t: fmtEntero(f.escanos), fuente: "negrita" }, f.min == null ? "—" : fmtEntero(f.min), f.max == null ? "sin tope" : fmtEntero(f.max), fmtEntero(f.votos)] }));
+      filas.push({ total: true, c: ["Total", fmtEntero(R.reparto.usados) + " de " + fmtEntero(R.S), "", "", fmtEntero(R.reparto.filas.reduce((s, f) => s + f.votos, 0))] });
+      tabla(cols, filas, { continua: "Reparto propuesto" });
+    }
+
+    // Gráfico de escaños: solo las organizaciones que tienen escaños en
+    // alguno de los escenarios; las demás se nombran debajo.
+    (function () {
+      const prop = {};
+      if (R.tipo === "reparto" && R.reparto) R.reparto.filas.forEach((f) => {
+        prop[f.id] = f.escanos;
+      });
+      const doble = hayComp || R.tipo === "reparto";
+      const a = (f) => R.tipo === "reparto" ? f.escSim : f.escRef;
+      const b = (f) => R.tipo === "reparto" ? prop[f.id] != null ? prop[f.id] : 0 : f.escSim;
+      const con = R.filas.filter((f) => (b(f) || 0) > 0 || doble && (a(f) || 0) > 0);
+      const sin = R.filas.filter((f) => con.indexOf(f) < 0);
+      const ordenadas = con.slice().sort((p, q) => (b(q) || 0) - (b(p) || 0) || (a(q) || 0) - (a(p) || 0) || (q.votosSim || 0) - (p.votosSim || 0));
+      const maxE = Math.max(1, ...ordenadas.map((f) => Math.max(b(f) || 0, doble ? a(f) || 0 : 0)));
+      const cfg = { filas: ordenadas.map((f) => ({ nombre: f.nombre, color: f.color, a: a(f), b: b(f) })), doble, leyenda: ["Referencia", R.tipo === "reparto" ? "Propuesto" : "Simulado"], max: maxE, marcas: marcasEnteras(maxE), marca: (v) => fmtEntero(v), valor: (v) => fmtEntero(v), eje: "Escaños" };
+      const med = medirGrafico(cfg);
+      const notaSin = sin.length ? (sin.length === 1 ? "Sin escaño" : "Sin escaño (" + fmtEntero(sin.length) + ")") + (doble ? " en ninguno de los dos escenarios: " : ": ") + listaDe(sin.map((f) => f.nombre)) + "." : "";
+      const lsSin = notaSin ? doc.partir(notaSin, CW, "cursiva", 7.8).length : 0;
+      seccion("Distribución de escaños por " + T.sing, hayComp ? "Escaños de cada " + T.sing + " en la referencia (barra clara) y en la simulación (barra de color)." : R.tipo === "reparto" ? "Escaños de cada " + T.sing + " en la referencia (barra clara) y en el reparto propuesto (barra de color)." : "Escaños que obtiene cada " + T.sing + ", de la que más tiene a la que menos.", med.total + lsSin * 11 + 8);
+      grafico(cfg, med);
+      if (notaSin) nota(notaSin, { despues: 16 });
+    })();
+    // Gráfico de porcentajes
+    (function () {
+      const maxP = Math.max(0.01, ...R.filas.map((f) => Math.max(f.pctSim || 0, hayComp ? f.pctRef || 0 : 0)));
+      const mp = marcasPct(maxP);
+      const cfg = { filas: R.filas.map((f) => ({ nombre: f.nombre, color: f.color, a: f.pctRef, b: f.pctSim })), doble: hayComp, leyenda: ["Referencia", "Simulado"], max: mp.tope, marcas: mp.out, marca: (v) => fmtEntero(v) + "%", valor: (v) => fmtPct(v, 2), eje: "% de votos válidos" };
+      const med = medirGrafico(cfg);
+      seccion("Porcentaje de votación por " + T.sing, "Porcentaje de votos de cada " + T.sing + " sobre " + fmtEntero(R.B) + " votos válidos" + (hayComp ? "; barra clara: referencia, barra de color: simulación." : "."), med.total);
+      grafico(cfg, med);
+    })();
+
+    /* =========================== METODOLOGÍA =========================== */
+    seccion("Detalle metodológico", null, 160);
+    (function claves() {
+      const tot = R.totSim;
+      const o = R.origen;
+      const pares2 = [
+        ["Fórmula electoral", R.metodo.nombre + ": " + (R.metodo.descripcion ? R.metodo.descripcion.charAt(0).toLowerCase() + R.metodo.descripcion.slice(1) : "los votos de cada " + T.sing + " se dividen para la serie " + R.metodo.serie + " y los escaños se asignan a los cocientes más altos.")],
+        ["Escaños a distribuir", fmtEntero(R.S) + ". Fuente: " + R.fuenteEsc],
+        ["Votos utilizados", "Los votos válidos de cada " + T.sing + ": " + fmtEntero(tot.votosListas) + " en total en el escenario " + (R.tipo === "simulado" ? "simulado" : "de referencia") + ". Los votos blancos (" + fmtEntero(tot.blancos) + ") y nulos (" + fmtEntero(tot.nulos) + ") no entran en el reparto; con ellos, el total de votos es " + fmtEntero(tot.emitidos) + "."],
+        ["Base de los porcentajes", fmtEntero(R.B) + " votos válidos" + (R.disponibles > 0 ? " del distrito, que calcula el tablero (sección Participación) a partir del padrón y de los porcentajes de ausentismo, nulos y blancos" + (o && o.anioParticipacion ? "; los de partida son los de la elección de " + o.anioParticipacion : "") + "." : " de la referencia.")],
+        ["Umbral", R.umbral > 0 ? fmtUmbral(R.umbral) + " de " + R.baseModo.toLowerCase() + "." : "Sin umbral: participan todas las " + T.plur + " con votos."],
+        ["Criterio de desempate", R.regla.nombre + ". " + R.regla.descripcion + (R.empate ? " En este escenario hay un empate exacto en el último escaño." : " En este escenario no hay empates que decidan un escaño.")],
+        ["Fuente de los datos", o ? (o.fuente ? "Listas: " + o.fuente + (o.anio ? " (" + o.anio + ")" : "") + ". " : "") + (o.notaFuente ? o.notaFuente + " " : "") + "Votos de referencia: los de la tabla de cocientes del simulador." : "Datos escritos o importados en el simulador."],
+        ["Fecha de referencia", "Datos vigentes en el tablero el " + R.fechaLarga + ", momento en que se generó este reporte."]
+      ];
+      const wE = 128;
+      pares2.forEach(([e, v]) => {
+        const lv = doc.partir(v, CW - wE - 8, "normal", 8.8);
+        const le = doc.partir(e, wE - 10, "negrita", 8.4);
+        const h = Math.max(lv.length, le.length) * 11.8 + 9;
+        asegurar(h);
+        le.forEach((l, k) => doc.texto(l, M, y + 11 + k * 11.8, { tam: 8.4, fuente: "negrita", color: TONOS.tinta2 }));
+        lv.forEach((l, k) => doc.texto(l, M + wE, y + 11 + k * 11.8, { tam: 8.8, color: TONOS.tinta }));
+        doc.linea(M, y + h, M + CW, y + h, { borde: TONOS.lineaSuave, grosor: 0.5 });
+        y += h;
+      });
+      y += 16;
+    })();
+
+    // Orden de adjudicación
+    subtitulo("Orden de adjudicación de los escaños" + (R.tipo === "simulado" ? " (escenario simulado)" : ""), 80);
+    (function () {
+      const cols = [{ t: "Escaño", w: 48, al: "centro" }, { t: T.Sing, w: 213 }, { t: "Votos", w: 70, al: "der" }, { t: "Divisor", w: 54, al: "der" }, { t: "Cociente", w: 78, al: "der" }, { t: "Empate", w: CW - 48 - 213 - 70 - 54 - 78, al: "centro" }];
+      const filas = R.adjudicacion.map((a) => ({ c: [{ t: ordinal(a.numero), fuente: "negrita" }, { t: a.nombre, punto: a.color }, fmtEntero(a.votos), a.divisor, { t: fmtDecimal(a.cociente, 2), fuente: "negrita" }, a.empatado ? "Sí" : "No"] }));
+      tabla(cols, filas, { continua: "Orden de adjudicación" });
+      const u = R.corte.ultimoGanador, x = R.corte.primerExcluido;
+      if (u && x) nota("Primer cociente sin escaño: " + x.nombre + ", " + fmtEntero(x.votos) + " ÷ " + fmtDivisor(x.divisor) + " = " + fmtDecimal(x.cociente, 2) + ". Diferencia con el último cociente ganador (" + fmtDecimal(u.cociente, 2) + "): " + fmtDecimal(R.corte.diferencia, 2) + ".", { fuente: "normal", color: TONOS.tinta2 });
+    })();
+
+    // Matriz de cocientes
+    (function () {
+      const divs = R.matriz.divisores;
+      const porTabla = 5;
+      for (let ini = 0; ini < divs.length; ini += porTabla) {
+        const parte = divs.slice(ini, ini + porTabla);
+        subtitulo("Cocientes por " + T.sing + (divs.length > porTabla ? " (divisores " + parte[0] + " a " + parte[parte.length - 1] + ")" : ""), 70);
+        const wN = 170, wV = 60, wD = (CW - wN - wV) / parte.length;
+        const cols = [{ t: T.Sing, w: wN }, { t: "Votos", w: wV, al: "der" }].concat(parte.map((d) => ({ t: "÷ " + d, w: wD, al: "der" })));
+        const filas = R.matriz.filas.map((f) => ({ c: [{ t: f.nombre, punto: f.color }, fmtEntero(f.votos)].concat(f.cocientes.slice(ini, ini + porTabla).map((q) => q.numero ? { t: fmtDecimal(q.valor, 2) + " · " + ordinal(q.numero), fuente: "negrita", color: TONOS.acento } : { t: fmtDecimal(q.valor, 2), color: TONOS.gris })) }));
+        tabla(cols, filas, { tam: parte.length > 5 ? 7.6 : 8.2, continua: "Cocientes" });
+      }
+      nota("En azul y con su número, los cocientes que ganan escaño y el orden en que se adjudican. Cada " + T.sing + " obtiene tantos escaños como cocientes suyos quedan entre los " + fmtEntero(R.S) + " más altos.", { despues: 14 });
+    })();
+
+    // Advertencia
+    (function () {
+      const t = "Resultados hipotéticos. Este reporte muestra una simulación hecha con los datos que se ven en el simulador en el momento de la descarga (votos de referencia y cambios simulados). No es un resultado oficial ni constituye una proclamación del Consejo Nacional Electoral: los resultados y la adjudicación oficiales son los que publique el CNE.";
+      const ls = doc.partir(t, CW - 44, "normal", 8.6);
+      const h = ls.length * 11.8 + 22;
+      asegurar(h + 6);
+      doc.rect(M, y, CW, h, { relleno: "#fff6e6", borde: "#f0cf8f", grosor: 0.7, radio: 6 });
+      doc.circulo(M + 17, y + h / 2, 8, { relleno: TONOS.ambar });
+      doc.texto("!", M + 17, y + h / 2 + 3.6, { tam: 11, fuente: "negrita", color: TONOS.marino, alinear: "centro" });
+      doc.parrafo(ls, M + 34, y + 15.5, CW - 44, { tam: 8.6, color: TONOS.ambarTinta, interlineado: 11.8 });
+      y += h + 10;
+    })();
+
+    // Pies con «Página X de Y»
+    const total = doc.totalPaginas();
+    for (let i = 0; i < total; i++) {
+      doc.irA(i);
+      const yb = H - 24;
+      doc.linea(M, yb - 11, W - M, yb - 11, { borde: TONOS.linea, grosor: 0.6 });
+      doc.texto("Generado el " + R.fechaCorta + " · Resultados hipotéticos: no constituyen una proclamación oficial.", M, yb, { tam: 6.9, color: TONOS.gris });
+      doc.texto("Página " + (i + 1) + " de " + total, W - M, yb, { tam: 7.4, fuente: "negrita", color: TONOS.tinta2, alinear: "der" });
+    }
+    return doc.salida();
+  }
+
   var promesaDescargas = null;
   function capacidadDescargas() {
     if (!window.claude || typeof window.claude.use !== "function") return Promise.resolve(void 0);
@@ -4078,7 +5267,7 @@ textarea.control { height: auto; padding: 10px; line-height: 1.4; resize: vertic
     const { esc, d } = m;
     const metodo = Motor.METODOS[esc.metodo];
     const set = (campo, valor) => d({ tipo: "config/set", campo, valor });
-    return /* @__PURE__ */ React.createElement("section", { className: "config config--fija", "aria-label": "Configuración de la elección" }, /* @__PURE__ */ React.createElement("div", { className: "campo campo--ancho" }, /* @__PURE__ */ React.createElement("p", { className: "campo__et" }, "Método de asignación"), React.createElement("p", { id: "cfg-metodo", className: "cfg-fijo" }, metodo ? metodo.nombreLargo : "D'Hondt"), /* @__PURE__ */ React.createElement("p", { className: "campo__ayuda" }, "Divisores ", metodo ? metodo.serie : "")), /* @__PURE__ */ React.createElement("div", { className: "campo" }, /* @__PURE__ */ React.createElement("p", { className: "campo__et" }, "Escaños"), /* @__PURE__ */ React.createElement("p", { id: "cfg-escanos", className: "cfg-fijo" }, Number.isInteger(esc.escanos) ? fmtEntero(esc.escanos) : "—"), /* @__PURE__ */ React.createElement("p", { className: "campo__ayuda" }, m.base && Number.isInteger(m.base.escanos) && esc.escanos !== m.base.escanos ? "En prueba; los originales son " + fmtEntero(m.base.escanos) : m.estado && m.estado.esEjemplo ? "A repartir" : "Fijos: los que elige " + (esc.origen && esc.origen.circunscripcion ? "la circunscripción" : "el cantón") + (esc.origen && esc.origen.escanosDe === "inscritos" ? ", según las listas inscritas" : ""))));
+    return /* @__PURE__ */ React.createElement("section", { className: "config config--fija", "aria-label": "Configuración de la elección" }, /* @__PURE__ */ React.createElement("div", { className: "campo campo--ancho" }, /* @__PURE__ */ React.createElement("p", { className: "campo__et" }, "Método de asignación"), React.createElement("p", { id: "cfg-metodo", className: "cfg-fijo" }, metodo ? metodo.nombreLargo : "D'Hondt"), /* @__PURE__ */ React.createElement("p", { className: "campo__ayuda" }, "Divisores ", metodo ? metodo.serie : "")), /* @__PURE__ */ React.createElement("div", { className: "campo" }, /* @__PURE__ */ React.createElement("p", { className: "campo__et" }, "Escaños"), /* @__PURE__ */ React.createElement("p", { id: "cfg-escanos", className: "cfg-fijo" }, Number.isInteger(esc.escanos) ? fmtEntero(esc.escanos) : "—"), /* @__PURE__ */ React.createElement("p", { className: "campo__ayuda" }, m.base && Number.isInteger(m.base.escanos) && esc.escanos !== m.base.escanos ? "En prueba; los originales son " + fmtEntero(m.base.escanos) : m.estado && m.estado.esEjemplo ? "A repartir" : "Fijos: los que elige " + (esc.origen && esc.origen.circunscripcion ? "la circunscripción" : esc.origen && esc.origen.parroquia ? "la junta parroquial" : "el cantón") + (esc.origen && esc.origen.escanosDe === "inscritos" ? ", según las listas inscritas" : ""))));
   }
   /* v5.6: primero se escriben los porcentajes; después, el resultado, el
      «¿qué pasa si…?» y los análisis. */
@@ -4516,6 +5705,26 @@ textarea.control { height: auto; padding: 10px; line-height: 1.4; resize: vertic
       d({ tipo: "sim/trasvase", de: deOk, a: aOk, cantidad: cant });
     } }, /* @__PURE__ */ React.createElement("span", { className: "trasv__t" }, "Pasar"), /* @__PURE__ */ React.createElement(EntradaVotos, { id: "trasv-cant", valor: cant, etiqueta: "Votos que se trasladan", alCambiar: setCant }), /* @__PURE__ */ React.createElement("label", { className: "trasv__t", htmlFor: "trasv-de" }, "votos de"), /* @__PURE__ */ React.createElement("select", { id: "trasv-de", className: "control control--select", value: deOk, onChange: (e) => setDe(e.target.value) }, esc.listas.map((l) => /* @__PURE__ */ React.createElement("option", { key: l.id, value: l.id }, l.nombre))), /* @__PURE__ */ React.createElement("label", { className: "trasv__t", htmlFor: "trasv-a" }, "a"), /* @__PURE__ */ React.createElement("select", { id: "trasv-a", className: "control control--select", value: aOk, onChange: (e) => setA(e.target.value) }, esc.listas.filter((l) => l.id !== deOk).map((l) => /* @__PURE__ */ React.createElement("option", { key: l.id, value: l.id }, l.nombre))), /* @__PURE__ */ React.createElement("button", { type: "submit", className: "boton boton--suave boton--s", disabled: !(cant > 0) || max === 0 }, /* @__PURE__ */ React.createElement("span", null, "Aplicar")), cant > max && max > 0 && /* @__PURE__ */ React.createElement("span", { className: "tenue trasv__nota" }, "Solo tiene ", fmtEntero(max), "; se pasarán todos."));
   }
+  /* v6.0 · «Descargar reporte PDF», en la cabecera de «Simulador: ¿qué pasa
+     si…?»: el PDF sale del escenario que se ve en ese momento. */
+  function BotonReporte({ m }) {
+    const [ocupado, setOcupado] = React.useState(false);
+    return React.createElement(Boton, {
+      icono: "descargar",
+      variante: "primario",
+      className: "boton--reporte",
+      disabled: !m.ok || ocupado,
+      titulo: m.ok ? "Descarga un PDF con el escenario que estás viendo" : "Completa los datos del escenario para generar el reporte",
+      onClick: async () => {
+        setOcupado(true);
+        try {
+          await m.acciones.reportePDF();
+        } finally {
+          setOcupado(false);
+        }
+      }
+    }, ocupado ? "Generando…" : "Descargar reporte PDF");
+  }
   function Simulador({ m }) {
     const { esc, base, d, T } = m;
     /* v5.9 · «Nuevo» abre otro escenario: el reparto de escaños. */
@@ -4653,6 +5862,7 @@ textarea.control { height: auto; padding: 10px; line-height: 1.4; resize: vertic
     const partes = [];
     if (o.dignidad) partes.push(ce("span", { key: "d" }, o.dignidad));
     if (o.circunscripcion) partes.push(ce("b", { key: "c", className: "res-circ" }, o.circunscripcion));
+    else if (o.parroquia) partes.push(ce("b", { key: "p", className: "res-circ" }, o.parroquia));
     if (o.ambito) partes.push(ce("span", { key: "a" }, o.ambito));
     return ce("span", { className: "res-distrito" }, partes.reduce((acc, el, i) => i === 0 ? [el] : acc.concat([ce("span", { key: "s" + i, className: "res-distrito__sep", "aria-hidden": "true" }, "·"), el]), []));
   }
@@ -5605,6 +6815,22 @@ textarea.control { height: auto; padding: 10px; line-height: 1.4; resize: vertic
           avisar(e && e.message ? e.message : "No se pudo generar el archivo.", "error");
         }
       },
+      async reportePDF() {
+        if (!ok) {
+          avisar("El escenario todavía no se puede calcular: revisa los datos antes de descargar el reporte.", "error");
+          return;
+        }
+        try {
+          const datos = datosReporte({ esc, base, res, resBase, difs, ui, margenes, T });
+          const marca = await marcaReporte();
+          const bytes = dibujarReporte(datos, marca);
+          const conCapacidad = window.claude && typeof window.claude.use === "function";
+          const r = await entregarArchivo(datos.archivo, conCapacidad ? bytes.buffer : new Blob([bytes], { type: "application/pdf" }));
+          avisar(r.mensaje, r.ok ? "ok" : "error");
+        } catch (e) {
+          avisar("No se pudo generar el reporte PDF" + (e && e.message ? ": " + e.message : "."), "error");
+        }
+      },
       async copiar() {
         if (!ok) return;
         const me = datosExport();
@@ -5648,7 +6874,7 @@ textarea.control { height: auto; padding: 10px; line-height: 1.4; resize: vertic
         comparacion: r.ok ? Motor.compararEscenarios([{ id: "actual", nombre: "Actual", escenario: e }].concat(guardados.map((g) => ({ id: g.id, nombre: g.nombre, escenario: g.escenario })))) : null
       }, elegidos(e, ui));
     }, [escLento, base, guardados, ui, nube]);
-    return /* @__PURE__ */ React.createElement("div", { className: "app" }, /* @__PURE__ */ React.createElement(Cabecera, { m }), /* @__PURE__ */ React.createElement("div", { className: "pagina pagina--config" }, /* @__PURE__ */ React.createElement(Configuracion, { m })), /* @__PURE__ */ React.createElement(Navegacion, { m }), /* @__PURE__ */ React.createElement("main", { className: "pagina" }, /* @__PURE__ */ React.createElement(Avisos, { m }), /* @__PURE__ */ React.createElement("div", { className: cls("diferido", pendiente && "es-pendiente") }, /* @__PURE__ */ React.createElement(DetalleArriba, { m: mLento })), React.createElement(Seccion, { id: "resultado", titulo: "Resultado de la simulación", sub: React.createElement(LineaDistrito, { esc }), acciones: React.createElement("span", { className: "res-modo" }, m.haySim ? "Con los cambios del «¿qué pasa si…?»" : esc.origen ? "Listas inscritas y tus porcentajes" : "Con los votos de la tabla") }, React.createElement(ResumenResultados, { m }), React.createElement(HistogramaEscanos, { m }), React.createElement(PuestosEscanos, { m }), m.ok && React.createElement(CandidatosAdjudicados, { m })), /* @__PURE__ */ React.createElement(Seccion, { id: "simulador", titulo: "Simulador: ¿qué pasa si…?", sub: "Prueba cambios de votos y compáralos con tu escenario base: los porcentajes de la tabla de cocientes." }, React.createElement(FranjaTotales, { m }), /* @__PURE__ */ React.createElement(Simulador, { m })), /* @__PURE__ */ React.createElement("div", { className: cls("diferido", pendiente && "es-pendiente") }, /* @__PURE__ */ React.createElement(DetalleAbajo, { m: mLento }))), modal && modal.tipo === "importar" && /* @__PURE__ */ React.createElement(ImportarModal, { m, inicial: modal, alCerrar: () => setModal(null) }), modal && modal.tipo === "texto" && /* @__PURE__ */ React.createElement(TextoModal, { titulo: modal.titulo, texto: modal.texto, nota: modal.nota, alCerrar: () => setModal(null) }), /* @__PURE__ */ React.createElement(Tostada, { m }));
+    return /* @__PURE__ */ React.createElement("div", { className: "app" }, /* @__PURE__ */ React.createElement(Cabecera, { m }), /* @__PURE__ */ React.createElement("div", { className: "pagina pagina--config" }, /* @__PURE__ */ React.createElement(Configuracion, { m })), /* @__PURE__ */ React.createElement(Navegacion, { m }), /* @__PURE__ */ React.createElement("main", { className: "pagina" }, /* @__PURE__ */ React.createElement(Avisos, { m }), /* @__PURE__ */ React.createElement("div", { className: cls("diferido", pendiente && "es-pendiente") }, /* @__PURE__ */ React.createElement(DetalleArriba, { m: mLento })), React.createElement(Seccion, { id: "resultado", titulo: "Resultado de la simulación", sub: React.createElement(LineaDistrito, { esc }), acciones: React.createElement("span", { className: "res-modo" }, m.haySim ? "Con los cambios del «¿qué pasa si…?»" : esc.origen ? "Listas inscritas y tus porcentajes" : "Con los votos de la tabla") }, React.createElement(ResumenResultados, { m }), React.createElement(HistogramaEscanos, { m }), React.createElement(PuestosEscanos, { m }), m.ok && React.createElement(CandidatosAdjudicados, { m })), /* @__PURE__ */ React.createElement(Seccion, { id: "simulador", titulo: "Simulador: ¿qué pasa si…?", sub: "Prueba cambios de votos y compáralos con tu escenario base: los porcentajes de la tabla de cocientes.", acciones: React.createElement(BotonReporte, { m }) }, React.createElement(FranjaTotales, { m }), /* @__PURE__ */ React.createElement(Simulador, { m })), /* @__PURE__ */ React.createElement("div", { className: cls("diferido", pendiente && "es-pendiente") }, /* @__PURE__ */ React.createElement(DetalleAbajo, { m: mLento }))), modal && modal.tipo === "importar" && /* @__PURE__ */ React.createElement(ImportarModal, { m, inicial: modal, alCerrar: () => setModal(null) }), modal && modal.tipo === "texto" && /* @__PURE__ */ React.createElement(TextoModal, { titulo: modal.titulo, texto: modal.texto, nota: modal.nota, alCerrar: () => setModal(null) }), /* @__PURE__ */ React.createElement(Tostada, { m }));
   }
   var Barrera = class extends React.Component {
     constructor(p) {
@@ -5662,7 +6888,7 @@ textarea.control { height: auto; padding: 10px; line-height: 1.4; resize: vertic
       if (!this.state.error) return this.props.children;
       return /* @__PURE__ */ React.createElement("div", { className: "pagina" }, /* @__PURE__ */ React.createElement("div", { className: "aviso aviso--error fallo" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("p", null, /* @__PURE__ */ React.createElement("b", null, "Algo falló al mostrar el simulador."), " Tus escenarios guardados no se han borrado."), /* @__PURE__ */ React.createElement("p", { className: "tenue" }, String(this.state.error && this.state.error.message ? this.state.error.message : this.state.error)), /* @__PURE__ */ React.createElement("p", null, /* @__PURE__ */ React.createElement("button", { type: "button", className: "boton boton--primario", onClick: () => {
         try {
-          window.localStorage.removeItem("simuladorEscanos.v1.borrador");
+          window.localStorage.removeItem(CLAVE_BORRADOR);
         } catch (e) {
         }
         window.location.reload();

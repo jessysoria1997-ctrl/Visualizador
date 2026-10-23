@@ -987,6 +987,11 @@ function simularAsignacion(callado) {
     validosDisponibles: Math.max(0, c.validos),
     origen: {
       ambito: ambitoTexto({ provK: o.provK, cantK: o.cantK }),
+      /* v6.0 · Para el reporte PDF: provincia y cantón por separado, y el año
+         del que salen los porcentajes de partida de la participación. */
+      provincia: ambitoTexto({ provK: o.provK }),
+      canton: ambitoTexto({ provK: o.provK, cantK: o.cantK }),
+      anioParticipacion: ASIG.sinReferencia ? null : (o.anio || null),
       dignidad: etiquetaDignidad(o.dignidad),
       /* Nombre LITERAL de la circunscripción (Excel del cliente o registro). */
       circunscripcion: circ ? nombreCircun(circ) : '',

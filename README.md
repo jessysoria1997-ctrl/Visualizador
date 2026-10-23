@@ -189,13 +189,17 @@ de un territorio ajeno. Dos matices, porque si no daría falsas alarmas:
 
 ## 1b · Las tres secciones
 
-La barra bajo el encabezado alterna entre tres secciones:
+La barra bajo el encabezado alterna entre cuatro secciones:
 
 | Sección | Responde a | Años |
 |---|---|---|
 | 👥 **Preinscritos** | ¿Cómo está compuesto el padrón de preinscritos y de electores? | 2027 |
 | 📊 **Histórico electoral** | ¿Cómo ha cambiado el voto y qué pasó en la última elección? | 2004 → 2023 |
-| 🪑 **Asignación** | Con las listas inscritas y esta participación, ¿cuántos concejales le toca a cada lista y a qué candidatos? | 2027 |
+| 🪑 **Asignación-Escaños** | Con las listas inscritas y esta participación, ¿cuántos concejales le toca a cada lista y a qué candidatos? | 2027 |
+| 🏘️ **Vocales-Escaños** (v6.0) | Lo mismo para los vocales de cada junta parroquial rural | 2027 |
+
+Las dos últimas comparten el simulador y su botón **Descargar reporte PDF**
+(§6b-2 y §6b-3).
 
 **Preinscritos conserva todo lo que ya tenía** y suma al final un
 **histograma de distribución por grupo etario** (2027), que muestra solo el
@@ -588,6 +592,7 @@ CARPETA_ELECTORAL/
 ├── js/
 │   ├── secciones.js        Histórico, Resultados y Análisis territorial
 │   ├── asignacion.js       Sección Asignación: panel, participación, puente y marco
+│   ├── vocales.js          Sección Vocales-Escaños: parroquia, mapa, participación y marco (v6.0)
 │   ├── data.js             ⭐ CONFIGURACIÓN + carga y cruce de datos
 │   ├── map.js              Mapa Leaflet, coropletas, leyenda, exportar PNG
 │   ├── charts.js           Los cuatro gráficos
@@ -602,11 +607,12 @@ CARPETA_ELECTORAL/
 │   ├── electores.json        Padrón por provincia y cantón      (6 KB)
 │   ├── historico.json        Histórico 2004–2023 por parroquia  (2,1 MB)
 │   ├── historico_dignidades.json  Concejales y vocales, todo el país (2,4 MB)
+│   ├── vocales.json          Vocales 2023 por parroquia: nombres, códigos, votos (87 KB)
 │   ├── postulantes.json      Postulantes por territorio y año   (529 KB)
 │   ├── distributivo.json     Juntas y recintos de todo el país  (534 KB)
 │   └── etario2027.json       Padrón 2027 por grupo etario       (10 KB)
 ├── asignacion/
-│   └── simulador.html      Simulador de escaños con las listas inscritas (solo D'Hondt)
+│   └── simulador.html      Simulador de escaños (solo D'Hondt) y reporte PDF; lo usan concejales y vocales
 └── assets/
     └── logo.svg            Logo (reemplazable)
 ```
@@ -971,6 +977,9 @@ Dentro del simulador, en este orden:
 3. **Simulador ¿qué pasa si…?**: deslizadores y trasvase de votos a partir de
    los porcentajes escritos; *Restablecer* vuelve a ellos. El resultado y los
    análisis se recalculan al instante.
+   - En la cabecera de la sección, el botón **Descargar reporte PDF** (v6.0):
+     descarga en un PDF el escenario que se está viendo (ver *Reporte PDF*,
+     más abajo).
    - Encima, la **franja gris de totales** (total de votos, de listas, escaños
      disponibles y votos válidos considerados), la misma que estaba al final de
      la tabla de cocientes.
@@ -1062,6 +1071,64 @@ cocientes):
   la organización elegida resaltada.
 
 No cambia la fórmula: explica la que usa el sistema.
+
+### Reporte PDF (v6.0)
+
+El botón **Descargar reporte PDF**, en la cabecera de *Simulador: ¿qué pasa
+si…?*, arma el PDF en el navegador con el estado del simulador en ese
+momento. No es una captura de pantalla ni una plantilla fija, y no pasa por
+Excel: sale del mismo motor y con los mismos formatos de la pantalla, así que
+sus cifras son las que se ven.
+
+La portada dice qué caso documenta:
+
+| Lo que hay en el simulador | Rótulo del reporte |
+|---|---|
+| Sin cambios en el «¿qué pasa si…?» | DISTRIBUCIÓN DE REFERENCIA |
+| Votos cambiados con los deslizadores o el trasvase | ESCENARIO HIPOTÉTICO (referencia frente a simulado) |
+| El reparto de **Nuevo** | REPARTO PROPUESTO |
+
+Contenido, en este orden:
+
+1. **Encabezado**: logo y nombre de la empresa (los de `CONFIG.marca`),
+   «Reporte de Simulación Electoral», la jurisdicción (provincia, cantón y
+   circunscripción o parroquia, con su nombre literal), la dignidad, la fecha y
+   hora de generación y el rótulo del caso.
+2. **Resumen ejecutivo**: votos válidos considerados (con blancos y nulos),
+   organizaciones participantes y con escaño, escaños a distribuir y método, y
+   cuántos escaños cambian de manos; debajo, quién gana y quién pierde
+   escaños, y la composición del cuerpo con un punto por escaño.
+3. **Resultados por organización política**: votos de referencia y
+   simulados, porcentaje (la base va escrita: los votos válidos del distrito,
+   la misma que usa la tabla de cocientes), escaños de referencia y simulados y
+   la diferencia. En *Nuevo*, además, el reparto propuesto con los votos mínimo
+   y máximo de cada escaño elegido.
+4. **Gráficos**: distribución de escaños (referencia frente a simulación) y
+   porcentaje de votación.
+5. **Detalle metodológico**: fórmula D'Hondt (divisores 1, 2, 3…), escaños y
+   su fuente, votos utilizados, base de los porcentajes, umbral, criterio de
+   desempate, fuente de los datos y fecha de referencia; después, el orden de
+   adjudicación escaño por escaño (con el primer cociente que queda fuera) y
+   la tabla de cocientes, con dos decimales.
+6. **Advertencia**: resultados hipotéticos, no una proclamación del CNE.
+
+Formato: A4 vertical, «Página X de Y» en cada pie, encabezados de tabla que
+se repiten al pasar de página, ninguna fila partida entre dos páginas,
+porcentajes con dos decimales, votos y escaños enteros y nombres completos.
+El PDF trae marcadores por sección.
+
+El archivo se llama `reporte_simulacion_<cantón>_<parroquia o
+circunscripción>_<fecha>_<hora>.pdf`, por ejemplo
+`reporte_simulacion_quito_calderon_2026-10-23_1530.pdf`.
+
+**Descargar el reporte no cambia nada**: ni los votos, ni la base, ni el
+borrador guardado. Solo usa el distrito activo. Si el escenario todavía no se
+puede calcular, el botón queda gris y no se genera un PDF con cifras a medias.
+
+Lo escribe un generador propio que va dentro de `asignacion/simulador.html`
+(`<script id="pdf-mini">`, fuentes estándar Helvetica): no necesita conexión
+ni librerías externas. La opción *PDF* del menú de exportaciones de siempre
+sigue como estaba.
 
 ### Solo D'Hondt
 
@@ -1207,7 +1274,7 @@ le manda la cuenta de ese momento, por si cambió mientras cargaba.
 ### Dónde vive
 
 ```
-asignacion/simulador.html               el simulador (resultado, histograma, estabilidad, explicación)
+asignacion/simulador.html               el simulador (resultado, histograma, estabilidad, explicación, reporte PDF)
 js/asignacion.js                        selección, mapa, participación, registro y marco
 data/escanos.json                       respaldo: concejales de la tabla oficial de 2023
 data/circunscripciones.json             circunscripciones urbanas: parroquias, padrón y nombre oficial
@@ -1226,6 +1293,115 @@ necesita conexión la primera vez.
 (Pedernales, La Maná, Pichincha) toman este mismo comportamiento al volver a
 compilarlas. En las de un solo cantón la concejalía queda marcada si el cantón
 elige solo una; si elige urbanos y rurales (Pedernales), se escoge con su botón.
+
+---
+
+## 6b-3 · Vocales-Escaños (v6.0)
+
+La cuarta sección hace para los **vocales de las juntas parroquiales rurales**
+lo mismo que Asignación-Escaños hace para los concejales: la misma
+estructura, el mismo simulador (el mismo `asignacion/simulador.html`) y el
+mismo método, **D'Hondt**. Solo cambia el distrito: cada parroquia rural elige
+su propia junta, con sus listas, sus votos y sus vocales. Asignación-Escaños
+no cambió.
+
+> D'Hondt es el método de concejales y el que se pidió para vocales. Como
+> referencia: en 2023 los vocales se adjudicaron con Webster (divisores 1, 3,
+> 5, 7…), y la reforma al Código de la Democracia aprobada en junio de 2025
+> volvió a D'Hondt.
+
+### Cómo se usa
+
+1. **Provincia y cantón**, en el panel de la izquierda o con un clic en el
+   mapa. Al abrir la sección se respeta el territorio que venía de las otras,
+   y al salir se lo lleva.
+2. **Parroquia rural.** Aparecen solo las parroquias del cantón con listas
+   inscritas para vocales en 2027, cada una con su nombre exacto y sus vocales
+   (`CALDERON · 7 vocales`). Se elige en el panel, en la lista junto al mapa o
+   con un clic en el mapa.
+3. Arriba, la **ruta** (Ecuador › provincia › cantón › Vocales de juntas
+   parroquiales › parroquia) dice qué se analiza; cada paso ya dado es un botón
+   para volver a él.
+4. Con la parroquia elegida, el simulador se llena con sus **listas y
+   candidatos inscritos para 2027**, sin votos, y con los vocales que elige
+   esa junta. Se escribe el porcentaje de cada lista en la tabla de cocientes
+   y el reparto sale solo. Todo lo demás —resultado, *¿qué pasa si…?*,
+   *Nuevo*, sensibilidad, estabilidad, explicación y **Descargar reporte
+   PDF**— es lo mismo que en concejales.
+
+Bajo la participación, **Ver listas preinscritas** muestra las listas y los
+candidatos de la parroquia tal como están en el registro.
+
+### El mapa
+
+- **Provincia**: sus cantones, coloreados por cuántos vocales eligen entre
+  todas sus juntas parroquiales; junto al mapa, los vocales de la provincia,
+  sus parroquias rurales y cuántas juntas eligen 7. Un clic baja al cantón.
+- **Cantón**: sus parroquias con su forma real; las rurales que eligen
+  vocales van en color y la elegida, resaltada. Al lado, la lista de sus
+  parroquias rurales (con desplazamiento propio en los cantones grandes:
+  Quito tiene 33) y, debajo, la **ficha** de la elegida: nombre exacto,
+  vocales 2027, electores, listas inscritas y sus cifras de 2023 (votos
+  válidos, organizaciones y vocales).
+
+### De dónde sale cada dato
+
+| Dato | Origen |
+|---|---|
+| Parroquias, listas y candidatos | Registro de preinscritos 2027 (`data/preinscritos.xlsx`), dignidad *Vocales de junta parroquial rural*: 824 parroquias |
+| Vocales que se eligen | Los candidatos principales que inscribió cada lista: 5, o 7 en las parroquias de más de 50.000 habitantes |
+| Nombre de la parroquia | El literal de la base del cliente (`Base_Consolidada_Concejales_Vocales_2004_2023.sav`); si la parroquia no está en ella, el del registro 2027 |
+| Electores | El padrón 2027 de la parroquia (la suma de sus recintos en el distributivo) |
+| % ausentismo, nulos y blancos de partida | Los de **vocales 2023** en esa misma parroquia, nunca los de otra dignidad. Como en concejales: el ausentismo sobre el padrón y los nulos y blancos sobre los votos emitidos |
+
+En 2027 se eligen **4.126 vocales**: 821 juntas de 5 y tres de 7 (Calderón,
+Conocoto y Tumbaco, en Quito). En 2023 fueron 4.109 en 821 parroquias.
+
+`data/vocales.json` trae las 821 parroquias de 2023 con sus nombres y
+códigos exactos, sus votos y sus vocales. Se genera desde la base del
+cliente:
+
+```bash
+pip install numpy pandas
+python preparar_vocales.py RUTA/Base_Consolidada_Concejales_Vocales_2004_2023.sav
+```
+
+Lee el `.sav` directamente (no necesita `pyreadstat`), toma solo las filas de
+2023 de *VOCALES DE JUNTA PARROQUIAL* y comprueba, antes de escribir nada,
+que no haya votos vacíos ni negativos, organizaciones repetidas en una junta,
+nombres distintos para un mismo código ni parroquias duplicadas, y que el
+total dé 821 parroquias y 4.109 vocales.
+
+### Lo que no cuadra se dice, no se inventa
+
+| Caso | Qué pasa |
+|---|---|
+| TUMBACO (Quito) | Eligió 5 vocales en 2023 y el registro 2027 trae 7 candidatos por lista: se simulan 7. La ficha lo explica. |
+| JUAN MONTALVO (Cayambe), LA MAGDALENA y LA PRIMAVERA (Shushufindi), SHUAR PASTAZA (Pastaza), SOSOTE (Rocafuerte) | Tienen listas para 2027, pero no están en la base de 2023: llevan el nombre del registro y no tienen participación de partida (se escriben el ausentismo, los nulos y los blancos). |
+| SHUAR PASTAZA | Además, la capa parroquial no tiene su polígono: se puede simular, pero no se dibuja y su padrón hay que escribirlo. |
+| BORBON (Eloy Alfaro) y SEVILLA DON BOSCO (Morona) | Están en la base de 2023, pero no tienen listas inscritas para 2027: no aparecen para simular. |
+| MULTI /  NULTI (Cuenca) | La base la escribe con dos espacios y el registro con uno: se usa el de la base, tal cual. |
+| Sufragantes de 2023 | En 379 parroquias de la base oficial los sufragantes no coinciden con válidos + nulos + blancos (817 votos en total). Se conservan las cifras como vienen y, como en concejales, se usa válidos + nulos + blancos. |
+
+### Separado de concejales
+
+El simulador de vocales se abre con `?ambito=vocales` y guarda su borrador y
+sus escenarios en claves propias
+(`simuladorEscanos.v1.borrador.vocales`,
+`simuladorEscanos.v1.escenarios.vocales`): nunca lee lo que dejó el de
+concejales, ni al revés. Las claves de concejales son las de siempre.
+
+### Dónde vive
+
+```
+js/vocales.js          selección, mapa, participación, listas y puente con el simulador
+data/vocales.json      vocales 2023 por parroquia (nombres, códigos, votos, vocales)
+preparar_vocales.py    genera vocales.json desde la base .sav del cliente
+```
+
+`compilar_usuario.py` también recorta `vocales.json` al territorio de cada
+carpeta y, si el territorio no tiene parroquias rurales que elijan vocales
+(Jaramijó), quita la pestaña Vocales-Escaños de esa carpeta.
 
 ---
 
@@ -1495,6 +1671,16 @@ Es el navegador cancelando una descarga a medias, no un fallo. Usa
 **Dice que el puerto ya está en uso.**
 Tienes otro servidor levantado. Usa otro puerto: `python servidor.py 8080`.
 
+**El botón «Descargar reporte PDF» está gris.**
+El escenario todavía no se puede calcular. Lo más común es que falten los
+porcentajes de las listas en la tabla de cocientes: en cuanto el simulador
+muestra un resultado, el botón se activa.
+
+**En Vocales-Escaños no aparece una parroquia.**
+Solo salen las parroquias rurales con listas inscritas para vocales en 2027.
+BORBON (Eloy Alfaro) y SEVILLA DON BOSCO (Morona), por ejemplo, votaron en
+2023 pero no tienen listas en el registro (§6b-3).
+
 **Los acentos se ven mal en el CSV.**
 Ábrelo con *Datos → Desde texto/CSV* en Excel y elige codificación UTF-8.
 
@@ -1526,6 +1712,11 @@ diferida de parroquias, cruce territorial, agregación y clasificación de
 color) y 70 sobre la interfaz (filtros, KPIs, panel territorial, tabla,
 ordenamiento, paginación, exportaciones, nivel parroquial y sincronización con
 el mapa).
+
+La v6.0 se verificó además con dos baterías nuevas: el reporte PDF en siete
+escenarios más el de *Nuevo* (67 comprobaciones, con las cifras del PDF
+contra las del motor y la pantalla) y Vocales-Escaños recorriendo las 824
+parroquias (46 comprobaciones).
 
 Las capas de `data/` se derivaron de las tres que entregaste: se reproyectó la
 parroquial de UTM 17S a WGS84, se corrigió un problema de codificación en
