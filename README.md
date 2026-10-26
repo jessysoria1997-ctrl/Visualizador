@@ -1075,45 +1075,54 @@ cocientes):
 
 No cambia la fórmula: explica la que usa el sistema.
 
-### Reporte PDF (v6.0)
+### Reporte PDF (v6.1)
 
 El botón **Descargar reporte PDF**, en la cabecera de *Simulador: ¿qué pasa
 si…?*, arma el PDF en el navegador con el estado del simulador en ese
 momento. No es una captura de pantalla ni una plantilla fija, y no pasa por
-Excel: sale del mismo motor y con los mismos formatos de la pantalla, así que
-sus cifras son las que se ven.
+Excel: cada sección sale de los mismos cálculos que la sección del mismo
+nombre en pantalla, así que sus cifras son las que se ven.
 
 La portada dice qué caso documenta:
 
 | Lo que hay en el simulador | Rótulo del reporte |
 |---|---|
 | Sin cambios en el «¿qué pasa si…?» | DISTRIBUCIÓN DE REFERENCIA |
-| Votos cambiados con los deslizadores o el trasvase | ESCENARIO HIPOTÉTICO (referencia frente a simulado) |
+| Votos cambiados con los deslizadores o el trasvase | ESCENARIO HIPOTÉTICO |
 | El reparto de **Nuevo** | REPARTO PROPUESTO |
 
-Contenido, en este orden:
+Contenido, en este orden (v6.1):
 
-1. **Encabezado**: logo y nombre de la empresa (los de `CONFIG.marca`),
+1. **Portada**: logo y nombre de la empresa (los de `CONFIG.marca`),
    «Reporte de Simulación Electoral», la jurisdicción (provincia, cantón y
-   circunscripción o parroquia, con su nombre literal), la dignidad, la fecha y
-   hora de generación y el rótulo del caso.
-2. **Resumen ejecutivo**: votos válidos considerados (con blancos y nulos),
-   organizaciones participantes y con escaño, escaños a distribuir y método, y
-   cuántos escaños cambian de manos; debajo, quién gana y quién pierde
-   escaños, y la composición del cuerpo con un punto por escaño.
-3. **Resultados por organización política**: votos de referencia y
-   simulados, porcentaje (la base va escrita: los votos válidos del distrito,
-   la misma que usa la tabla de cocientes), escaños de referencia y simulados y
-   la diferencia. En *Nuevo*, además, el reparto propuesto con los votos mínimo
-   y máximo de cada escaño elegido.
-4. **Gráficos**: distribución de escaños (referencia frente a simulación) y
-   porcentaje de votación.
-5. **Detalle metodológico**: fórmula D'Hondt (divisores 1, 2, 3…), escaños y
-   su fuente, votos utilizados, base de los porcentajes, umbral, criterio de
-   desempate, fuente de los datos y fecha de referencia; después, el orden de
-   adjudicación escaño por escaño (con el primer cociente que queda fuera) y
-   la tabla de cocientes, con dos decimales.
-6. **Advertencia**: resultados hipotéticos, no una proclamación del CNE.
+   circunscripción o parroquia, con su nombre literal), la dignidad, el
+   escenario, la fórmula, los escaños y la fecha y hora de generación.
+2. **Resumen ejecutivo**: arriba, las seis cifras del bloque *Participación*
+   del tablero —**electores, ausentismo, sufragantes, blancos, nulos y
+   válidos**— con la cuenta en dos pasos; debajo, como antes, las
+   organizaciones participantes, los escaños a distribuir, cuántos escaños
+   cambian de manos, quién gana y quién pierde escaños y la composición con un
+   punto por escaño.
+3. **Cocientes electorales**: la misma tabla del simulador —% de voto, votos,
+   escaños y los cocientes ÷1, ÷2…—, con los cocientes que ganan escaño en el
+   color de su organización y el orden de adjudicación en pequeño, y el primer
+   cociente que queda fuera con borde punteado. Usa los mismos divisores
+   visibles y los mismos decimales que la pantalla.
+4. **Orden de adjudicación de los escaños**: escaño por escaño, con el primer
+   cociente que queda fuera.
+5. **Simulador: ¿qué pasa si…?**: por organización, los votos (y el cambio si
+   se simuló), los escaños con sus puestos, los **votos mínimos y máximos**
+   con los que conserva esos escaños si las demás no cambian y los votos que le
+   faltan para **un escaño más**. En *Nuevo*, el reparto propuesto con sus
+   mínimos y máximos.
+6. **Estabilidad y cambios en la representación**: escaños firmes, escenarios
+   con cambios, escaños que cambian como máximo, sensibilidad del reparto y la
+   tabla por organización, con la amplitud elegida en el simulador. La lista de
+   «cambios más cercanos» se queda solo en pantalla.
+7. **Advertencia**: resultados hipotéticos, no una proclamación del CNE.
+
+La tabla de resultados por organización, los gráficos de barras y el detalle
+metodológico que traía la v6.0 se quitaron.
 
 Formato: A4 vertical, «Página X de Y» en cada pie, encabezados de tabla que
 se repiten al pasar de página, ninguna fila partida entre dos páginas,
@@ -1130,9 +1139,11 @@ puede calcular, el botón queda gris y no se genera un PDF con cifras a medias.
 
 Lo escribe un generador propio que va dentro de `asignacion/simulador.html`
 (`<script id="pdf-mini">`, fuentes estándar Helvetica): no necesita conexión
-ni librerías externas. La marca, la provincia y el año de la participación de
-partida los lee del tablero, sin cambiar nada de él. La opción *PDF* del menú
-de exportaciones de siempre sigue como estaba.
+ni librerías externas. La marca, la provincia, el año de la participación de
+partida y las seis cifras de participación los lee del tablero, sin cambiar
+nada de él; con el simulador abierto suelto, el padrón y el ausentismo salen
+como «no disponible». La opción *PDF* del menú de exportaciones de siempre
+sigue como estaba.
 
 **El botón es lo único nuevo en concejales.** `js/asignacion.js`, `js/app.js`
 y `css/styles.css` son idénticos a los de la v5.9.1, y `asignacion/simulador.html`
@@ -1729,8 +1740,8 @@ ordenamiento, paginación, exportaciones, nivel parroquial y sincronización con
 el mapa).
 
 La v6.0 se verificó además con dos baterías nuevas: el reporte PDF en siete
-escenarios más el de *Nuevo* (67 comprobaciones, con las cifras del PDF
-contra las del motor y la pantalla) y Vocales-Escaños recorriendo las 824
+escenarios más el de *Nuevo* (en la v6.1, 128 comprobaciones: cada sección del
+PDF contra la sección del mismo nombre en pantalla y contra el motor) y Vocales-Escaños recorriendo las 824
 parroquias (46 comprobaciones). Otra prueba deja una simulación de concejales a
 medias, cambia de cantón dentro de Vocales-Escaños y vuelve: concejales tiene
 que seguir exactamente igual (distrito, porcentajes, simulador sin recargar y

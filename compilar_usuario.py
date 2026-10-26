@@ -50,6 +50,7 @@ USUARIOS = {
     ('PICHINCHA', ''): {'usuario': 'pichincha', 'nombre': 'Pichincha'},
     ('MANABI', 'JARAMIJO'): {'usuario': 'jaramijo', 'nombre': 'Jaramijó'},
     ('CARCHI', ''): {'usuario': 'carchi', 'nombre': 'Carchi'},
+    ('LOJA', ''): {'usuario': 'loja', 'nombre': 'Loja'},
 }
 
 # Las candidaturas a prefecto son provinciales y no llevan cantón. Se

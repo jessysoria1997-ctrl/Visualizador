@@ -3879,6 +3879,13 @@ textarea.control { height: auto; padding: 10px; line-height: 1.4; resize: vertic
     return doc.output("arraybuffer");
   }
   // src/ui/reporte.js — v6.0 · «Descargar reporte PDF» del «Simulador: ¿qué pasa si…?»
+  /* Contenido (v6.0.1): portada · resumen ejecutivo (participación del
+     distrito: electores, ausentismo, sufragantes, blancos, nulos y válidos)
+     · cocientes electorales · orden de adjudicación · simulador «¿qué pasa
+     si…?» (votos mínimos y máximos) · estabilidad y cambios en la
+     representación (sin la lista de cambios más cercanos) · advertencia.
+     Cada sección sale de los mismos cálculos que la sección del simulador
+     con el mismo nombre. */
   /* El reporte sale del escenario que está en pantalla en el momento de la
      descarga —el de trabajo (simulado) frente al base (referencia)— y de los
      mismos cálculos del motor que usa la interfaz. No guarda ni cambia nada:
@@ -3976,19 +3983,6 @@ textarea.control { height: auto; padding: 10px; line-height: 1.4; resize: vertic
     const S = res.escanos;
     const adjudicacion = res.adjudicacion.map((a) => ({ numero: a.numero, listaId: a.listaId, nombre: a.nombre, color: color[a.listaId], votos: a.votos, divisor: fmtDivisor(a.divisor), cociente: a.cociente, empatado: a.empatado }));
     const corte = res.corte;
-    // Matriz de cocientes: tantos divisores como el mayor número de escaños de una lista + 1 (sin pasar de S).
-    const maxEsc = res.listas.reduce((m2, l) => Math.max(m2, l.escanos), 0);
-    const nDiv = Math.max(1, Math.min(S, maxEsc + 1));
-    const mat = Motor.generarCocientes(esc, nDiv);
-    const numDe = {};
-    res.adjudicacion.forEach((a) => {
-      numDe[a.listaId + ":" + a.k] = a.numero;
-    });
-    const filasMatriz = mat.filas.map((f) => ({
-      id: f.listaId, nombre: f.nombre || "Sin nombre", color: color[f.listaId], votos: f.votos,
-      escanos: res.listas[f.idx].escanos, elegible: f.elegible,
-      cocientes: f.cocientes.map((q) => ({ valor: q.cociente, numero: numDe[f.listaId + ":" + q.k] || null }))
-    })).sort((a, b) => b.votos - a.votos || a.nombre.localeCompare(b.nombre, "es"));
     let reparto = null;
     if (modoReparto && Number.isInteger(S) && S > 0) {
       const ef = repartoEfectivo(ui.reparto, esc.listas, S);
@@ -4004,6 +3998,104 @@ textarea.control { height: auto; padding: 10px; line-height: 1.4; resize: vertic
     }
     const cerca = margenes && margenes.masCercana ? { nombre: (esc.listas.find((l) => l.id === margenes.masCercana.listaId) || {}).nombre || margenes.masCercana.nombre, adicionales: margenes.masCercana.proximo.adicionales, numero: margenes.masCercana.proximo.numero } : null;
     const empate = (res.empates || []).find((e) => e.decisivo) || null;
+
+    // Participación del distrito, tal como la muestra el tablero (bloque
+    // Participación). Se usa solo si cuadra con lo que tiene el simulador; si
+    // no (simulador abierto suelto), lo que el simulador sabe por sí mismo.
+    const esVoc = !!(o && o.parroquia);
+    const pt = delTablero(esVoc ? 'typeof cuentaParticipacionVoc === "function" ? cuentaParticipacionVoc() : null' : 'typeof cuentaParticipacion === "function" ? cuentaParticipacion() : null');
+    const vDisp = Number(esc.validosDisponibles) || 0;
+    const bl = Math.max(0, Math.round(Number(esc.blancos) || 0)), nu = Math.max(0, Math.round(Number(esc.nulos) || 0));
+    let part;
+    if (pt && pt.valido && vDisp > 0 && pt.validos === vDisp && pt.blancos === bl && pt.nulos === nu) {
+      part = { completo: true, electores: pt.E, ausentes: pt.ausentes, pa: pt.pa, emitidos: pt.emitidos, blancos: pt.blancos, pb: pt.pb, nulos: pt.nulos, pn: pt.pn, validos: pt.validos, pv: pt.pv };
+    } else {
+      const v = vDisp || (res.totales ? res.totales.votosListas : 0), em = v + bl + nu;
+      part = { completo: false, electores: null, ausentes: null, pa: null, emitidos: em, blancos: bl, pb: em > 0 ? bl * 100 / em : 0, nulos: nu, pn: em > 0 ? nu * 100 / em : 0, validos: v, pv: em > 0 ? v * 100 / em : 0 };
+    }
+
+    // Cocientes electorales: la misma tabla del simulador (mismos divisores
+    // visibles, mismos decimales, orden de adjudicación y primer excluido).
+    const maxEscL = res.listas.reduce((m2, l) => Math.max(m2, l.escanos), 0);
+    const nCols = ui && ui.matrizTodo ? S : Math.min(S, Math.max(5, maxEscL + 2));
+    const matC = Motor.generarCocientes(esc, nCols);
+    const decC = ui && ui.decimales === 2 ? 2 : 0;
+    const sumaListas = esc.listas.reduce((a, x) => a + (Number(x.votos) || 0), 0);
+    const baseValidos = vDisp || (base && base.listas ? base.listas.reduce((a, x) => a + (Number(x.votos) || 0), 0) : 0) || sumaListas;
+    const ordenDe = {};
+    res.adjudicacion.forEach((a) => {
+      ordenDe[a.listaId + "|" + a.k] = a.numero;
+    });
+    const exC = res.corte.primerExcluido;
+    const porIdEsc = {};
+    esc.listas.forEach((l) => {
+      porIdEsc[l.id] = l;
+    });
+    const coc = {
+      divisores: matC.divisores.map((dv) => fmtDivisor(dv)), baseValidos, sumaListas,
+      filas: matC.filas.map((f) => {
+        const l = porIdEsc[f.listaId] || {};
+        return {
+          id: f.listaId, nombre: l.nombre || f.nombre || "Sin nombre", color: colorDe(l), votos: Number(l.votos) || 0,
+          pct: baseValidos ? (Number(l.votos) || 0) * 100 / baseValidos : 0,
+          escanos: res.listas[f.idx] ? res.listas[f.idx].escanos : 0, elegible: f.elegible, motivo: f.motivoExclusion,
+          cocientes: f.cocientes.map((q) => ({
+            texto: fmtCociente(q.cociente, decC),
+            numero: f.elegible ? ordenDe[f.listaId + "|" + q.k] || null : null,
+            fuera: !!(f.elegible && exC && exC.listaId === f.listaId && exC.k === q.k)
+          }))
+        };
+      })
+    };
+    coc.sumaPct = coc.filas.reduce((a, f) => a + f.pct, 0);
+
+    // «¿Qué pasa si…?»: lo mismo que cada fila del simulador de votos (votos,
+    // cambio frente a la tabla, escaños con sus puestos y los votos mínimo y
+    // máximo con que los conserva) y los votos que le faltan para uno más.
+    const sim = modoReparto ? null : esc.listas.map((l, i) => {
+      const s = res.listas[i].escanos;
+      const min = s > 0 ? Motor.votosMinimosPara(esc, l.id, s) : 0;
+      const sig = s < S ? Motor.votosMinimosPara(esc, l.id, s + 1) : null;
+      const b = porIdBase[l.id];
+      const vb = b ? Number(b.l.votos) || 0 : null;
+      const rb = b && resBase.ok ? resBase.listas[b.i] : null;
+      const votos = Number(l.votos) || 0;
+      return {
+        id: l.id, nombre: l.nombre || "Sin nombre", color: colorDe(l), votos,
+        delta: vb != null ? votos - vb : 0, pctDelta: vb > 0 ? (votos - vb) * 100 / vb : null,
+        escanos: s, escBase: rb ? rb.escanos : null, puestos: s > 0 ? posicionesDe(res, l.id) : "",
+        todos: s >= S, min, max: sig != null ? sig - 1 : null, falta: sig != null ? Math.max(0, sig - votos) : null
+      };
+    });
+
+    // Estabilidad y cambios en la representación: el mismo análisis de la
+    // sección del simulador, con la amplitud que esté elegida allí.
+    let est = null;
+    const amp = AMPLITUDES_EST.includes(ui && ui.estAmplitud) ? ui.estAmplitud : 2;
+    const A = res.ok !== false ? analizarEstabilidad(esc, res, amp, B) : null;
+    if (A) {
+      const nombreK = (k) => partesOrg(esc.listas[k]).completo;
+      const frac = A.N ? A.conCambio / A.N : 0;
+      const filasE = A.porOrg.filter((x) => (Number(esc.listas[x.k].votos) || 0) > 0).map((x) => Object.assign({}, x, { act: A.actual[x.k], l: esc.listas[x.k], est: estadoOrg(x, A.actual[x.k]) }));
+      filasE.sort((a, b) => {
+        if ((a.act > 0) !== (b.act > 0)) return a.act > 0 ? -1 : 1;
+        if (a.act > 0) return b.mantiene - a.mantiene || b.act - a.act || b.l.votos - a.l.votos;
+        if ((a.max > 0) !== (b.max > 0)) return a.max > 0 ? -1 : 1;
+        return b.l.votos - a.l.votos;
+      });
+      const pctDe = (n) => A.N ? n * 100 / A.N : 0;
+      est = {
+        amp, N: A.N, conVotos: A.conVotos, firmes: A.firmes, enJuego: S - A.firmes, conCambio: A.conCambio, frac,
+        maxMovidos: A.maxMovidos, niv: nivelSensibilidad(frac), sinVotos: A.sinVotos,
+        estables: filasE.filter((f) => f.act > 0 && f.est.c === "estable").length,
+        conEscano: filasE.filter((f) => f.act > 0).length,
+        filas: filasE.filter((f) => !(f.act === 0 && f.max === 0)).map((f) => ({
+          nombre: nombreK(f.k), color: colorDe(f.l), act: f.act, min: f.min, max: f.max,
+          mantiene: pctDe(f.mantiene), gana: pctDe(f.gana), pierde: pctDe(f.pierde), est: f.est
+        })),
+        sin: filasE.filter((f) => f.act === 0 && f.max === 0).map((f) => nombreK(f.k))
+      };
+    }
 
     // Territorio, tal como lo manda el tablero (nombres sin tocar). Concejales
     // no manda la provincia ni el año de la participación: se leen del tablero.
@@ -4028,7 +4120,7 @@ textarea.control { height: auto; padding: 10px; line-height: 1.4; resize: vertic
       S, Sbase: base.escanos, umbral: Number(esc.umbral) || 0, baseModo: (Motor.BASES_CALCULO[esc.baseModo] || {}).nombre || "",
       B, disponibles: Number(esc.validosDisponibles) || 0,
       totRef: resBase.ok ? resBase.totales : null, totSim: res.totales,
-      filas, adjudicacion, corte, matriz: { divisores: mat.divisores.map((d) => fmtDivisor(d)), filas: filasMatriz },
+      filas, adjudicacion, corte, part, coc, sim, est,
       cambiosVotos, otrosCambios, reparto, cerca, empate, fuenteEsc,
       hayRef: resBase.ok,
       oficial: o && o.oficial ? o.oficial : null
@@ -4050,8 +4142,8 @@ textarea.control { height: auto; padding: 10px; line-height: 1.4; resize: vertic
     if (R.tipo === "referencia") {
       out.push("No se modificó ningún voto: el reporte muestra la distribución de referencia, calculada con los votos de la tabla de cocientes.");
     } else if (R.tipo === "reparto") {
-      out.push("Escenario «Nuevo»: se propone un reparto de " + fmtEntero(R.reparto ? R.reparto.usados : 0) + " de " + escRP(R.S) + (R.reparto && R.reparto.restante > 0 ? " (falta" + (R.reparto.restante === 1 ? " 1 escaño" : "n " + escRP(R.reparto.restante)) + " por asignar)" : "") + ". La tabla «Reparto propuesto» indica los votos mínimos y máximos con los que cada " + T.sing + " lo obtendría si el resto conserva sus votos de referencia.");
-      out.push("Los resultados por organización, la composición y el detalle del cálculo corresponden a la distribución de referencia, calculada con los votos de la tabla de cocientes.");
+      out.push("Escenario «Nuevo»: se propone un reparto de " + fmtEntero(R.reparto ? R.reparto.usados : 0) + " de " + escRP(R.S) + (R.reparto && R.reparto.restante > 0 ? " (falta" + (R.reparto.restante === 1 ? " 1 escaño" : "n " + escRP(R.reparto.restante)) + " por asignar)" : "") + ". La sección «Simulador: ¿qué pasa si…?» indica los votos mínimos y máximos con los que cada " + T.sing + " lo obtendría si el resto conserva sus votos de referencia.");
+      out.push("La composición, los cocientes electorales y el orden de adjudicación corresponden a la distribución de referencia, calculada con los votos de la tabla de cocientes.");
     }
     if (R.tipo === "simulado") {
       if (R.cambiosVotos.length) {
@@ -4239,10 +4331,14 @@ textarea.control { height: auto; padding: 10px; line-height: 1.4; resize: vertic
 
     /* Tabla con encabezado que se repite en cada página y filas que nunca se
        parten. cols: [{t, w, al}] (al: 'izq' | 'der' | 'centro'); filas:
-       [{c: [celda…], total}] con celda = texto o {t, color, fuente, punto}. */
+       [{c: [celda…], total}] con celda = texto o {t, color, fuente, punto,
+       fondo, marco, sup, colorSup, barra}: fondo pinta la celda, marco la
+       rodea con un borde punteado, sup añade un superíndice y barra dibuja
+       debajo una barrita apilada [{f: 0…1, color}]. */
     function tabla(cols, filas, opc) {
       const o = opc || {};
       const tam = o.tam || 8.4, il = tam * 1.3, pad = o.pad != null ? o.pad : 5.2;
+      const tamSup = tam * 0.68;
       const xs = [];
       let acc = M;
       cols.forEach((c) => {
@@ -4251,12 +4347,13 @@ textarea.control { height: auto; padding: 10px; line-height: 1.4; resize: vertic
       });
       const anchoT = acc - M;
       const textoDe = (cel) => cel == null ? "" : typeof cel === "object" ? String(cel.t == null ? "" : cel.t) : String(cel);
+      const anchoSup = (cel) => cel && typeof cel === "object" && cel.sup != null ? doc.ancho(String(cel.sup), "negrita", tamSup) + 1.4 : 0;
       const lineas = (cel, c, cab, total) => {
         const f = cab || total ? "negrita" : cel && typeof cel === "object" && cel.fuente || "normal";
-        const extra = cel && typeof cel === "object" && cel.punto ? 10 : 0;
+        const extra = (cel && typeof cel === "object" && cel.punto ? 10 : 0) + anchoSup(cel);
         return doc.partir(textoDe(cel), Math.max(8, c.w - 2 * pad - extra), f, cab ? tam - 0.6 : tam);
       };
-      const alto = (celdas, cab, total) => celdas.reduce((mx, cel, i) => Math.max(mx, lineas(cel, cols[i], cab, total).length), 1) * il + 2 * pad;
+      const alto = (celdas, cab, total) => celdas.reduce((mx, cel, i) => Math.max(mx, lineas(cel, cols[i], cab, total).length * il + (cel && typeof cel === "object" && cel.barra ? 7 : 0)), il) + 2 * pad;
       const xTexto = (i, c) => c.al === "der" ? xs[i] + c.w - pad : c.al === "centro" ? xs[i] + c.w / 2 : xs[i] + pad;
       const alinear = (c) => c.al === "der" ? "der" : c.al === "centro" ? "centro" : "izq";
       const hCab = alto(cols.map((c) => c.t), true);
@@ -4289,13 +4386,31 @@ textarea.control { height: auto; padding: 10px; line-height: 1.4; resize: vertic
           const ls = lineas(cel, c, false, f.total);
           const obj = cel && typeof cel === "object" ? cel : {};
           const fuente = f.total ? "negrita" : obj.fuente || "normal";
+          if (obj.fondo) doc.rect(xs[i] + 1.4, y + 1.4, c.w - 2.8, h - 2.8, { relleno: obj.fondo, radio: 2 });
+          if (obj.marco) doc.rect(xs[i] + 1.8, y + 1.8, c.w - 3.6, h - 3.6, { borde: obj.marco, grosor: 0.9, discontinua: [2.2, 1.6], radio: 2 });
           let x = xTexto(i, c);
           const yb = y + pad + (il - tam) / 2 + tam * 0.8;
           if (obj.punto) {
             punto(xs[i] + pad + 3.5, yb - tam * 0.32, 3.4, obj.punto);
             if (alinear(c) === "izq") x += 10;
           }
+          const wSup = anchoSup(obj);
+          if (wSup && alinear(c) === "der") x -= wSup;
           ls.forEach((l, k) => doc.texto(l, x, yb + k * il, { tam, fuente, color: obj.color || TONOS.tinta, alinear: alinear(c) }));
+          if (wSup) {
+            const xS = alinear(c) === "der" ? x + 1.4 : x + doc.ancho(ls[0] || "", fuente, tam) + 1.4;
+            doc.texto(String(obj.sup), xS, yb - tam * 0.36, { tam: tamSup, fuente: "negrita", color: obj.colorSup || obj.color || TONOS.tinta });
+          }
+          if (obj.barra) {
+            const bx = xs[i] + pad, bw = c.w - 2 * pad, by = yb + (ls.length - 1) * il + 4;
+            let a2 = 0;
+            obj.barra.forEach((b) => {
+              const w2 = Math.max(0, Math.min(1, b.f)) * bw;
+              if (w2 > 0.05) doc.rect(bx + a2, by, Math.min(w2, bw - a2), 4, { relleno: b.color });
+              a2 += w2;
+            });
+            doc.rect(bx, by, bw, 4, { borde: TONOS.linea, grosor: 0.4 });
+          }
         });
         doc.linea(M, y + h, M + anchoT, y + h, { borde: f.total ? TONOS.linea : TONOS.lineaSuave, grosor: f.total ? 0.8 : 0.5 });
         y += h;
@@ -4303,82 +4418,28 @@ textarea.control { height: auto; padding: 10px; line-height: 1.4; resize: vertic
       y += o.despues != null ? o.despues : 12;
     }
 
-    /* Barras horizontales: una o dos por organización (referencia y
-       simulado), con su cifra al final. Se mide antes (para que el título no
-       quede solo al pie de una página) y se dibuja como un bloque entero. */
-    const G = { etW: 170, tamE: 7.8, ilE: 9.6 };
-    function medirGrafico(cfg) {
-      const barH = cfg.doble ? 7.5 : 10.5, gapB = 2.2;
-      const filas = cfg.filas.map((f) => {
-        const ls = doc.partir(f.nombre, G.etW - 11, "normal", G.tamE);
-        const hb = cfg.doble ? 2 * barH + gapB : barH;
-        return Object.assign({ ls, h: Math.max(ls.length * G.ilE, hb) + 8 }, f);
+    /* Una fila de tarjetas con cifra: [{e: etiqueta, v: cifra, s: pie, color,
+       foco}]. color pinta una franja a la izquierda; foco, la tarjeta oscura. */
+    function filaTarjetas(items, opc) {
+      const o2 = opc || {};
+      const n = items.length, gap = o2.gap != null ? o2.gap : 8, h = o2.alto || 62;
+      const w = (CW - gap * (n - 1)) / n;
+      asegurar(h + 10);
+      items.forEach((it, i) => {
+        const x = M + i * (w + gap);
+        doc.rect(x, y, w, h, { relleno: it.foco ? TONOS.marino : TONOS.blanco, borde: it.foco ? TONOS.marino : TONOS.linea, grosor: 0.7, radio: 6 });
+        if (it.color) doc.rect(x + 0.35, y + 7, 3, h - 14, { relleno: it.color, radio: 1.5 });
+        const x0 = x + (it.color ? 11 : 10), wi = w - (it.color ? 19 : 20);
+        const cE = it.foco ? TONOS.banda : it.color || TONOS.gris;
+        doc.partir(it.e.toUpperCase(), wi, "negrita", 6.2).slice(0, 2).forEach((l, k) => doc.texto(l, x0, y + 14 + k * 7.6, { tam: 6.2, fuente: "negrita", color: cE, espaciado: 0.3 }));
+        const vA = ajustar(it.v, wi, "negrita", o2.tamV || 16, 8.5);
+        doc.texto(vA.lineas[0], x0, y + h - 21, { tam: vA.tam, fuente: "negrita", color: it.foco ? TONOS.blanco : TONOS.marino });
+        if (it.s) {
+          const sA = ajustar(it.s, wi, "normal", 6.8, 5.4);
+          doc.texto(sA.lineas[0], x0, y + h - 9.5, { tam: sA.tam, color: it.foco ? TONOS.banda : TONOS.gris });
+        }
       });
-      const altoLey = cfg.doble ? 18 : 4;
-      return { filas, barH, gapB, altoLey, total: altoLey + filas.reduce((s, f) => s + f.h, 0) + 30 };
-    }
-    function grafico(cfg, medida) {
-      const etW = G.etW, x0 = M + etW + 12, x1 = M + CW - 40, plotW = x1 - x0;
-      const tamE = G.tamE, ilE = G.ilE;
-      const doble = cfg.doble;
-      const mg = medida || medirGrafico(cfg);
-      const { filas, barH, gapB, altoLey } = mg;
-      asegurar(mg.total);
-      const yTop = y + altoLey;
-      if (doble) {
-        let xl = x1 + 40;
-        [[cfg.leyenda[1], false], [cfg.leyenda[0], true]].forEach(([t, claro]) => {
-          const w = doc.ancho(t, "normal", 7.5);
-          xl -= w;
-          doc.texto(t, xl, y + 9, { tam: 7.5, color: TONOS.tinta2 });
-          xl -= 13;
-          doc.rect(xl, y + 3, 9, 7, claro ? { relleno: "#d9dee8", borde: "#8d97ab", grosor: 0.6, radio: 1.5 } : { relleno: TONOS.tinta2, radio: 1.5 });
-          xl -= 12;
-        });
-      }
-      const yFin = yTop + filas.reduce((s, f) => s + f.h, 0);
-      const max = cfg.max > 0 ? cfg.max : 1;
-      cfg.marcas.forEach((v) => {
-        const x = x0 + v / max * plotW;
-        doc.linea(x, yTop, x, yFin, { borde: v === 0 ? "#b8c1d1" : TONOS.lineaSuave, grosor: v === 0 ? 0.8 : 0.5 });
-        doc.texto(cfg.marca(v), x, yFin + 10, { tam: 6.8, color: TONOS.gris, alinear: "centro" });
-      });
-      if (cfg.eje) doc.texto(cfg.eje, x1, yFin + 20, { tam: 6.8, fuente: "cursiva", color: TONOS.gris, alinear: "der" });
-      let yy = yTop;
-      filas.forEach((f) => {
-        const centro = yy + f.h / 2;
-        const yl = centro - f.ls.length * ilE / 2 + tamE * 0.82;
-        punto(M + 3.5, yl - tamE * 0.32, 3.2, f.color);
-        doc.parrafo(f.ls, M + 11, yl, etW - 11, { tam: tamE, color: TONOS.tinta, interlineado: ilE });
-        const barras = doble ? [[f.a, true], [f.b, false]] : [[f.b, false]];
-        let yb = centro - (doble ? (2 * barH + gapB) / 2 : barH / 2);
-        barras.forEach(([v, claro]) => {
-          const w = v == null ? 0 : Math.max(0, v / max * plotW);
-          const c = f.color || { hex: TONOS.gris };
-          if (v != null && w > 0) {
-            if (claro) doc.rect(x0, yb, w, barH, { relleno: mezclar(c.hex, 0.66), borde: mezclar(c.hex, 0.25), grosor: 0.5, radio: 1.2 });
-            else if (c.hueco) doc.rect(x0, yb, w, barH, { relleno: TONOS.blanco, borde: c.hex, grosor: 1.2, radio: 1.2 });
-            else doc.rect(x0, yb, w, barH, { relleno: c.hex, radio: 1.2 });
-          }
-          doc.texto(v == null ? "—" : cfg.valor(v), x0 + w + 4, yb + barH / 2 + 2.6, { tam: 7.2, fuente: claro ? "normal" : "negrita", color: claro ? TONOS.gris : TONOS.tinta });
-          yb += barH + gapB;
-        });
-        yy += f.h;
-      });
-      y = yFin + 30;
-    }
-    function marcasEnteras(max) {
-      const paso = max <= 10 ? 1 : max <= 20 ? 2 : max <= 50 ? 5 : 10;
-      const out = [];
-      for (let v = 0; v <= max + 1e-9; v += paso) out.push(v);
-      return out;
-    }
-    function marcasPct(max) {
-      const paso = max <= 10 ? 2 : max <= 25 ? 5 : max <= 60 ? 10 : 20;
-      const tope = Math.max(paso, Math.ceil(max / paso) * paso);
-      const out = [];
-      for (let v = 0; v <= tope + 1e-9; v += paso) out.push(v);
-      return { tope, out };
+      y += h + (o2.despues != null ? o2.despues : 12);
     }
 
     /* =========================== PÁGINA 1 =========================== */
@@ -4440,30 +4501,39 @@ textarea.control { height: auto; padding: 10px; line-height: 1.4; resize: vertic
       y += hF + 20;
     })();
 
-    // Resumen ejecutivo
+    /* ====================== 1 · RESUMEN EJECUTIVO ====================== */
     seccion("Resumen ejecutivo", null, 150);
+    (function participacion() {
+      const P = R.part;
+      const COL = { electores: "#2A72C8", ausentismo: "#D4553C", emitidos: "#566070", blancos: "#AE6E0C", nulos: "#1A8F62", validos: "#6B4FBB" };
+      doc.texto(P.completo ? "Participación del distrito, como en el bloque Participación del tablero" : "Participación del distrito (la que trae el simulador; sin el tablero no hay padrón ni ausentismo)", M, y + 8, { tam: 7.8, fuente: "negrita", color: TONOS.tinta2 });
+      y += 15;
+      filaTarjetas([
+        { e: "Electores", v: P.electores != null ? fmtEntero(P.electores) : "—", s: P.electores != null ? "electores habilitados" : "no disponible", color: COL.electores },
+        { e: "Ausentismo", v: P.pa != null ? fmtPct(P.pa, 2) : "—", s: P.ausentes != null ? fmtEntero(P.ausentes) + " " + plural(P.ausentes, "ausente", "ausentes") : "no disponible", color: COL.ausentismo },
+        { e: "Sufragantes", v: fmtEntero(P.emitidos), s: "votos emitidos", color: COL.emitidos },
+        { e: "Blancos", v: fmtPct(P.pb, 2), s: fmtEntero(P.blancos) + " votos", color: COL.blancos },
+        { e: "Nulos", v: fmtPct(P.pn, 2), s: fmtEntero(P.nulos) + " votos", color: COL.nulos },
+        { e: "Válidos", v: fmtEntero(P.validos), s: fmtPct(P.pv, 2) + " de los emitidos", color: COL.validos }
+      ], { gap: 7, alto: 60, tamV: 15, despues: 6 });
+      const pasos = [];
+      if (P.completo) pasos.push(fmtEntero(P.electores) + " electores − " + fmtEntero(P.ausentes) + " ausentes (" + fmtPct(P.pa, 2) + ") = " + fmtEntero(P.emitidos) + " votos emitidos");
+      pasos.push(fmtEntero(P.emitidos) + " votos emitidos − " + fmtEntero(P.nulos) + " nulos (" + fmtPct(P.pn, 2) + ") − " + fmtEntero(P.blancos) + " blancos (" + fmtPct(P.pb, 2) + ") = " + fmtEntero(P.validos) + " votos válidos");
+      pasos.forEach((tx, k) => {
+        const ls = doc.partir((k + 1) + ". " + tx, CW, "normal", 7.6);
+        asegurar(ls.length * 10 + 2);
+        doc.parrafo(ls, M, y + 8, CW, { tam: 7.6, color: TONOS.tinta2, interlineado: 10 });
+        y += ls.length * 10 + 1;
+      });
+      y += 10;
+    })();
     (function tarjetas() {
-      const tot = R.tipo === "simulado" ? R.totSim : R.totRef || R.totSim;
       const n = R.filas.length;
-      const items = [
-        { e: "Votos válidos considerados", v: fmtEntero(tot.votosListas), s: "Blancos " + fmtEntero(tot.blancos) + " · nulos " + fmtEntero(tot.nulos) },
+      filaTarjetas([
         { e: T.Plur + " participantes", v: fmtEntero(n), s: fmtEntero(R.conEscano) + " con escaño" },
         { e: "Escaños a distribuir", v: fmtEntero(R.S), s: "Método " + R.metodo.nombre },
         R.tipo === "simulado" ? { e: "Escaños que cambian de manos", v: fmtEntero(R.cambianDeManos), s: R.cambianDeManos ? "frente a la referencia" : "el reparto se mantiene", foco: true } : R.tipo === "reparto" ? { e: "Escaños propuestos", v: fmtEntero(R.reparto ? R.reparto.usados : 0) + " de " + fmtEntero(R.S), s: R.reparto && R.reparto.restante ? "faltan " + fmtEntero(R.reparto.restante) : "reparto completo", foco: true } : { e: "Escenario", v: "Referencia", s: "sin cambios simulados", foco: true }
-      ];
-      const gap = 9, w = (CW - gap * 3) / 4, h = 66;
-      asegurar(h + 12);
-      items.forEach((it, i) => {
-        const x = M + i * (w + gap);
-        doc.rect(x, y, w, h, { relleno: it.foco ? TONOS.marino : TONOS.blanco, borde: it.foco ? TONOS.marino : TONOS.linea, grosor: 0.7, radio: 6 });
-        const cE = it.foco ? TONOS.banda : TONOS.gris;
-        doc.partir(it.e.toUpperCase(), w - 20, "negrita", 6.3).slice(0, 2).forEach((l, k) => doc.texto(l, x + 10, y + 14 + k * 8, { tam: 6.3, fuente: "negrita", color: cE, espaciado: 0.35 }));
-        const vA = ajustar(it.v, w - 20, "negrita", 17, 11);
-        doc.texto(vA.lineas[0], x + 10, y + 43, { tam: vA.tam, fuente: "negrita", color: it.foco ? TONOS.blanco : TONOS.marino });
-        const sA = ajustar(it.s, w - 20, "normal", 7, 5.8);
-        doc.texto(sA.lineas[0], x + 10, y + 56, { tam: sA.tam, color: cE });
-      });
-      y += h + 16;
+      ], { gap: 9, alto: 60, despues: 14 });
     })();
     R.hallazgos.forEach((t) => {
       const ls = doc.partir(t, CW - 14, "normal", 9.2);
@@ -4508,136 +4578,129 @@ textarea.control { height: auto; padding: 10px; line-height: 1.4; resize: vertic
       y += 6;
     })();
 
-    /* =========================== RESULTADOS =========================== */
-    nuevaPagina();
-    const hayComp = R.tipo === "simulado";
-    const pctTxt = (v) => v == null ? "—" : fmtPct(v, 2);
-    const baseTxt = R.disponibles > 0 ? fmtEntero(R.B) + " votos válidos del distrito (el mismo total sobre el que se escriben los porcentajes en la tabla de cocientes)" : fmtEntero(R.B) + " votos válidos de la referencia";
-    seccion("Resultados por " + T.sing, (hayComp ? "Referencia: el escenario base del simulador. Simulado: el escenario con los cambios del «¿qué pasa si…?». " : "") + "Porcentajes sobre " + baseTxt + ".", 120);
-    if (hayComp) {
-      const cols = [
-        { t: T.Sing, w: 136 }, { t: "Votos de referencia", w: 54, al: "der" }, { t: "Votos simulados", w: 54, al: "der" },
-        { t: "Cambio de votos", w: 50, al: "der" }, { t: "% simulado", w: 48, al: "der" }, { t: "Escaños de referencia", w: 56, al: "der" },
-        { t: "Escaños simulados", w: 56, al: "der" }, { t: "Diferencia", w: CW - 136 - 54 - 54 - 50 - 48 - 56 - 56, al: "der" }
-      ];
-      const filas = R.filas.map((f) => ({
-        c: [
-          { t: f.nombre, punto: f.color, fuente: "negrita" },
-          f.votosRef == null ? "—" : fmtEntero(f.votosRef), f.votosSim == null ? "—" : fmtEntero(f.votosSim),
-          { t: f.difVotos == null ? "—" : f.difVotos === 0 ? "0" : fmtSigno(f.difVotos), color: f.difVotos > 0 ? TONOS.sube : f.difVotos < 0 ? TONOS.baja : TONOS.gris },
-          pctTxt(f.pctSim), f.escRef == null ? "—" : fmtEntero(f.escRef), { t: f.escSim == null ? "—" : fmtEntero(f.escSim), fuente: "negrita" },
-          { t: f.dif == null ? "—" : f.dif === 0 ? "0" : fmtSigno(f.dif), fuente: "negrita", color: f.dif > 0 ? TONOS.sube : f.dif < 0 ? TONOS.baja : TONOS.gris }
-        ]
+    /* ===================== 2 · COCIENTES ELECTORALES ==================== */
+    seccion("Cocientes electorales", "Votos de cada " + T.sing + " divididos entre la serie " + R.metodo.serie + (R.tipo === "simulado" ? ", con los cambios del «¿qué pasa si…?»" : "") + ", como en la tabla del simulador. Porcentajes sobre " + fmtEntero(R.coc.baseValidos) + " votos válidos.", 170);
+    (function cocientes() {
+      const C = R.coc;
+      const tam = C.divisores.length > 7 ? 7.6 : 8.2;
+      let anchoQ = 0;
+      C.filas.forEach((f) => f.cocientes.forEach((q) => {
+        anchoQ = Math.max(anchoQ, doc.ancho(q.texto, q.numero ? "negrita" : "normal", tam) + (q.numero ? doc.ancho(String(q.numero), "negrita", tam * 0.68) + 1.4 : 0));
       }));
-      const sum = (k) => R.filas.reduce((s, f) => s + (f[k] || 0), 0);
-      filas.push({ total: true, c: ["Total", fmtEntero(sum("votosRef")), fmtEntero(sum("votosSim")), fmtSigno(sum("votosSim") - sum("votosRef")), pctTxt(R.B > 0 ? sum("votosSim") * 100 / R.B : null), fmtEntero(sum("escRef")), fmtEntero(sum("escSim")), "0"] });
-      filas[filas.length - 1].c[3] = sum("votosSim") - sum("votosRef") === 0 ? "0" : fmtSigno(sum("votosSim") - sum("votosRef"));
-      filas[filas.length - 1].c[7] = sum("escSim") - sum("escRef") === 0 ? "0" : fmtSigno(sum("escSim") - sum("escRef"));
-      tabla(cols, filas, { continua: "Resultados por " + T.sing });
-      const sumSim = sum("votosSim");
-      if (R.B > 0 && Math.abs(sumSim * 100 / R.B - 100) > 0.005) nota("En el escenario simulado las " + T.plur + " suman " + fmtEntero(sumSim) + " votos (" + fmtPct(sumSim * 100 / R.B, 2) + " de la base), porque la simulación " + (sumSim > R.B ? "agrega" : "quita") + " votos. Los porcentajes se miden siempre sobre la misma base para que sean comparables.");
-    } else {
-      const cols = [{ t: T.Sing, w: 214 }, { t: "Votos", w: 70, al: "der" }, { t: "% de votos", w: 62, al: "der" }, { t: "Escaños", w: 50, al: "der" }, { t: "Puestos adjudicados", w: CW - 214 - 70 - 62 - 50, al: "izq" }];
-      const filas = R.filas.map((f) => ({ c: [{ t: f.nombre, punto: f.color, fuente: "negrita" }, fmtEntero(f.votosSim), pctTxt(f.pctSim), { t: fmtEntero(f.escSim), fuente: "negrita" }, f.puestosSim || "—"] }));
-      const sumV = R.filas.reduce((s, f) => s + (f.votosSim || 0), 0);
-      filas.push({ total: true, c: ["Total", fmtEntero(sumV), pctTxt(R.B > 0 ? sumV * 100 / R.B : null), fmtEntero(R.filas.reduce((s, f) => s + (f.escSim || 0), 0)), ""] });
-      tabla(cols, filas, { continua: "Resultados por " + T.sing });
-      if (R.B > 0 && Math.abs(sumV * 100 / R.B - 100) > 0.005) nota("Las " + T.plur + " suman " + fmtEntero(sumV) + " votos, el " + fmtPct(sumV * 100 / R.B, 2) + " de los " + fmtEntero(R.B) + " votos válidos del distrito: los porcentajes de la tabla de cocientes no suman 100 %.");
-    }
-
-    // Reparto propuesto («Nuevo»)
-    if (R.tipo === "reparto" && R.reparto) {
-      seccion("Reparto propuesto (escenario «Nuevo»)", "Escaños elegidos para cada " + T.sing + " y los votos mínimos y máximos con los que los obtendría, si el resto conserva sus votos de referencia. " + (R.reparto.restante > 0 ? "Repartidos " + fmtEntero(R.reparto.usados) + " de " + fmtEntero(R.S) + ": falta" + (R.reparto.restante === 1 ? " 1 escaño." : "n " + escRP(R.reparto.restante) + ".") : "El reparto está completo: " + fmtEntero(R.S) + " de " + fmtEntero(R.S) + "."), 100);
-      const cols = [{ t: T.Sing, w: 200 }, { t: "Escaños propuestos", w: 62, al: "der" }, { t: "Votos mínimos", w: 72, al: "der" }, { t: "Votos máximos", w: 72, al: "der" }, { t: "Votos de referencia", w: CW - 200 - 62 - 72 - 72, al: "der" }];
-      const filas = R.reparto.filas.map((f) => ({ c: [{ t: f.nombre, punto: f.color, fuente: "negrita" }, { t: fmtEntero(f.escanos), fuente: "negrita" }, f.min == null ? "—" : fmtEntero(f.min), f.max == null ? "sin tope" : fmtEntero(f.max), fmtEntero(f.votos)] }));
-      filas.push({ total: true, c: ["Total", fmtEntero(R.reparto.usados) + " de " + fmtEntero(R.S), "", "", fmtEntero(R.reparto.filas.reduce((s, f) => s + f.votos, 0))] });
-      tabla(cols, filas, { continua: "Reparto propuesto" });
-    }
-
-    // Gráfico de escaños: solo las organizaciones que tienen escaños en
-    // alguno de los escenarios; las demás se nombran debajo.
-    (function () {
-      const prop = {};
-      if (R.tipo === "reparto" && R.reparto) R.reparto.filas.forEach((f) => {
-        prop[f.id] = f.escanos;
-      });
-      const doble = hayComp || R.tipo === "reparto";
-      const a = (f) => R.tipo === "reparto" ? f.escSim : f.escRef;
-      const b = (f) => R.tipo === "reparto" ? prop[f.id] != null ? prop[f.id] : 0 : f.escSim;
-      const con = R.filas.filter((f) => (b(f) || 0) > 0 || doble && (a(f) || 0) > 0);
-      const sin = R.filas.filter((f) => con.indexOf(f) < 0);
-      const ordenadas = con.slice().sort((p, q) => (b(q) || 0) - (b(p) || 0) || (a(q) || 0) - (a(p) || 0) || (q.votosSim || 0) - (p.votosSim || 0));
-      const maxE = Math.max(1, ...ordenadas.map((f) => Math.max(b(f) || 0, doble ? a(f) || 0 : 0)));
-      const cfg = { filas: ordenadas.map((f) => ({ nombre: f.nombre, color: f.color, a: a(f), b: b(f) })), doble, leyenda: ["Referencia", R.tipo === "reparto" ? "Propuesto" : "Simulado"], max: maxE, marcas: marcasEnteras(maxE), marca: (v) => fmtEntero(v), valor: (v) => fmtEntero(v), eje: "Escaños" };
-      const med = medirGrafico(cfg);
-      const notaSin = sin.length ? (sin.length === 1 ? "Sin escaño" : "Sin escaño (" + fmtEntero(sin.length) + ")") + (doble ? " en ninguno de los dos escenarios: " : ": ") + listaDe(sin.map((f) => f.nombre)) + "." : "";
-      const lsSin = notaSin ? doc.partir(notaSin, CW, "cursiva", 7.8).length : 0;
-      seccion("Distribución de escaños por " + T.sing, hayComp ? "Escaños de cada " + T.sing + " en la referencia (barra clara) y en la simulación (barra de color)." : R.tipo === "reparto" ? "Escaños de cada " + T.sing + " en la referencia (barra clara) y en el reparto propuesto (barra de color)." : "Escaños que obtiene cada " + T.sing + ", de la que más tiene a la que menos.", med.total + lsSin * 11 + 8);
-      grafico(cfg, med);
-      if (notaSin) nota(notaSin, { despues: 16 });
-    })();
-    // Gráfico de porcentajes
-    (function () {
-      const maxP = Math.max(0.01, ...R.filas.map((f) => Math.max(f.pctSim || 0, hayComp ? f.pctRef || 0 : 0)));
-      const mp = marcasPct(maxP);
-      const cfg = { filas: R.filas.map((f) => ({ nombre: f.nombre, color: f.color, a: f.pctRef, b: f.pctSim })), doble: hayComp, leyenda: ["Referencia", "Simulado"], max: mp.tope, marcas: mp.out, marca: (v) => fmtEntero(v) + "%", valor: (v) => fmtPct(v, 2), eje: "% de votos válidos" };
-      const med = medirGrafico(cfg);
-      seccion("Porcentaje de votación por " + T.sing, "Porcentaje de votos de cada " + T.sing + " sobre " + fmtEntero(R.B) + " votos válidos" + (hayComp ? "; barra clara: referencia, barra de color: simulación." : "."), med.total);
-      grafico(cfg, med);
+      const wQ = Math.max(36, anchoQ + 13), wP = 50, wV = 56, wE = 44, minN = 118;
+      const caben = Math.max(1, Math.floor((CW - minN - wP - wV - wE) / wQ));
+      for (let a = 0, p = 0; a < C.divisores.length; a += caben, p++) {
+        const b = Math.min(C.divisores.length, a + caben);
+        const fijas = p === 0;
+        const wN = CW - (b - a) * wQ - (fijas ? wP + wV + wE : 0);
+        if (!fijas) subtitulo("Cocientes electorales (divisores " + C.divisores[a] + " a " + C.divisores[b - 1] + ")", 70);
+        const cols = [{ t: T.Sing, w: wN }].concat(fijas ? [{ t: "% de voto", w: wP, al: "der" }, { t: "Votos", w: wV, al: "der" }, { t: "Escaños", w: wE, al: "der" }] : []).concat(C.divisores.slice(a, b).map((d) => ({ t: "÷ " + d, w: wQ, al: "der" })));
+        const filas = C.filas.map((f) => ({
+          c: [{ t: f.nombre + (f.elegible ? "" : f.motivo === "umbral" ? " (bajo el umbral)" : " (sin votos)"), punto: f.color, fuente: "negrita", color: f.elegible ? TONOS.tinta : TONOS.gris }]
+            .concat(fijas ? [fmtPct(f.pct, 2), fmtEntero(f.votos), { t: fmtEntero(f.escanos), fuente: "negrita" }] : [])
+            .concat(f.cocientes.slice(a, b).map((q) => q.numero ? { t: q.texto, fuente: "negrita", fondo: f.color.suave || mezclar(f.color.hex, 0.86), sup: q.numero, colorSup: f.color.hex } : q.fuera ? { t: q.texto, marco: "#7d879b", color: TONOS.tinta2 } : { t: q.texto, color: TONOS.gris }))
+        }));
+        if (fijas) filas.push({ total: true, c: ["Total", fmtPct(C.sumaPct, 2), fmtEntero(C.sumaListas), fmtEntero(R.S)].concat(C.divisores.slice(a, b).map(() => "")) });
+        tabla(cols, filas, { tam, continua: "Cocientes electorales" });
+      }
+      const sp = C.sumaPct;
+      nota(Math.abs(sp - 100) < 0.05 ? "Los porcentajes suman 100 %: todos los votos válidos están repartidos." : sp > 100 ? "Los porcentajes suman " + fmtPct(sp, 2) + ": se pasan " + fmtPct(sp - 100, 2) + " del 100 %." : "Los porcentajes suman " + fmtPct(sp, 2) + ": queda " + fmtPct(100 - sp, 2) + " sin repartir (" + fmtEntero(Math.max(0, C.baseValidos - C.sumaListas)) + " votos).", { fuente: "normal", color: TONOS.tinta2, despues: 6 });
+      // Leyenda, como la del simulador
+      asegurar(16);
+      const c0 = (C.filas.find((f) => f.cocientes.some((q) => q.numero)) || {}).color || { hex: TONOS.acento };
+      const t1 = "Cociente con escaño; el número pequeño es el orden de adjudicación";
+      doc.rect(M, y + 1, 16, 9, { relleno: c0.suave || mezclar(c0.hex, 0.86), radio: 2 });
+      doc.texto(t1, M + 21, y + 8, { tam: 7.6, color: TONOS.tinta2 });
+      const x2 = M + 21 + doc.ancho(t1, "normal", 7.6) + 16;
+      doc.rect(x2, y + 1, 16, 9, { borde: "#7d879b", grosor: 0.9, discontinua: [2.2, 1.6], radio: 2 });
+      doc.texto("Primer cociente que queda fuera", x2 + 21, y + 8, { tam: 7.6, color: TONOS.tinta2 });
+      y += 24;
     })();
 
-    /* =========================== METODOLOGÍA =========================== */
-    seccion("Detalle metodológico", null, 160);
-    (function claves() {
-      const tot = R.totSim;
-      const o = R.origen;
-      const pares2 = [
-        ["Fórmula electoral", R.metodo.nombre + ": " + (R.metodo.descripcion ? R.metodo.descripcion.charAt(0).toLowerCase() + R.metodo.descripcion.slice(1) : "los votos de cada " + T.sing + " se dividen para la serie " + R.metodo.serie + " y los escaños se asignan a los cocientes más altos.")],
-        ["Escaños a distribuir", fmtEntero(R.S) + ". Fuente: " + R.fuenteEsc],
-        ["Votos utilizados", "Los votos válidos de cada " + T.sing + ": " + fmtEntero(tot.votosListas) + " en total en el escenario " + (R.tipo === "simulado" ? "simulado" : "de referencia") + ". Los votos blancos (" + fmtEntero(tot.blancos) + ") y nulos (" + fmtEntero(tot.nulos) + ") no entran en el reparto; con ellos, el total de votos es " + fmtEntero(tot.emitidos) + "."],
-        ["Base de los porcentajes", fmtEntero(R.B) + " votos válidos" + (R.disponibles > 0 ? " del distrito, que calcula el tablero (sección Participación) a partir del padrón y de los porcentajes de ausentismo, nulos y blancos" + (R.anioPart ? "; los de partida son los de la elección de " + R.anioPart : "") + "." : " de la referencia.")],
-        ["Umbral", R.umbral > 0 ? fmtUmbral(R.umbral) + " de " + R.baseModo.toLowerCase() + "." : "Sin umbral: participan todas las " + T.plur + " con votos."],
-        ["Criterio de desempate", R.regla.nombre + ". " + R.regla.descripcion + (R.empate ? " En este escenario hay un empate exacto en el último escaño." : " En este escenario no hay empates que decidan un escaño.")],
-        ["Fuente de los datos", o ? (o.fuente ? "Listas: " + o.fuente + (o.anio ? " (" + o.anio + ")" : "") + ". " : "") + (o.notaFuente ? o.notaFuente + " " : "") + "Votos de referencia: los de la tabla de cocientes del simulador." : "Datos escritos o importados en el simulador."],
-        ["Fecha de referencia", "Datos vigentes en el tablero el " + R.fechaLarga + ", momento en que se generó este reporte."]
-      ];
-      const wE = 128;
-      pares2.forEach(([e, v]) => {
-        const lv = doc.partir(v, CW - wE - 8, "normal", 8.8);
-        const le = doc.partir(e, wE - 10, "negrita", 8.4);
-        const h = Math.max(lv.length, le.length) * 11.8 + 9;
-        asegurar(h);
-        le.forEach((l, k) => doc.texto(l, M, y + 11 + k * 11.8, { tam: 8.4, fuente: "negrita", color: TONOS.tinta2 }));
-        lv.forEach((l, k) => doc.texto(l, M + wE, y + 11 + k * 11.8, { tam: 8.8, color: TONOS.tinta }));
-        doc.linea(M, y + h, M + CW, y + h, { borde: TONOS.lineaSuave, grosor: 0.5 });
-        y += h;
-      });
-      y += 16;
-    })();
-
-    // Orden de adjudicación
-    subtitulo("Orden de adjudicación de los escaños" + (R.tipo === "simulado" ? " (escenario simulado)" : ""), 80);
+    /* ================== 3 · ORDEN DE ADJUDICACIÓN =================== */
+    seccion("Orden de adjudicación de los escaños", "Los " + fmtEntero(R.S) + " cocientes más altos, de mayor a menor: cada uno es un escaño" + (R.tipo === "simulado" ? " (escenario con los cambios del «¿qué pasa si…?»)" : "") + ".", 90);
     (function () {
       const cols = [{ t: "Escaño", w: 48, al: "centro" }, { t: T.Sing, w: 213 }, { t: "Votos", w: 70, al: "der" }, { t: "Divisor", w: 54, al: "der" }, { t: "Cociente", w: 78, al: "der" }, { t: "Empate", w: CW - 48 - 213 - 70 - 54 - 78, al: "centro" }];
       const filas = R.adjudicacion.map((a) => ({ c: [{ t: ordinal(a.numero), fuente: "negrita" }, { t: a.nombre, punto: a.color }, fmtEntero(a.votos), a.divisor, { t: fmtDecimal(a.cociente, 2), fuente: "negrita" }, a.empatado ? "Sí" : "No"] }));
       tabla(cols, filas, { continua: "Orden de adjudicación" });
       const u = R.corte.ultimoGanador, x = R.corte.primerExcluido;
-      if (u && x) nota("Primer cociente sin escaño: " + x.nombre + ", " + fmtEntero(x.votos) + " ÷ " + fmtDivisor(x.divisor) + " = " + fmtDecimal(x.cociente, 2) + ". Diferencia con el último cociente ganador (" + fmtDecimal(u.cociente, 2) + "): " + fmtDecimal(R.corte.diferencia, 2) + ".", { fuente: "normal", color: TONOS.tinta2 });
+      if (u && x) nota("Primer cociente sin escaño: " + x.nombre + ", " + fmtEntero(x.votos) + " ÷ " + fmtDivisor(x.divisor) + " = " + fmtDecimal(x.cociente, 2) + ". Diferencia con el último cociente ganador (" + fmtDecimal(u.cociente, 2) + "): " + fmtDecimal(R.corte.diferencia, 2) + ".", { fuente: "normal", color: TONOS.tinta2, despues: 14 });
     })();
 
-    // Matriz de cocientes
-    (function () {
-      const divs = R.matriz.divisores;
-      const porTabla = 5;
-      for (let ini = 0; ini < divs.length; ini += porTabla) {
-        const parte = divs.slice(ini, ini + porTabla);
-        subtitulo("Cocientes por " + T.sing + (divs.length > porTabla ? " (divisores " + parte[0] + " a " + parte[parte.length - 1] + ")" : ""), 70);
-        const wN = 170, wV = 60, wD = (CW - wN - wV) / parte.length;
-        const cols = [{ t: T.Sing, w: wN }, { t: "Votos", w: wV, al: "der" }].concat(parte.map((d) => ({ t: "÷ " + d, w: wD, al: "der" })));
-        const filas = R.matriz.filas.map((f) => ({ c: [{ t: f.nombre, punto: f.color }, fmtEntero(f.votos)].concat(f.cocientes.slice(ini, ini + porTabla).map((q) => q.numero ? { t: fmtDecimal(q.valor, 2) + " · " + ordinal(q.numero), fuente: "negrita", color: TONOS.acento } : { t: fmtDecimal(q.valor, 2), color: TONOS.gris })) }));
-        tabla(cols, filas, { tam: parte.length > 5 ? 7.6 : 8.2, continua: "Cocientes" });
+    /* ================ 4 · SIMULADOR: ¿QUÉ PASA SI…? ================= */
+    if (R.tipo === "reparto" && R.reparto) {
+      seccion("Simulador: ¿qué pasa si…?", "Escenario «Nuevo»: escaños elegidos para cada " + T.sing + " y los votos mínimos y máximos con los que los obtendría, si el resto conserva sus votos de referencia. " + (R.reparto.restante > 0 ? "Repartidos " + fmtEntero(R.reparto.usados) + " de " + fmtEntero(R.S) + ": falta" + (R.reparto.restante === 1 ? " 1 escaño." : "n " + escRP(R.reparto.restante) + ".") : "El reparto está completo: " + fmtEntero(R.S) + " de " + fmtEntero(R.S) + "."), 100);
+      const cols = [{ t: T.Sing, w: 200 }, { t: "Escaños propuestos", w: 62, al: "der" }, { t: "Votos mínimos", w: 72, al: "der" }, { t: "Votos máximos", w: 72, al: "der" }, { t: "Votos de referencia", w: CW - 200 - 62 - 72 - 72, al: "der" }];
+      const filas = R.reparto.filas.map((f) => ({ c: [{ t: f.nombre, punto: f.color, fuente: "negrita" }, { t: fmtEntero(f.escanos), fuente: "negrita" }, f.min == null ? "—" : fmtEntero(f.min), f.max == null ? "sin tope" : fmtEntero(f.max), fmtEntero(f.votos)] }));
+      filas.push({ total: true, c: ["Total", fmtEntero(R.reparto.usados) + " de " + fmtEntero(R.S), "", "", fmtEntero(R.reparto.filas.reduce((s, f) => s + f.votos, 0))] });
+      tabla(cols, filas, { continua: "Simulador: ¿qué pasa si…?" });
+    } else if (R.sim) {
+      const haySim = R.tipo === "simulado";
+      seccion("Simulador: ¿qué pasa si…?", (haySim ? "Votos de cada " + T.sing + " con los cambios simulados (el cambio es frente a la tabla de cocientes). " : "Votos de cada " + T.sing + ": los de la tabla de cocientes, sin cambios simulados. ") + "Votos mínimos y máximos: entre esas cifras conserva los escaños que tiene, si las demás no cambian. «Para un escaño más»: los votos que le faltan para el siguiente. Son búsquedas exactas del motor, las mismas del simulador.", 110);
+      const wN = haySim ? 120 : 168, wVo = 54, wCa = haySim ? 64 : 0, wEs = 44, wPu = 62, wMi = 54, wMa = 54;
+      const cols = [{ t: T.Sing, w: wN }, { t: "Votos", w: wVo, al: "der" }].concat(haySim ? [{ t: "Cambio", w: wCa, al: "der" }] : []).concat([{ t: "Escaños", w: wEs, al: "der" }, { t: "Puestos", w: wPu }, { t: "Votos mínimos", w: wMi, al: "der" }, { t: "Votos máximos", w: wMa, al: "der" }, { t: "Para un escaño más", w: CW - wN - wVo - wCa - wEs - wPu - wMi - wMa, al: "der" }]);
+      const filas = R.sim.map((f) => {
+        const dEsc = f.escBase != null ? f.escanos - f.escBase : 0;
+        return {
+          c: [{ t: f.nombre, punto: f.color, fuente: "negrita" }, fmtEntero(f.votos)]
+            .concat(haySim ? [{ t: f.delta === 0 ? "sin cambio" : fmtSigno(f.delta) + (f.pctDelta != null ? "\n(" + fmtSignoDec(f.pctDelta, 1) + "%)" : ""), color: f.delta > 0 ? TONOS.sube : f.delta < 0 ? TONOS.baja : TONOS.gris }] : [])
+            .concat([
+              { t: fmtEntero(f.escanos) + (dEsc ? " (" + fmtSigno(dEsc) + ")" : ""), fuente: "negrita", color: dEsc > 0 ? TONOS.sube : dEsc < 0 ? TONOS.baja : TONOS.tinta },
+              f.puestos || "—",
+              fmtEntero(f.min),
+              f.todos ? "sin tope" : f.max == null ? "—" : fmtEntero(f.max),
+              { t: f.todos ? "tiene todos" : f.falta == null ? "—" : "+" + fmtEntero(f.falta), fuente: f.todos || f.falta == null ? "normal" : "negrita", color: f.todos || f.falta == null ? TONOS.gris : TONOS.acento }
+            ])
+        };
+      });
+      const sumV = R.sim.reduce((s, f) => s + f.votos, 0), sumD = R.sim.reduce((s, f) => s + f.delta, 0);
+      filas.push({ total: true, c: ["Total", fmtEntero(sumV)].concat(haySim ? [sumD === 0 ? "sin cambio" : fmtSigno(sumD)] : []).concat([fmtEntero(R.sim.reduce((s, f) => s + f.escanos, 0)), "", "", "", ""]) });
+      tabla(cols, filas, { tam: 8.1, continua: "Simulador: ¿qué pasa si…?" });
+    }
+
+    /* ========= 5 · ESTABILIDAD Y CAMBIOS EN LA REPRESENTACIÓN ========== */
+    (function estabilidad() {
+      const E = R.est;
+      const amp = E ? E.amp : 2;
+      seccion("Estabilidad y cambios en la representación", "Escenarios hipotéticos: cada " + T.sing + " con votos sube o baja de 0,5 en 0,5 puntos, hasta ±" + fmtEntero(amp) + " " + plural(amp, "punto", "puntos") + " de los votos válidos, y las demás compensan en proporción a sus votos. Cada reparto se calcula con " + R.metodo.nombre + ", los mismos " + fmtEntero(R.S) + " escaños y las mismas reglas que el resultado. No es una proyección.", 120);
+      if (!E) {
+        nota("No se pudo calcular la estabilidad con estos datos.", { fuente: "normal" });
+        return;
       }
-      nota("En azul y con su número, los cocientes que ganan escaño y el orden en que se adjudican. Cada " + T.sing + " obtiene tantos escaños como cocientes suyos quedan entre los " + fmtEntero(R.S) + " más altos.", { despues: 14 });
+      if (E.conVotos < 2) {
+        nota("Hace falta que al menos dos " + T.plur + " tengan votos para comparar escenarios: con una sola, se lleva todos los escaños en cualquier caso.", { fuente: "normal", color: TONOS.tinta2 });
+        return;
+      }
+      filaTarjetas([
+        { e: "Escaños firmes", v: fmtEntero(E.firmes) + " de " + fmtEntero(R.S), s: E.enJuego > 0 ? fmtEntero(E.enJuego) + " " + plural(E.enJuego, "escaño en juego", "escaños en juego") : "ninguno cambia de manos" },
+        { e: "Escenarios con cambios", v: fmtEntero(E.conCambio) + " de " + fmtEntero(E.N), s: fmtPct(E.frac * 100, 1) + " mueve algún escaño" },
+        { e: "Escaños que cambian", v: fmtEntero(E.maxMovidos), s: "como máximo en un escenario" },
+        { e: "Sensibilidad del reparto", v: E.niv.t, s: fmtEntero(E.estables) + " de " + fmtEntero(E.conEscano) + " con escaño, siempre iguales", foco: true }
+      ], { gap: 9, alto: 60, tamV: 15, despues: 14 });
+      const CEst = { estable: TONOS.sube, gana: TONOS.acento, entra: TONOS.acento, pierde: TONOS.baja, disputa: TONOS.ambarTinta, sin: TONOS.gris };
+      const verde = "#2f9e6b", azul = "#2257c5", rojo = "#c4372c";
+      const cols = [{ t: T.Sing + ", de la más estable a la menos", w: 188 }, { t: "Escaños hoy", w: 50, al: "der" }, { t: "Rango posible", w: 84 }, { t: "En los " + fmtEntero(E.N) + " escenarios", w: 120 }, { t: "Situación", w: CW - 188 - 50 - 84 - 120 }];
+      const filas = E.filas.map((f) => ({
+        c: [
+          { t: f.nombre, punto: f.color, fuente: "negrita" },
+          { t: fmtEntero(f.act), fuente: "negrita" },
+          f.min === f.max ? "siempre " + nEscanos(f.act) : "de " + fmtEntero(f.min) + " a " + nEscanos(f.max),
+          { t: "mantiene " + fmtPct(f.mantiene, 0) + (f.gana > 0 ? " · gana " + fmtPct(f.gana, 0) : "") + (f.pierde > 0 ? " · pierde " + fmtPct(f.pierde, 0) : ""), barra: [{ f: f.mantiene / 100, color: verde }, { f: f.gana / 100, color: azul }, { f: f.pierde / 100, color: rojo }] },
+          { t: f.est.t, fuente: "negrita", color: CEst[f.est.c] || TONOS.tinta }
+        ]
+      }));
+      tabla(cols, filas, { tam: 8.1, continua: "Estabilidad", despues: 6 });
+      // Leyenda de la barrita
+      asegurar(14);
+      let xl = M;
+      [["Mantiene sus escaños", verde], ["Gana escaños", azul], ["Pierde escaños", rojo]].forEach(([tx, col]) => {
+        doc.rect(xl, y + 3, 9, 5, { relleno: col });
+        doc.texto(tx, xl + 13, y + 8, { tam: 7.4, color: TONOS.tinta2 });
+        xl += 13 + doc.ancho(tx, "normal", 7.4) + 16;
+      });
+      y += 18;
+      if (E.sin.length) nota("Sin escaño en ningún escenario (" + fmtEntero(E.sin.length) + "): " + listaDe(E.sin) + ".", { fuente: "normal", color: TONOS.tinta2 });
+      y += 8;
     })();
 
     // Advertencia
