@@ -1586,7 +1586,10 @@ se descarga como PNG.
 **Panel lateral.** Dignidad, provincia, cantón, parroquia y limpiar filtros.
 El selector de cantón está deshabilitado hasta que elijas una provincia, y el
 de parroquia hasta que elijas un cantón. El de parroquia solo aparece con las
-dignidades que se eligen por parroquia (hoy, Vocales).
+dignidades que se eligen por parroquia (hoy, Vocales) y, desde la v6.1.1, ofrece
+solo las parroquias rurales del cantón, que son las que eligen junta parroquial
+(propiedad «estado» de la capa parroquial). En un cantón sin parroquias rurales
+queda vacío.
 
 **Mapa.** Zoom, escala, pantalla completa, control de capas, volver a Ecuador,
 volver a la provincia y leyenda dinámica.

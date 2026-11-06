@@ -350,14 +350,34 @@ function poblarParroquias() {
   const dig = CONFIG.dignidades.find(d => d.id === ESTADO.dignidad);
   campo.hidden = dig.nivel !== 'parroquia';
 
-  const parrs = (ESTADO.provK && ESTADO.cantK)
+  let parrs = (ESTADO.provK && ESTADO.cantK)
     ? (TERRITORIO.parroquiasPorCant.get(ESTADO.provK + '|' + ESTADO.cantK) || []) : [];
+  /* Vocales (v6.1.1): solo las parroquias rurales, las que eligen junta parroquial. */
+  if (ESTADO.dignidad === 'VOCALES') parrs = parroquiasRurales(parrs, ESTADO.provK, ESTADO.cantK);
   sel.innerHTML = '<option value="">Todas las parroquias</option>' +
     parrs.map(x => `<option value="${x.__key}">${tituloCase(x.__nombre)}</option>`).join('');
   sel.disabled = !parrs.length;
   campo.classList.toggle('deshabilitado', !parrs.length);
   if (ESTADO.parrK && !parrs.some(x => x.__key === ESTADO.parrK)) ESTADO.parrK = '';
   sel.value = ESTADO.parrK;
+}
+
+/**
+ * Parroquias rurales del cantón (v6.1.1), para el selector de Vocales en
+ * Preinscritos. Rural según la propiedad «estado» de la capa parroquial del
+ * CNE (RURAL / URBANA). Se suma cualquier parroquia donde la base registre
+ * vocales preinscritos aunque la capa la clasifique distinto, para no dejar
+ * datos fuera del selector. Si la capa no trae «estado», quedan todas.
+ */
+function parroquiasRurales(parrs, provK, cantK) {
+  const estado = (f) => normalizarTexto(String((f.properties || {}).estado || ''));
+  if (!parrs.some(estado)) return parrs;
+  const conVocales = new Set();
+  DATOS.registros.forEach(r => {
+    if (r.dignidad === 'VOCALES' && r.provK === provK && r.cantK === cantK && r.parrKeyGeo)
+      conVocales.add(r.parrKeyGeo);
+  });
+  return parrs.filter(f => estado(f) === 'RURAL' || conVocales.has(f.__key));
 }
 
 function sincronizarSelectores() {
